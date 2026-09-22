@@ -1,0 +1,84 @@
+# CI gates from TESTING.md: format, lint, typecheck, migration validation,
+# integration tests. Runs against an isolated, throwaway Postgres service —
+# never the CranL development database, and it holds no credentials for it.
+#
+# ARCHITECTURE.md §13: CI builds, checks and tests. It does not deploy and does
+# not migrate any shared or production database.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        # Match the CranL development server's major version (PostgreSQL 16).
+        image: postgres:16
+        env:
+          POSTGRES_USER: qup
+          POSTGRES_PASSWORD: qup
+          POSTGRES_DB: qup_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qup -d qup_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Throwaway credentials for the ephemeral service container above.
+      DATABASE_URL: postgresql://qup:qup@localhost:5432/qup_db
+      TEST_DATABASE_URL: postgresql://qup:qup@localhost:5432/qup_db
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format & lint
+        run: pnpm exec biome ci .
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Migration metadata is consistent
+        run: pnpm db:check
+
+      - name: Schema has no unmigrated changes
+        # Fails if someone edited the Drizzle schema without generating a migration.
+        run: |
+          pnpm db:generate
+          git diff --exit-code -- packages/db/migrations
+          test -z "$(git status --porcelain -- packages/db/migrations)"
+
+      - name: Migrations apply cleanly to an empty database
+        run: pnpm db:migrate
+
+      - name: Live schema matches migrations
+        run: pnpm db:verify
+
+      - name: Integration tests
+        run: pnpm test

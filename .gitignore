@@ -1,0 +1,26 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Claude local settings
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+
+# Tooling caches
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

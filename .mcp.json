@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cranl-qup": {
+      "type": "http",
+      "url": "https://app.cranl.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${CRANL_QUP_KEY}"
+      }
+    }
+  }
+}
