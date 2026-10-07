@@ -79,6 +79,9 @@ export const payments = pgTable(
     currency: text("currency").notNull(),
     status: paymentStatusEnum("status").notNull().default("PENDING"),
     idempotencyKey: text("idempotency_key").notNull(),
+    /** Hosted checkout page of the provider, and when it stops accepting payment. */
+    checkoutUrl: text("checkout_url"),
+    checkoutExpiresAt: timestamp("checkout_expires_at", { withTimezone: true, mode: "date" }),
     /** SECURITY.md — redacted payload only. No card data, no provider secrets. */
     providerPayloadRedacted: jsonb("provider_payload_redacted"),
     createdAt: createdAt(),
@@ -90,6 +93,13 @@ export const payments = pgTable(
       .on(table.provider, table.providerReference)
       .where(sql`provider_reference IS NOT NULL`),
     index("payments_student_status_idx").on(table.studentId, table.status),
+    /**
+     * One open checkout per student and plan: two payment links for the same
+     * purchase are how a student ends up paying twice.
+     */
+    uniqueIndex("payments_one_pending")
+      .on(table.studentId, table.planId)
+      .where(sql`status = 'PENDING'`),
     check("payments_amount_non_negative", sql`${table.amountMinor} >= 0`),
     check("payments_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
   ],

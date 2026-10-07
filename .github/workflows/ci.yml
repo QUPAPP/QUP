@@ -80,5 +80,8 @@ jobs:
       - name: Live schema matches migrations
         run: pnpm db:verify
 
-      - name: Integration tests
+      - name: Tests (database integration + API)
         run: pnpm test
+
+      - name: Build
+        run: pnpm build

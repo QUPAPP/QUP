@@ -18,7 +18,8 @@
     "db:generate": "pnpm --filter @qup/db generate",
     "db:check": "pnpm --filter @qup/db check",
     "db:migrate": "pnpm --filter @qup/db migrate",
-    "db:verify": "pnpm --filter @qup/db verify"
+    "db:verify": "pnpm --filter @qup/db verify",
+    "admin:create": "pnpm --filter @qup/api run admin:create"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

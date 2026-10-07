@@ -1,4 +1,20 @@
+import { randomUUID } from "node:crypto";
+
 import { firstRow, type Tx } from "./db.js";
+
+/** Not a real Argon2 hash: these rows never authenticate, they only satisfy NOT NULL. */
+const PLACEHOLDER_PASSWORD_HASH = "test-placeholder-not-a-real-hash";
+
+/** Synthetic user on the reserved .test domain — never real personal data. */
+export async function insertUser(tx: Tx, label: string): Promise<string> {
+  const email = `${label}-${randomUUID()}@qup.test`;
+  const row = firstRow(
+    await tx<{ id: string }[]>`
+      INSERT INTO users (email, password_hash, display_name)
+      VALUES (${email}, ${PLACEHOLDER_PASSWORD_HASH}, ${label}) RETURNING id`,
+  );
+  return row.id;
+}
 
 /**
  * Minimal synthetic graph: one student answering one draft question inside one
@@ -19,9 +35,7 @@ export interface QuestionGraph {
 type IdRow = { id: string };
 
 export async function buildQuestionGraph(tx: Tx): Promise<QuestionGraph> {
-  const student = firstRow(
-    await tx<IdRow[]>`INSERT INTO users (display_name) VALUES ('test-student') RETURNING id`,
-  );
+  const student = { id: await insertUser(tx, "test-student") };
   const exam = firstRow(
     await tx<IdRow[]>`
       INSERT INTO exams (code, slug, name_ar) VALUES ('TEST', 'test', 'اختبار') RETURNING id`,
@@ -55,8 +69,8 @@ export async function buildQuestionGraph(tx: Tx): Promise<QuestionGraph> {
   );
   const session = firstRow(
     await tx<IdRow[]>`
-      INSERT INTO assessment_sessions (student_id, type, scoring_version)
-      VALUES (${student.id}, 'DIAGNOSTIC', 'scoring-test') RETURNING id`,
+      INSERT INTO assessment_sessions (student_id, exam_id, type, scoring_version)
+      VALUES (${student.id}, ${exam.id}, 'MINI_DIAGNOSTIC', 'scoring-test') RETURNING id`,
   );
   const item = firstRow(
     await tx<IdRow[]>`
@@ -115,8 +129,24 @@ export function insertMasteryEvent(
             0, 0.1, 'CORRECT', 0.5, 1, 'mastery-v1.0', 'config-test')`;
 }
 
-export async function publish(tx: Tx, questionVersionId: string): Promise<void> {
+/**
+ * Makes the graph's draft publishable — a correct option and a PRIMARY mapping,
+ * unless the test already added them — then walks it through the lifecycle
+ * the database enforces: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED.
+ */
+export async function publish(tx: Tx, graph: QuestionGraph): Promise<void> {
+  const id = graph.questionVersionId;
   await tx`
-    UPDATE question_versions SET status = 'PUBLISHED', published_at = now()
-    WHERE id = ${questionVersionId}`;
+    INSERT INTO question_options (question_version_id, key, content, is_correct)
+    SELECT ${id}, 'FIXTURE', '{}'::jsonb, true
+    WHERE NOT EXISTS (
+      SELECT 1 FROM question_options WHERE question_version_id = ${id} AND is_correct)`;
+  await tx`
+    INSERT INTO question_skill_mappings (question_version_id, skill_id, role, attribution_weight)
+    SELECT ${id}, ${graph.skillId}, 'PRIMARY', 1
+    WHERE NOT EXISTS (
+      SELECT 1 FROM question_skill_mappings WHERE question_version_id = ${id} AND role = 'PRIMARY')`;
+  await tx`UPDATE question_versions SET status = 'UNDER_REVIEW' WHERE id = ${id}`;
+  await tx`UPDATE question_versions SET status = 'APPROVED' WHERE id = ${id}`;
+  await tx`UPDATE question_versions SET status = 'PUBLISHED', published_at = now() WHERE id = ${id}`;
 }

@@ -1,6 +1,13 @@
 import { afterAll, describe, it } from "vitest";
 
-import { expectRejected, firstRow, SqlState, testSql, withRollback } from "./support/db.js";
+import {
+  expectRejected,
+  firstRow,
+  SqlState,
+  type Tx,
+  testSql,
+  withRollback,
+} from "./support/db.js";
 import { addItem, answerItem, buildQuestionGraph } from "./support/fixtures.js";
 
 afterAll(() => testSql.end());
@@ -73,5 +80,30 @@ describe("assessment integrity", () => {
           UPDATE assessment_items SET adaptive_decision_id = ${decision.id}
           WHERE id = ${graph.itemId}`,
       );
+    }));
+});
+
+describe("assessment sessions", () => {
+  const openSession = (db: Tx, studentId: string, examId: string) =>
+    db`
+      INSERT INTO assessment_sessions (student_id, exam_id, type, scoring_version)
+      VALUES (${studentId}, ${examId}, 'MINI_DIAGNOSTIC', 'scoring-test')`;
+
+  it("allows one unfinished session per student, exam and type", () =>
+    withRollback(async (tx) => {
+      // The fixture already opened a MINI_DIAGNOSTIC session for this student and exam.
+      const graph = await buildQuestionGraph(tx);
+
+      await expectRejected(tx, SqlState.uniqueViolation, (sp) =>
+        openSession(sp, graph.studentId, graph.examId),
+      );
+    }));
+
+  it("allows a new session once the previous one is finished", () =>
+    withRollback(async (tx) => {
+      const graph = await buildQuestionGraph(tx);
+      await tx`UPDATE assessment_sessions SET status = 'COMPLETED' WHERE id = ${graph.sessionId}`;
+
+      await openSession(tx, graph.studentId, graph.examId);
     }));
 });

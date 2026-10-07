@@ -112,6 +112,15 @@ export const assessmentSessions = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    /**
+     * Every session belongs to one exam (PRD §4: each exam has its own skill
+     * profile). Stored directly: a session may have no blueprint row (a
+     * default-sized mini diagnostic), and "does this student have an open
+     * session for this exam" must not need a join through its items.
+     */
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "restrict" }),
     blueprintId: uuid("blueprint_id").references(() => assessmentBlueprints.id, {
       onDelete: "restrict",
     }),
@@ -129,6 +138,16 @@ export const assessmentSessions = pgTable(
     // ERD.md indexing: sessions by student/status.
     index("assessment_sessions_student_status_idx").on(table.studentId, table.status),
     index("assessment_sessions_expires_idx").on(table.expiresAt),
+    index("assessment_sessions_student_exam_type_idx").on(
+      table.studentId,
+      table.examId,
+      table.type,
+    ),
+    // One unfinished session per student, exam and type: a double-clicked
+    // "start" resumes the open session instead of creating a second one.
+    uniqueIndex("assessment_sessions_one_open")
+      .on(table.studentId, table.examId, table.type)
+      .where(sql`status IN ('CREATED', 'IN_PROGRESS')`),
   ],
 );
 

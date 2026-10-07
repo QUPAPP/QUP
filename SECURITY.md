@@ -21,7 +21,17 @@ Recommended baseline:
 - Argon2id passwords.
 - rate limiting.
 
-Exact email/phone verification is TBD.
+Sign-up: email, phone, or both; sign-in with either. No OTP/ownership verification
+(OPEN_QUESTIONS.md #6, decided 2026-09-22). Consequence tracked as #6a: no safe
+self-service password recovery yet.
+
+Implemented (apps/api):
+- session token: 256 random bits; only its SHA-256 digest is stored.
+- cookie: HttpOnly, SameSite=Lax, Secure + `__Host-` prefix in production.
+- passwords: Argon2id (m=19 MiB, t=2, p=1); 12–128 characters, no composition rules (OWASP ASVS V2.1).
+- login: identical response and comparable timing for unknown account vs wrong password.
+- suspending a user revokes access on the next request, not at session expiry.
+- rate limit: per-IP budget on login/register (in-memory; move to Redis before running multiple instances).
 
 ## Authorization
 
@@ -87,6 +97,19 @@ Prevent IDOR via ownership checks; never trust `studentId` from client for self 
 - browser redirect is not payment authority.
 - server validates amount/currency/plan.
 - entitlement grant atomic with successful payment state.
+
+Implemented (Stream):
+- Webhook authenticated by HMAC-SHA256 over the exact request bytes (`X-Webhook-Signature`),
+  constant-time compare, before the body is parsed. The route is the only `@Public()` write.
+- The event is a hint, not the authority: status, amount and currency are re-read from Stream's API
+  before any transition. Makes forged-content, stale and replayed events harmless — which is why no
+  timestamp tolerance is enforced (Stream retries for 12 h and does not document re-signing).
+- A payment found by its checkout must also match the payment id echoed in the event metadata.
+- Paid amount ≠ recorded amount ⇒ no entitlement, error logged.
+- Stream credentials come from the environment only, are redacted from logs, are sent to the
+  configured base URL only (redirects refused, https required in production), and never appear in
+  errors. No card data reaches QUP: payment happens on Stream's hosted page.
+- Checkout takes only `planId` from the client; price from the plan, student from the session.
 
 ## Web Security
 

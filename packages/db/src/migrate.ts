@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
 import { createConnection } from "./client.js";
-import { describeTarget } from "./env.js";
+import { describeTarget, env } from "./env.js";
 
 /**
  * Applies committed migrations to the database named by DATABASE_URL.
@@ -22,7 +22,7 @@ const EXPECTED_DATABASE = "qup_db";
 const migrationsFolder = fileURLToPath(new URL("../migrations", import.meta.url));
 
 async function main(): Promise<void> {
-  const connection = createConnection({ max: 1 });
+  const connection = createConnection(env.DATABASE_URL, { maxConnections: 1 });
 
   try {
     const [target] = await connection<{ database: string }[]>`

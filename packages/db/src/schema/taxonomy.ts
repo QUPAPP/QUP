@@ -68,6 +68,12 @@ export const taxonomyVersions = pgTable(
   (table) => [
     // ERD.md — one version code per exam.
     uniqueIndex("taxonomy_versions_exam_version_unique").on(table.examId, table.versionCode),
+    // One current taxonomy per exam (OPEN_QUESTIONS.md #16b): publishing a new
+    // version archives the previous one. Enforced here so two concurrent
+    // publishes cannot both win.
+    uniqueIndex("taxonomy_versions_one_published_per_exam")
+      .on(table.examId)
+      .where(sql`status = 'PUBLISHED'`),
     index("taxonomy_versions_exam_status_idx").on(table.examId, table.status),
   ],
 );

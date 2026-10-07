@@ -55,11 +55,13 @@ erDiagram
 
 ### users
 - id UUID
-- email nullable until auth decision final
-- phone nullable until auth decision final
-- password_hash
+- email nullable — normalized (trimmed, lower-case), unique when present
+- phone nullable — E.164, unique when present
+- at least one of email/phone required (OPEN_QUESTIONS.md #6, decided 2026-09-22)
+- password_hash (Argon2id), required
 - display_name
-- status
+- status — ACTIVE on creation (no verification step)
+- email_verified_at / phone_verified_at — NULL until a verification flow exists
 - created_at / updated_at
 
 ### auth_sessions
@@ -249,6 +251,8 @@ Exactly one learning target reference per mapping row.
 ### assessment_sessions
 - id
 - student_id
+- exam_id (added in migration 0008: a session may have no blueprint row, and "open session for this
+  exam" must not need a join through its items; one CREATED/IN_PROGRESS session per student+exam+type)
 - blueprint_id
 - type snapshot
 - status
@@ -363,8 +367,12 @@ Critical uniqueness prevents duplicate evidence from same attempt/node.
 - amount_minor/currency
 - status
 - idempotency_key
+- checkout_url / checkout_expires_at (migration 0009: the provider's hosted page and its expiry)
 - redacted provider payload
 - created_at/paid_at
+
+One PENDING payment per student + plan (partial unique index, 0009): two open links for one
+purchase are how a student pays twice.
 
 ### entitlements
 - id

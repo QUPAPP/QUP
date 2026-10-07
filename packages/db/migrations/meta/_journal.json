@@ -15,6 +15,62 @@
       "when": 1790101237306,
       "tag": "0001_db_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790107397220,
+      "tag": "0002_users_identity_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790107509108,
+      "tag": "0003_seed_rbac",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790345862489,
+      "tag": "0004_one_published_taxonomy",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790345864224,
+      "tag": "0005_taxonomy_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790605226370,
+      "tag": "0006_question_version_uniqueness",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790605229389,
+      "tag": "0007_question_lifecycle_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790623151085,
+      "tag": "0008_assessment_sessions_exam",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791122817257,
+      "tag": "0009_payments_checkout",
+      "breakpoints": true
     }
   ]
 }

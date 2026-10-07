@@ -1,5 +1,6 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
+  check,
   index,
   pgTable,
   primaryKey,
@@ -14,11 +15,18 @@ import { createdAt, primaryKeyId, updatedAt, userStatusEnum, whereNotNull } from
 /**
  * Identity & RBAC.
  *
- * email/phone are both nullable: the auth decision is still open
- * (ERD.md "Identity/RBAC", OPEN_QUESTIONS.md). At least one is required —
- * enforced at the application boundary, since the rule may change with that
- * decision and a CHECK constraint would need a migration to relax.
+ * Sign-up decision (OPEN_QUESTIONS.md #6, 2026-09-22): a user registers with an
+ * email, a phone, or both, and signs in with either. There is no OTP or
+ * ownership verification, so accounts are ACTIVE on creation and the
+ * *_verified_at columns stay NULL until a verification flow exists.
+ *
+ * Identifiers are stored normalized so uniqueness is meaningful:
+ *   - email: trimmed and lower-cased ("A@x.com" and "a@x.com" are one account);
+ *   - phone: E.164 ("+9665XXXXXXXX").
  */
+
+/** E.164: "+", country code not starting with 0, 8–15 digits in total. */
+const E164_PATTERN = "^\\+[1-9][0-9]{7,14}$";
 
 export const users = pgTable(
   "users",
@@ -26,9 +34,9 @@ export const users = pgTable(
     id: primaryKeyId(),
     email: text("email"),
     phone: text("phone"),
-    passwordHash: text("password_hash"),
+    passwordHash: text("password_hash").notNull(),
     displayName: text("display_name"),
-    status: userStatusEnum("status").notNull().default("PENDING_VERIFICATION"),
+    status: userStatusEnum("status").notNull().default("ACTIVE"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true, mode: "date" }),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true, mode: "date" }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: "date" }),
@@ -40,6 +48,10 @@ export const users = pgTable(
     uniqueIndex("users_email_unique").on(table.email).where(whereNotNull("email")),
     uniqueIndex("users_phone_unique").on(table.phone).where(whereNotNull("phone")),
     index("users_status_idx").on(table.status),
+    check("users_has_identifier", sql`${table.email} IS NOT NULL OR ${table.phone} IS NOT NULL`),
+    // Without this, "A@x.com" and "a@x.com" would pass the unique index as two accounts.
+    check("users_email_normalized", sql`${table.email} = lower(btrim(${table.email}))`),
+    check("users_phone_e164", sql`${table.phone} ~ ${sql.raw(`'${E164_PATTERN}'`)}`),
   ],
 );
 

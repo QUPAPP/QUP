@@ -8,15 +8,14 @@ import {
   testSql,
   withRollback,
 } from "./support/db.js";
+import { insertUser } from "./support/fixtures.js";
 
 afterAll(() => testSql.end());
 
 type IdRow = { id: string };
 
 async function buildPlan(tx: Tx): Promise<{ studentId: string; examId: string; planId: string }> {
-  const student = firstRow(
-    await tx<IdRow[]>`INSERT INTO users (display_name) VALUES ('test-buyer') RETURNING id`,
-  );
+  const student = { id: await insertUser(tx, "test-buyer") };
   const exam = firstRow(
     await tx<IdRow[]>`
       INSERT INTO exams (code, slug, name_ar) VALUES ('TEST-B', 'test-b', 'اختبار') RETURNING id`,

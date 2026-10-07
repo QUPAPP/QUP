@@ -36,7 +36,17 @@ GET  /auth/me
 POST /auth/sessions/revoke
 ```
 
-Exact email/phone verification TBD.
+- `register`: `{ email?, phone?, password, displayName? }` — at least one of email/phone;
+  phone in E.164 (`+9665XXXXXXXX`). Unknown fields are rejected. `201` + session cookie.
+- `login`: `{ identifier, password }` — identifier is the email or the phone. `200` + session cookie.
+  Unknown account and wrong password both return `401 INVALID_CREDENTIALS`.
+- `logout`: `204`, clears the cookie. `sessions/revoke`: signs out every *other* session, `204`.
+- `me`: `{ user, roles, permissions }`.
+- No OTP/verification (OPEN_QUESTIONS.md #6).
+
+Errors: `VALIDATION_FAILED` (400, with `details: [{ path, message }]`), `INVALID_CREDENTIALS` (401),
+`UNAUTHENTICATED` (401), `ACCOUNT_DISABLED` (403), `FORBIDDEN` (403), `IDENTIFIER_TAKEN` (409),
+`RATE_LIMITED` (429).
 
 ## Exams
 
@@ -50,11 +60,19 @@ GET /exams/:examId/my-progress
 
 Admin:
 ```text
+GET   /admin/exams
 POST  /admin/exams
 PATCH /admin/exams/:id
 POST  /admin/exams/:id/taxonomy-versions
 POST  /admin/taxonomy-versions/:id/publish
 ```
+
+Implemented (permission `taxonomy.manage`, currently ADMIN only — OPEN_QUESTIONS.md #16a):
+- Exams start `DRAFT` and are invisible to students; `GET /exams/:id` returns 404 for a non-active exam.
+- Exam status is forward-only: `DRAFT → ACTIVE → ARCHIVED` (`DRAFT → ARCHIVED` too). `code` and
+  `slug` are not editable. Activation requires a published taxonomy (`EXAM_HAS_NO_PUBLISHED_TAXONOMY`).
+- Publishing requires at least one active domain, each with at least one active skill
+  (`TAXONOMY_INCOMPLETE`); it archives the exam's previously published version and is audited.
 
 ## Taxonomy
 
@@ -67,6 +85,15 @@ PATCH /admin/skills/:id
 POST /admin/skills/:id/prerequisites
 POST /admin/nodes/:type/:id/archive
 ```
+
+Implemented:
+- All structural changes require a `DRAFT` version; otherwise `422 TAXONOMY_VERSION_NOT_DRAFT`
+  (OPEN_QUESTIONS.md #16b). The database enforces the same rule (migration `0005`).
+- Weights: `(0, 99.9999]`, 4 decimals. Mastery threshold: `(0, 1]`, 3 decimals; `null` clears it.
+  Values with more precision are rejected (`VALIDATION_FAILED`), never rounded.
+- Prerequisites: `204`; re-adding updates the importance weight. A cycle or self-reference returns
+  `422 PREREQUISITE_CYCLE`; a skill from another version, `422 PREREQUISITE_OUTSIDE_VERSION`.
+- Codes are unique per parent (`409 TAXONOMY_CODE_TAKEN`). `:type` is `domain | skill | subskill`.
 
 ## Questions
 
@@ -82,6 +109,27 @@ POST   /admin/questions/:id/archive
 ```
 
 Serializer/redaction يعتمد على caller/use case.
+
+Implemented, with two additions to the outline above:
+```text
+GET  /admin/question-versions/:id     one version: options, answer key, mappings, reviews
+PUT  /admin/question-versions/:id     replace the whole content of a DRAFT
+```
+- Permissions (OPEN_QUESTIONS.md #14): `questions.create` reads, authors, submits;
+  `questions.review` approves or sends back; `questions.publish` publishes and archives (ADMIN only).
+- Lifecycle `DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED → ARCHIVED`; a review with
+  `REJECTED` or `CHANGES_REQUESTED` (notes required) returns the version to `DRAFT`. Content is
+  editable **only in DRAFT** (OPEN_QUESTIONS.md #16c) — enforced in the database too (`0007`).
+- Content is structured blocks (`{ blocks: [{ type: "text" | "math", … }] }`), never HTML.
+- V1 types: `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `TRUE_FALSE`. Submitting and publishing require a
+  valid answer key and exactly one PRIMARY mapping (`422 QUESTION_CONTENT_INVALID` with `details`).
+  Mapping weights default to PRIMARY 1.00 / SECONDARY 0.35 (DOMAIN_MODEL.md §6).
+- Publishing needs a published taxonomy (`TAXONOMY_NOT_PUBLISHED`) and archives the question's
+  previous live version. One version in progress per question (`409 QUESTION_VERSION_IN_PROGRESS`).
+- `GET /admin/questions?status=&taxonomyVersionId=&limit=&offset=` lists each question once, by its
+  newest version: `{ items, page: { limit, offset, total } }`, `limit` ≤ 100.
+- Publish and archive are audited. Admin responses include the answer key; students will only
+  ever receive `StudentQuestionView` (no answer key, explanation, difficulty or mappings).
 
 ## Imports
 
@@ -136,6 +184,60 @@ Safe response:
 
 Never include future answer keys.
 
+Implemented (mini diagnostic — the first vertical slice):
+```text
+POST /exams/:examId/assessments/mini-diagnostic   201 new · 200 resumed (open session returned)
+GET  /assessments/:sessionId                      status + progress
+POST /assessments/:sessionId/start                CREATED → IN_PROGRESS
+GET  /assessments/:sessionId/current-item         next unanswered item, redacted; item null when done
+POST /assessments/:sessionId/items/:itemId/answer { answer: { optionKey } | { optionKeys: [] } }
+POST /assessments/:sessionId/items/:itemId/skip   recorded, no mastery evidence
+POST /assessments/:sessionId/complete
+GET  /assessments/:sessionId/result               preliminary result (below)
+```
+- 12 questions by default (OPEN_QUESTIONS.md #10), spread over domains by weight, then skills, nearest
+  difficulty 0.5, never a question the student has seen. One mini diagnostic per exam (#10a).
+- Another student's session is reported as `404 ASSESSMENT_NOT_FOUND` (no IDOR).
+- Answer and skip require `Idempotency-Key` (UUID). A retry with the same key returns the original
+  result and records nothing new; the same key for another item is `IDEMPOTENCY_KEY_REUSED`; a
+  second answer to a finalized item is `409 ASSESSMENT_ITEM_ALREADY_ANSWERED`.
+- Graded on the server from the stored key; unknown fields (e.g. a forged `isCorrect`) are rejected.
+  An option that does not exist is `400 INVALID_ANSWER`.
+- The attempt, its mastery evidence (every mapped node) and auto-completion commit in one
+  transaction; submissions within a session are serialized by a row lock.
+
+### Preliminary Result
+
+What a student sees before paying (OPEN_QUESTIONS.md #10b). `422 ASSESSMENT_NOT_COMPLETED` until the
+session is completed.
+
+```json
+{
+  "kind": "PRELIMINARY",
+  "score": { "correct": 15, "total": 20, "percentage": 75 },
+  "level": { "code": "GOOD", "label": "جيد" },
+  "strengths": [
+    { "skill": "الاستيعاب القرائي", "rating": { "code": "VERY_GOOD", "label": "جيد جدًا" } }
+  ],
+  "weaknesses": [
+    { "skill": "النسب والتناسب", "rating": { "code": "NEEDS_TRAINING", "label": "يحتاج تدريب" } }
+  ],
+  "nextStep": { "type": "SUBSCRIBE", "message": "هذه قراءة أولية لمستواك. …" }
+}
+```
+
+- `nextStep` is `null` once the student has access to the exam (see Billing): nothing left to sell.
+
+- `level.code`: `NEEDS_FOUNDATION | BEGINNER | INTERMEDIATE | GOOD | ADVANCED` — a *diagnostic level*
+  derived from `score.percentage`, never a predicted exam score. Band limits are configuration
+  (defaults in OPEN_QUESTIONS.md #10c).
+- `percentage` = correct ÷ all questions of the diagnostic, rounded; a skipped question is not correct.
+- At most **2** strengths (best first) and **3** weaknesses (most in need of training first), taken
+  only from skills the student actually answered a question on. Fewer when fewer were measured;
+  never padded. A question on a subskill counts for its parent skill.
+- Nothing else is returned: no skill ids, no per-skill numbers, no other skills, no training plan,
+  no question content. The full analysis is entitlement-protected (PRD §7).
+
 ## Adaptive
 
 ```text
@@ -184,6 +286,42 @@ Webhook:
 - signature validation.
 - replay protection.
 - idempotent transitions.
+
+Implemented (provider: Stream — OPEN_QUESTIONS.md #2, #5a):
+```text
+GET   /exams/:examId/plans              plans on sale (none unless the exam is ACTIVE)
+GET   /exams/:examId/my-access          { examId, hasAccess, activeUntil }  (activeUntil null = no end)
+GET   /me/entitlements                  the caller's entitlements, newest first
+POST  /payments                         { planId } + Idempotency-Key → 201 new · 200 existing checkout
+GET   /payments/:id                     the caller's payment; poll this after returning from checkout
+POST  /payments/webhooks/stream         provider only; authenticated by signature, not by session
+
+GET   /admin/plans?examId=              permission billing.manage
+POST  /admin/plans                      { examId, code, name, priceMinor, currency, durationDays|null } → DRAFT
+PATCH /admin/plans/:id                  DRAFT only (422 PLAN_NOT_DRAFT otherwise)
+POST  /admin/plans/:id/activate         DRAFT → ACTIVE, audited
+POST  /admin/plans/:id/retire           → RETIRED, audited; existing entitlements are kept
+POST  /admin/entitlements               { studentId, examId, durationDays|null } manual grant, audited
+POST  /admin/entitlements/:id/revoke    idempotent, audited
+```
+- Money is `{ amountMinor, currency }`: an integer count of minor units (halalas), never a float.
+  SAR only; an offered plan costs at least 100 (1.00 SAR). Price and duration are frozen once ACTIVE.
+- Payment view: `{ id, planId, status, amount, checkoutUrl, checkoutExpiresAt, paidAt, createdAt }`.
+  `status`: `PENDING | SUCCEEDED | FAILED | REFUNDED | CANCELLED`. `checkoutUrl` is the provider's
+  hosted page, present only while PENDING. The client sends the plan and nothing else: the price is
+  the plan's, the student is the session's.
+- One open checkout per student and plan: asking again returns the same one (200) until it expires
+  (`CHECKOUT_TTL_MINUTES`, default 60), then a fresh one replaces it.
+- **Returning from the checkout page proves nothing.** A payment becomes SUCCEEDED only after a
+  signed webhook *and* Stream's own API confirming status, amount and currency. Payment and
+  entitlement then commit in one transaction; a replayed or duplicated event grants nothing more.
+- Full refund at Stream ⇒ payment REFUNDED, entitlement REVOKED. Partial refund ⇒ logged, access kept.
+- Errors: `PLAN_NOT_AVAILABLE` (404), `ALREADY_ENTITLED` (409), `CHECKOUT_SUPERSEDED` (409),
+  `IDEMPOTENCY_KEY_REUSED` (422), `PLAN_NOT_SELLABLE` (422), `INVALID_PLAN_TRANSITION` (422),
+  `PLAN_CODE_TAKEN` (409), `PAYMENT_NOT_FOUND` (404, also for another student's payment),
+  `PAYMENTS_NOT_CONFIGURED` (503), `PAYMENT_PROVIDER_UNAVAILABLE` (503, nothing was charged),
+  `WEBHOOK_SIGNATURE_INVALID` (401).
+- Webhook responses: 200 acknowledges (including events that are not ours); 503 asks Stream to retry.
 
 ## Admin Analytics/Audit
 

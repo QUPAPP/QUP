@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"],
+  // Operational scripts load .env themselves and run through tsx; they are not
+  // part of the library surface other packages consume.
+  "exclude": ["src/env.ts", "src/migrate.ts", "src/verify.ts"]
+}

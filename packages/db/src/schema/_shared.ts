@@ -119,10 +119,14 @@ export const importItemStatusEnum = pgEnum("import_item_status", [
 /* Assessment                                                                  */
 /* -------------------------------------------------------------------------- */
 
+/** PRD §12 — assessment types the architecture supports. */
 export const blueprintTypeEnum = pgEnum("blueprint_type", [
-  "DIAGNOSTIC",
+  "MINI_DIAGNOSTIC",
+  "FULL_DIAGNOSTIC",
   "PRACTICE",
-  "REASSESSMENT",
+  "ADAPTIVE_TRAINING",
+  "SKILL_REASSESSMENT",
+  "FULL_REASSESSMENT",
   "MOCK_EXAM",
 ]);
 

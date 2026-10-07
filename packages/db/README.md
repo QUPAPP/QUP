@@ -39,9 +39,17 @@ manual query bypasses it.
 | One attempt per assessment item                             | unique `question_attempts.assessment_item_id` |
 | Same attempt + learning node → one mastery event            | unique index with `COALESCE` over node columns |
 | Mastery events and audit logs are append-only               | triggers (`0001_db_guards`)                    |
-| Published/archived question content is frozen              | triggers on versions, options and mappings     |
+| Question content changes only in DRAFT; lifecycle is enforced | triggers on versions, options, mappings (`0007`) |
+| A published version has a correct option and one PRIMARY mapping | trigger at publish (`0007`)                 |
+| Mappings target the version's own taxonomy                  | trigger (`0007`)                               |
+| One version in progress and one published per question      | partial unique indexes (`0006`)                |
 | Mappings and mastery rows target exactly one learning node | `CHECK` constraints                            |
 | A payment / entitlement cannot be granted twice             | unique idempotency key / source reference      |
 | `updated_at` is maintained for every write path             | `qup_set_updated_at` trigger                   |
+| A user has an email or a phone; email lower-case, phone E.164 | `CHECK` constraints (`0002_users_identity_rules`) |
+| Roles and permissions exist; only ADMIN may publish         | seed migration `0003_seed_rbac`                |
+| One published taxonomy version per exam                     | partial unique index (`0004`)                  |
+| A published taxonomy is read-only; versions only move forward | triggers (`0005_taxonomy_guards`)            |
+| Prerequisites stay within one taxonomy version              | trigger (`0005_taxonomy_guards`)               |
 
 Guard violations raise SQLSTATE `23001` (`restrict_violation`).

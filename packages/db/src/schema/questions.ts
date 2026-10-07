@@ -82,6 +82,14 @@ export const questionVersions = pgTable(
     ),
     // ERD.md indexing: candidate lookup filters on status + taxonomy.
     index("question_versions_status_taxonomy_idx").on(table.status, table.taxonomyVersionId),
+    // OPEN_QUESTIONS.md #16c: at most one version in progress and one live
+    // version per question. Enforced here so concurrent requests cannot both win.
+    uniqueIndex("question_versions_one_in_progress")
+      .on(table.questionId)
+      .where(sql`status IN ('DRAFT', 'UNDER_REVIEW', 'APPROVED')`),
+    uniqueIndex("question_versions_one_published")
+      .on(table.questionId)
+      .where(sql`status = 'PUBLISHED'`),
     index("question_versions_difficulty_idx").on(table.difficultyAuthorScore),
     check(
       "question_versions_author_difficulty_range",

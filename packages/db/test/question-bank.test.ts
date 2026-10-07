@@ -65,7 +65,7 @@ describe("published question content", () => {
   it("freezes the stem once published", () =>
     withRollback(async (tx) => {
       const graph = await buildQuestionGraph(tx);
-      await publish(tx, graph.questionVersionId);
+      await publish(tx, graph);
 
       await expectRejected(
         tx,
@@ -82,7 +82,7 @@ describe("published question content", () => {
       await tx`
         INSERT INTO question_options (question_version_id, key, content, is_correct)
         VALUES (${graph.questionVersionId}, 'A', '{}'::jsonb, true)`;
-      await publish(tx, graph.questionVersionId);
+      await publish(tx, graph);
 
       await expectRejected(
         tx,
@@ -103,7 +103,7 @@ describe("published question content", () => {
   it("freezes the skill mapping once published", () =>
     withRollback(async (tx) => {
       const graph = await buildQuestionGraph(tx);
-      await publish(tx, graph.questionVersionId);
+      await publish(tx, graph);
 
       await expectRejected(
         tx,
@@ -118,7 +118,7 @@ describe("published question content", () => {
   it("never moves a published version back to draft, and never deletes it", () =>
     withRollback(async (tx) => {
       const graph = await buildQuestionGraph(tx);
-      await publish(tx, graph.questionVersionId);
+      await publish(tx, graph);
 
       await expectRejected(
         tx,
@@ -136,7 +136,7 @@ describe("published question content", () => {
   it("still allows calibration and archiving of a published version", () =>
     withRollback(async (tx) => {
       const graph = await buildQuestionGraph(tx);
-      await publish(tx, graph.questionVersionId);
+      await publish(tx, graph);
 
       await tx`
         UPDATE question_versions SET difficulty_measured_score = 0.62

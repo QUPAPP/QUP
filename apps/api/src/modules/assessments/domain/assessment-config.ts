@@ -1,0 +1,42 @@
+/**
+ * Assessment defaults. Versioned like the mastery config: each session records
+ * the scoring version it ran under.
+ */
+
+import type { PreliminaryResultConfig } from "./preliminary-result.js";
+
+export const SCORING_VERSION = "scoring-v1";
+
+export const MINI_DIAGNOSTIC_DEFAULTS = Object.freeze({
+  /** OPEN_QUESTIONS.md #10 (decided 2026-09-28): 12 unless the exam's blueprint says otherwise. */
+  questionCount: 12,
+  /**
+   * With no evidence yet, every student sits at the prior (mastery 0.5), so
+   * the most informative first questions are of middling difficulty
+   * (ADAPTIVE_ENGINE.md §17: target difficulty tracks mastery).
+   */
+  targetDifficulty: 0.5,
+});
+
+/**
+ * OPEN_QUESTIONS.md #10b (decided 2026-10-04): the level comes from the
+ * performance percentage; at most 2 strengths and 3 weaknesses are shown.
+ * The numbers themselves are defaults awaiting confirmation (#10c). They are
+ * passed to the calculation as config so the admin panel can supply its own
+ * later without touching the logic.
+ */
+export const PRELIMINARY_RESULT_DEFAULTS: PreliminaryResultConfig = Object.freeze({
+  levels: Object.freeze([
+    { level: "NEEDS_FOUNDATION", fromPercentage: 0 },
+    { level: "BEGINNER", fromPercentage: 40 },
+    { level: "INTERMEDIATE", fromPercentage: 55 },
+    { level: "GOOD", fromPercentage: 70 },
+    { level: "ADVANCED", fromPercentage: 85 },
+  ] as const),
+  skillRatings: Object.freeze({ veryGoodFromAccuracy: 0.85, goodFromAccuracy: 0.7 }),
+  maxStrengths: 2,
+  maxWeaknesses: 3,
+});
+
+/** Bounds a client-reported response time; recorded, never scored in V1 (ADAPTIVE_ENGINE.md §11). */
+export const MAX_RECORDED_RESPONSE_TIME_MS = 3_600_000;

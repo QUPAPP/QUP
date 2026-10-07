@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { createConnection } from "./client.js";
-import { describeTarget } from "./env.js";
+import { describeTarget, env } from "./env.js";
 
 /**
  * Read-only check that the live database matches the committed migrations.
@@ -28,7 +28,7 @@ function readJson<T>(relativePath: string): T {
   return JSON.parse(readFileSync(fileURLToPath(new URL(relativePath, migrationsDir)), "utf8")) as T;
 }
 
-/** Triggers created by 0001_db_guards; a missing one means a guard is silently off. */
+/** Guard triggers (0001, 0005); a missing one means an invariant is silently unenforced. */
 const EXPECTED_GUARD_TRIGGERS = [
   "mastery_events_append_only",
   "mastery_events_no_truncate",
@@ -37,6 +37,12 @@ const EXPECTED_GUARD_TRIGGERS = [
   "question_versions_freeze",
   "question_options_freeze",
   "question_skill_mappings_freeze",
+  "domains_freeze",
+  "skills_freeze",
+  "subskills_freeze",
+  "skill_prerequisites_freeze",
+  "taxonomy_versions_lifecycle",
+  "question_skill_mappings_taxonomy",
 ] as const;
 
 let failures = 0;
@@ -58,7 +64,7 @@ async function main(): Promise<void> {
     0,
   );
 
-  const sql = createConnection({ max: 1 });
+  const sql = createConnection(env.DATABASE_URL, { maxConnections: 1 });
   console.log(`Verifying ${describeTarget()} against ${latest.tag}\n`);
 
   try {

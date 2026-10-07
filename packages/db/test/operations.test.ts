@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { expectRejected, firstRow, SqlState, testSql, withRollback } from "./support/db.js";
+import { insertUser } from "./support/fixtures.js";
 
 afterAll(() => testSql.end());
 
@@ -31,17 +32,15 @@ describe("audit log", () => {
 
   it("keeps the record but detaches the actor when that user is deleted", () =>
     withRollback(async (tx) => {
-      const actor = firstRow(
-        await tx<IdRow[]>`INSERT INTO users (display_name) VALUES ('test-admin') RETURNING id`,
-      );
+      const actorId = await insertUser(tx, "test-admin");
       const entry = firstRow(
         await tx<IdRow[]>`
           INSERT INTO audit_logs (actor_id, action, resource_type)
-          VALUES (${actor.id}, 'role.grant', 'user') RETURNING id`,
+          VALUES (${actorId}, 'role.grant', 'user') RETURNING id`,
       );
 
       // ON DELETE SET NULL must pass through the append-only guard.
-      await tx`DELETE FROM users WHERE id = ${actor.id}`;
+      await tx`DELETE FROM users WHERE id = ${actorId}`;
 
       const row = firstRow(
         await tx<{ actor_id: string | null; action: string }[]>`
@@ -54,10 +53,11 @@ describe("audit log", () => {
 describe("updated_at", () => {
   it("is set by the database on every update, not only by the ORM", () =>
     withRollback(async (tx) => {
+      // Set on INSERT: an UPDATE cannot backdate it, the trigger would overwrite it.
       const user = firstRow(
         await tx<IdRow[]>`
-          INSERT INTO users (display_name, updated_at)
-          VALUES ('test-user', '2000-01-01T00:00:00Z') RETURNING id`,
+          INSERT INTO users (email, password_hash, updated_at)
+          VALUES ('updated-at@qup.test', 'placeholder', '2000-01-01T00:00:00Z') RETURNING id`,
       );
 
       // Raw SQL that does not mention updated_at at all.

@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "question_versions_one_in_progress" ON "question_versions" USING btree ("question_id") WHERE status IN ('DRAFT', 'UNDER_REVIEW', 'APPROVED');--> statement-breakpoint
+CREATE UNIQUE INDEX "question_versions_one_published" ON "question_versions" USING btree ("question_id") WHERE status = 'PUBLISHED';

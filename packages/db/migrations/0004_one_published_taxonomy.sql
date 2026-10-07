@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "taxonomy_versions_one_published_per_exam" ON "taxonomy_versions" USING btree ("exam_id") WHERE status = 'PUBLISHED';
