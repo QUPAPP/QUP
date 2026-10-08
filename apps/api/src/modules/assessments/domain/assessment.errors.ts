@@ -41,9 +41,12 @@ export class NoQuestionsAvailable extends DomainError {
 export class MiniDiagnosticAlreadyCompleted extends DomainError {
   readonly code = "MINI_DIAGNOSTIC_ALREADY_COMPLETED";
   readonly kind = "CONFLICT";
+  /** The caller's own completed session, so a client can show its result. */
+  override readonly details: { sessionId: string };
 
-  constructor() {
+  constructor(sessionId: string) {
     super("You have already completed the mini diagnostic for this exam.");
+    this.details = { sessionId };
   }
 }
 

@@ -1,0 +1,16 @@
+# Secrets never enter an image or a build context.
+.env
+.env.*
+!.env.example
+.mcp.json
+.claude
+
+.git
+.github
+**/node_modules
+**/dist
+**/.turbo
+**/test
+**/*.test.ts
+*.md
+**/.next

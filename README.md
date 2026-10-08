@@ -21,6 +21,17 @@
 13. `IMPLEMENTATION_PLAN.md`
 14. `OPEN_QUESTIONS.md`
 
+## التشغيل
+
+```bash
+pnpm install
+pnpm dev                      # الباك (3000) والفرونت (3001) معًا — افتح http://localhost:3001
+docker compose up --build     # نفس التطبيقين بصور الإنتاج
+```
+
+يحتاج ملف `.env` في جذر المستودع (انظر `.env.example`). التفاصيل: `apps/api/README.md`،
+`apps/web/README.md`، والنشر في `DEPLOYMENT.md`.
+
 ## Source of Truth
 
 عند التعارض استخدم الأولوية التالية:

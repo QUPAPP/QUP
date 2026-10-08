@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1
+# QUP web image. Build context: the REPOSITORY ROOT (pnpm workspace), e.g.
+#   docker build -f apps/web/Dockerfile .
+#
+# Next.js "standalone" output: a self-contained server with only the files it
+# traced as needed. Nothing about the API address is baked in — the running
+# container reads API_INTERNAL_URL (see src/app/api/v1/[...path]/route.ts).
+#
+# The build downloads the brand fonts from Google Fonts, so it needs network access.
+
+FROM node:24-slim AS build
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
+WORKDIR /repo
+
+# Manifests first: the dependency layer is rebuilt only when they change.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/db/package.json packages/db/
+COPY packages/adaptive-engine/package.json packages/adaptive-engine/
+RUN pnpm install --frozen-lockfile --filter "@qup/web..."
+
+COPY tsconfig.base.json ./
+COPY apps/web apps/web
+RUN pnpm --filter @qup/web build
+
+FROM node:24-slim AS runtime
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app
+# The standalone tree mirrors the workspace: the server is at apps/web/server.js.
+COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
+COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+# Never root: a compromised process should own nothing.
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+CMD ["node", "apps/web/server.js"]

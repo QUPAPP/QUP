@@ -43,6 +43,12 @@
       }
     }
   },
+  "css": {
+    "parser": {
+      // apps/web uses Tailwind CSS v4 directives (@theme, @apply, …).
+      "tailwindDirectives": true
+    }
+  },
   "overrides": [
     {
       // NEVER re-enable useImportType for the API. Nest resolves constructor

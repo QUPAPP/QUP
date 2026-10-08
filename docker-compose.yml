@@ -1,0 +1,42 @@
+# Runs the production images of the API and the web app together:
+#
+#   docker compose up --build
+#
+#   web  → http://localhost:3001   (what a student opens)
+#   api  → http://localhost:3000   (reached by the web app; also /health/ready)
+#
+# The API reads its settings from the repository's .env (DATABASE_URL, and the
+# optional STREAM_* payment keys). That file is never copied into an image.
+# For day-to-day development use `pnpm dev` instead: same two apps, with reload.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      # Requests arrive through the web container, which forwards the client address.
+      TRUST_PROXY: "true"
+      # Plain http://localhost cannot carry a Secure cookie in every browser.
+      # Local runs only — a deployed API keeps the production default (true).
+      SESSION_COOKIE_SECURE: "false"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

@@ -59,6 +59,10 @@ export async function configureApp(app: NestFastifyApplication, config: AppConfi
     .getInstance()
     .addHook("onRequest", async (request, reply) => {
       reply.header(REQUEST_ID_HEADER, request.id);
+      // The API sits behind a CDN, and every response is either private to a
+      // signed-in user or must be fresh. Nothing here may be stored by a
+      // shared cache and replayed to someone else.
+      reply.header("cache-control", "no-store");
     });
 
   await app.register(helmet);

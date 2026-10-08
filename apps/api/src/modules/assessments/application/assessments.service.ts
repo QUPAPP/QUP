@@ -103,7 +103,8 @@ export class AssessmentsService {
     const previous = await this.store.sessionsFor(studentId, examId, "MINI_DIAGNOSTIC");
     const open = previous.find((s) => s.status === "CREATED" || s.status === "IN_PROGRESS");
     if (open) return { session: open, created: false };
-    if (previous.some((s) => s.status === "COMPLETED")) throw new MiniDiagnosticAlreadyCompleted();
+    const completed = previous.find((s) => s.status === "COMPLETED");
+    if (completed) throw new MiniDiagnosticAlreadyCompleted(completed.id);
 
     const taxonomy = await this.catalog.publishedTaxonomy(examId);
     if (!taxonomy) throw new ExamNotAvailable();

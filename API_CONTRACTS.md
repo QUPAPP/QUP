@@ -196,7 +196,9 @@ POST /assessments/:sessionId/complete
 GET  /assessments/:sessionId/result               preliminary result (below)
 ```
 - 12 questions by default (OPEN_QUESTIONS.md #10), spread over domains by weight, then skills, nearest
-  difficulty 0.5, never a question the student has seen. One mini diagnostic per exam (#10a).
+  difficulty 0.5, never a question the student has seen. One mini diagnostic per exam (#10a):
+  asking again after completing it is `409 MINI_DIAGNOSTIC_ALREADY_COMPLETED` with
+  `details: { sessionId }` — the caller's own finished session, so a client can show its result.
 - Another student's session is reported as `404 ASSESSMENT_NOT_FOUND` (no IDOR).
 - Answer and skip require `Idempotency-Key` (UUID). A retry with the same key returns the original
   result and records nothing new; the same key for another item is `IDEMPOTENCY_KEY_REUSED`; a

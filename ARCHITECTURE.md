@@ -78,6 +78,12 @@ qup/
 - React Hook Form.
 - Zod.
 
+**Web → API (decided at implementation, 2026-10-08):** the browser calls only the web app's own
+origin; a server-side route (`apps/web/src/app/api/v1/[...path]`) forwards to the API. One origin
+means no CORS and a first-party `HttpOnly` session cookie, and the API address is run-time
+configuration. The forwarder is allow-list based and carries no logic — it is transport, not a
+second backend. Payment-provider webhooks go to the API directly, never through the web app.
+
 ### API
 - NestJS.
 - Fastify adapter.

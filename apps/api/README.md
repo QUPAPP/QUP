@@ -12,6 +12,10 @@ pnpm --filter @qup/api dev          # watch mode; reads the repo-root .env
 pnpm build && pnpm --filter @qup/api start
 ```
 
+`pnpm dev` at the repository root starts this API together with the web app (apps/web). The
+production image is `apps/api/Dockerfile` (build context: the repository root); see
+[DEPLOYMENT.md](../../DEPLOYMENT.md). It never runs migrations.
+
 Configuration is validated at startup; the process refuses to boot on a missing or invalid
 variable (see `.env.example` for the full list and defaults).
 
@@ -36,6 +40,8 @@ variable (see `.env.example` for the full list and defaults).
 - **Logging** — JSON via pino. Requests log id, method and path only: no headers, no query
   string. Credentials are redacted as a second line of defence. Health probes are not logged.
 - **Security headers** via helmet; CORS closed unless `CORS_ALLOWED_ORIGINS` is set.
+- **No caching** — every response is `Cache-Control: no-store`: the API sits behind a CDN and
+  nothing it returns may be stored and replayed to another student.
 
 ## Authentication & authorization
 

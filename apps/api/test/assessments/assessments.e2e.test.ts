@@ -428,6 +428,8 @@ describe("completing", () => {
     const again = await call(studentA, "POST", `/exams/${exam.examId}/assessments/mini-diagnostic`);
     expect(again.statusCode).toBe(409);
     expect(errorCode(again)).toBe("MINI_DIAGNOSTIC_ALREADY_COMPLETED");
+    // The error names the student's own finished session, so the app can show its result.
+    expect(again.json()).toMatchObject({ error: { details: { sessionId } } });
   });
 });
 

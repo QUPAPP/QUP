@@ -160,6 +160,13 @@ describe("error envelope", () => {
 });
 
 describe("security baseline", () => {
+  it("forbids caches from storing any response, successful or not", async () => {
+    for (const url of ["/health/live", "/api/v1/auth/me", "/api/v1/does-not-exist"]) {
+      const response = await app.inject({ method: "GET", url });
+      expect(response.headers["cache-control"]).toBe("no-store");
+    }
+  });
+
   it("sends hardening headers", async () => {
     const response = await app.inject({ method: "GET", url: "/health/live" });
 
