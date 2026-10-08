@@ -67,6 +67,24 @@ once DNS resolves.
 3. Run one sandbox payment end to end before real money: the Stream adapter has only been tested
    against a local fake of Stream's documented API.
 
+## Current state (2026-10-08)
+
+| App | CranL address | Custom domain | State |
+| --- | --- | --- | --- |
+| qup-backend | `qup-backend-ladsbz.cranl.net` | `api.qupedu.com` | running; **cannot reach the database** |
+| qup-web | `qup-web-4kqgra.cranl.net` | `qupedu.com`, `www.qupedu.com` | running; forwards to qup-backend |
+
+Both have automatic rollback on. `qup-web` currently points `API_INTERNAL_URL` at the backend's
+`cranl.net` address; it can switch to `https://api.qupedu.com` once DNS and SSL are up.
+
+**Open problem — database connectivity.** `qup-backend` gets `qup-db`'s internal URL
+(`qup-db-pws32w:5432`) from CranL, but `/health/ready` reports the database down, immediately,
+even after a full redeploy — the behaviour of a host name that does not resolve. The app and the
+database appear to be on different servers inside `riyadh-1`, and the API offers no way to choose.
+Do **not** work around it with the database's external address: that endpoint has no TLS
+(`ssl = off`), so credentials and student data would cross the public network in clear text.
+Fix it by putting the app and its database on the same server (CranL dashboard or support).
+
 ## Rules
 
 - **Migrations are never run by a deploy.** Apply them deliberately (`pnpm db:migrate`), reviewed,
