@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1
 # QUP API image. Build context: the REPOSITORY ROOT (pnpm workspace), e.g.
-#   docker build -f apps/api/Dockerfile .
+#   docker build -f Dockerfile.api .
+#
+# It lives at the repository root on purpose: CranL builds with the Dockerfile's
+# own directory as the context, and this build needs the whole workspace.
 #
 #   build   — installs the workspace, compiles it, then extracts the API with
 #             production dependencies only (`pnpm deploy`).

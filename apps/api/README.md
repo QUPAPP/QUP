@@ -13,7 +13,7 @@ pnpm build && pnpm --filter @qup/api start
 ```
 
 `pnpm dev` at the repository root starts this API together with the web app (apps/web). The
-production image is `apps/api/Dockerfile` (build context: the repository root); see
+production image is `Dockerfile.api` at the repository root (which is also its build context); see
 [DEPLOYMENT.md](../../DEPLOYMENT.md). It never runs migrations.
 
 Configuration is validated at startup; the process refuses to boot on a missing or invalid

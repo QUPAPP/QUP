@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1
 # QUP web image. Build context: the REPOSITORY ROOT (pnpm workspace), e.g.
-#   docker build -f apps/web/Dockerfile .
+#   docker build -f Dockerfile.web .
+#
+# It lives at the repository root on purpose: CranL builds with the Dockerfile's
+# own directory as the context, and this build needs the whole workspace.
 #
 # Next.js "standalone" output: a self-contained server with only the files it
 # traced as needed. Nothing about the API address is baked in — the running

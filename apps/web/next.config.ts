@@ -17,7 +17,7 @@ const SECURITY_HEADERS = [
 ];
 
 const config: NextConfig = {
-  // A self-contained server for the Docker image (apps/web/Dockerfile).
+  // A self-contained server for the Docker image (Dockerfile.web).
   output: "standalone",
   // pnpm workspace: dependencies live at the repository root.
   outputFileTracingRoot: path.join(import.meta.dirname, "../../"),

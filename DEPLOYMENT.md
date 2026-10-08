@@ -4,8 +4,8 @@ How QUP runs in the cloud. Two apps from this one repository, in the CranL proje
 region **riyadh-1** (the same region as the database).
 
 ```text
-student ──► qupedu.com ──► qup-web (Next.js) ──► qup-api (NestJS) ──► qup-db (PostgreSQL)
-Stream  ──► api.qupedu.com/api/v1/payments/webhooks/stream ──► qup-api
+student ──► qupedu.com ──► qup-web (Next.js) ──► qup-backend (NestJS) ──► qup-db (PostgreSQL)
+Stream  ──► api.qupedu.com/api/v1/payments/webhooks/stream ──► qup-backend
 ```
 
 The browser only ever talks to `qupedu.com`; the web app forwards API calls server-side
@@ -13,20 +13,20 @@ The browser only ever talks to `qupedu.com`; the web app forwards API calls serv
 
 ## 1. Push the code
 
-Both apps build from GitHub (`ALxxy123/QUP`, branch `main`). CranL's GitHub app must be allowed to
-read that repository: https://app.cranl.com/dashboard/github.
+Both apps build from GitHub (`QUPAPP/QUP`, branch `main`) — the repository CranL's GitHub app is
+connected to (https://app.cranl.com/dashboard/github). A push to that branch redeploys both.
 
 ## 2. The two apps
 
-| | qup-api | qup-web |
+| | qup-backend | qup-web |
 | --- | --- | --- |
-| Build | Dockerfile, `dockerfile_path: apps/api/Dockerfile` | Dockerfile, `dockerfile_path: apps/web/Dockerfile` |
+| Build | Dockerfile, `dockerfile_path: Dockerfile.api` | Dockerfile, `dockerfile_path: Dockerfile.web` |
 | Build context | repository root | repository root |
 | Port | 3000 | 3000 |
 | Health | `/health/ready` | `/healthz` |
 | Domain | `api.qupedu.com` | `qupedu.com`, `www.qupedu.com` |
 
-### Environment — qup-api
+### Environment — qup-backend
 
 | Variable | Value |
 | --- | --- |
@@ -49,7 +49,7 @@ read that repository: https://app.cranl.com/dashboard/github.
 
 | Type | Host | Answer |
 | --- | --- | --- |
-| CNAME | `api` | the qup-api app's `*.cranl.net` address |
+| CNAME | `api` | the qup-backend app's `*.cranl.net` address |
 | ALIAS | *(root)* | the qup-web app's `*.cranl.net` address |
 | CNAME | `www` | the qup-web app's `*.cranl.net` address |
 
@@ -75,6 +75,14 @@ once DNS resolves.
 - The deployed app currently uses `qup-db`, the same database the automated tests run against
   (decided 2026-10-07). Tests only create and delete rows under reserved test identifiers, but a
   separate database for real students is required before public launch.
+
+## Why the Dockerfiles are at the repository root
+
+CranL uses the Dockerfile's own directory as the build context. With the files under `apps/*/`
+the build could not see the workspace (`pnpm-workspace.yaml`, `packages/`) and failed with
+"not found". At the root, the context is the whole repository. Likewise, an app created with
+automatic framework detection on this repository builds but never serves: the workspace root has no
+start command. Each app must be created with `build: dockerfile` and its `dockerfile_path`.
 
 ## Known issue (2026-10-07)
 

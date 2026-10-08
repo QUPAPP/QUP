@@ -13,7 +13,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: Dockerfile.api
     env_file: .env
     environment:
       NODE_ENV: production
@@ -31,7 +31,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: Dockerfile.web
     environment:
       API_INTERNAL_URL: http://api:3000
     ports:
