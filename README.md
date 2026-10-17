@@ -4,6 +4,8 @@
 
 > القاعدة الأساسية: لا تبدأ بتنفيذ Feature قبل قراءة `AGENTS.md` ثم `PRD.md` ثم الوثيقة المتخصصة المرتبطة بالمهمة.
 
+حالة الكود والأولويات المتبقية: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
 ## ترتيب القراءة
 
 1. `AGENTS.md`

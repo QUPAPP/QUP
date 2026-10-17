@@ -36,6 +36,7 @@ import {
   type AttemptOutcome,
   type EvidenceTarget,
   type Session,
+  type SessionHistoryQuery,
   type SessionItem,
   type SessionProgress,
 } from "../domain/ports.js";
@@ -89,6 +90,22 @@ export class AssessmentsService {
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     @InjectPinoLogger(AssessmentsService.name) private readonly logger: PinoLogger,
   ) {}
+
+  async history(studentId: string, query: SessionHistoryQuery) {
+    const page = await this.store.history(studentId, query);
+    const names = await this.catalog.examNames([
+      ...new Set(page.items.map(({ session }) => session.examId)),
+    ]);
+    return {
+      ...page,
+      items: page.items.map((entry) => {
+        const examName = names.get(entry.session.examId);
+        if (examName === undefined)
+          throw new Error("A session's exam is missing from the catalog.");
+        return { ...entry, examName };
+      }),
+    };
+  }
 
   /**
    * Starts — or resumes — the student's mini diagnostic for an exam

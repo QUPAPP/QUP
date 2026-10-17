@@ -19,6 +19,15 @@ const toThreshold = (value: string | null) => (value === null ? null : Number(va
 export class DrizzleCatalogLookup implements CatalogLookup {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
+  async examNames(examIds: readonly string[]): Promise<Map<string, string>> {
+    if (examIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ id: exams.id, name: exams.nameAr })
+      .from(exams)
+      .where(inArray(exams.id, [...examIds]));
+    return new Map(rows.map((row) => [row.id, row.name]));
+  }
+
   async examStatus(examId: string) {
     const [row] = await this.db
       .select({ status: exams.status })

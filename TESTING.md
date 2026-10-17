@@ -107,3 +107,37 @@ Minimum:
 ## Bug Rule
 
 Every bug fix gets a regression test unless impossible; document exceptions.
+
+## Session history verification
+
+- API integration coverage: `apps/api/test/assessments/assessments.e2e.test.ts`, group
+  `student session history`. Requires `TEST_DATABASE_URL`; checks authentication, strict
+  pagination/filter validation, caller ownership, finalized progress including skips, archived
+  exams, timestamp ties and empty/out-of-range pages.
+- Boundary tests: `apps/api/test/assessments/history-query.test.ts`.
+- Client tests: `apps/web/test/assessment-history-client.test.ts`.
+- Browser smoke checked against the production web build on 2026-10-17 with mocked API responses:
+  page navigation, filter resets pagination, empty/error/retry states, the 390px mobile layout,
+  resume by exact session id without creating a new diagnostic, result links, expired-session
+  sign-in links without cached history, and redirect to login without a session.
+  This complements the real API integration tests; it is not a
+  live payment-provider or complete browser-to-database test.
+
+## Student interface redesign verification
+
+The 2026-10-17 redesign adds navigation boundary tests and account/access client tests. Run
+`pnpm --filter @qup/web test` (33 tests), `pnpm typecheck`, `pnpm check`, and `pnpm build`.
+
+Browser checks used fixtures at the network boundary, with real rendered pages and interactions:
+
+- Public landing, login/registration, password visibility and successful login navigation.
+- Dashboard pagination, filter reset, empty/error/retry states and exact-session resume.
+- Answer submission, feedback and advancing to the next saved item.
+- Plans fetched per exam, checkout idempotency header, provider-disabled failure, empty catalog
+  and existing-access states.
+- Account information and confirmed other-device session revocation.
+- Custom 404, one main/primary heading per page, RTL, no horizontal overflow at 320/390/1440px,
+  and reduced-motion token behavior (CSS tooling may normalize `0ms` to `0s`).
+
+Screenshots and the local CLI smoke script are under the ignored `output/playwright/` directory.
+These are UI checks, not evidence of a completed full diagnostic or a real Stream payment.

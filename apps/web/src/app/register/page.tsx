@@ -5,7 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-
+import { AuthLayout } from "@/components/auth-layout";
+import { Icon } from "@/components/icon";
 import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { register as registerAccount } from "@/lib/api";
@@ -30,20 +31,23 @@ export default function RegisterPage() {
         ...(values.displayName ? { displayName: values.displayName } : {}),
       }),
     onSuccess: ({ user }) => {
+      queryClient.clear();
       queryClient.setQueryData(ME_QUERY_KEY, user);
       router.replace("/exams");
     },
   });
 
   return (
-    <main className="page">
+    <AuthLayout register>
       <form
-        className="card stack"
+        className="auth-form"
         noValidate
         onSubmit={form.handleSubmit((values) => signUp.mutate(values))}
       >
-        <h1>إنشاء حساب</h1>
-        <p className="muted">سجّل بالبريد الإلكتروني أو رقم الجوال — أحدهما يكفي.</p>
+        <div className="auth-form-heading">
+          <h1>خطوتك الأولى تبدأ هنا.</h1>
+          <p>أنشئ حسابك بالبريد الإلكتروني أو رقم الجوال — أحدهما يكفي.</p>
+        </div>
         {signUp.isError ? <ErrorNotice error={signUp.error} /> : null}
         <TextField
           label="الاسم (اختياري)"
@@ -82,10 +86,14 @@ export default function RegisterPage() {
         <button type="submit" className="btn btn--block" disabled={signUp.isPending}>
           {signUp.isPending ? "جارٍ إنشاء الحساب…" : "إنشاء الحساب"}
         </button>
-        <p className="small muted">
+        <p className="auth-form-foot">
           لديك حساب؟ <Link href="/login">سجّل الدخول</Link>
         </p>
+        <p className="auth-security">
+          <Icon name="check" />
+          التشخيص المصغّر مجاني بعد التسجيل
+        </p>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

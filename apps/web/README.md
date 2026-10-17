@@ -37,12 +37,21 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | --- | --- |
 | `/` | Landing page |
 | `/register`, `/login` | Account (email or phone; React Hook Form + Zod) |
+| `/dashboard` | Private session history, status filter, pagination and result/resume links |
+| `/subscriptions` | Exam selector, server-priced plans, access state and hosted checkout |
+| `/account` | Account details, sign out, and revoke other device sessions |
 | `/exams` | Exams on offer |
 | `/exams/:examId/diagnostic` | The free mini diagnostic: start or resume, answer, skip |
+| `/assessments/:sessionId` | Resume the exact mini diagnostic at its next unanswered item |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
 
 ## Rules this app keeps
+
+The visual system is documented in `DESIGN.md` and `PRODUCT.md` inside this app. The root
+`UI_BRAND.md` remains the brand authority. `AppShell` provides active desktop/mobile navigation;
+the landing page and authentication routes retain their public layout. Components share the
+brand palette, spacing, form controls, state treatments and an authored stroke icon set.
 
 - **No business rules here.** Grading, levels, strengths, access and prices are computed by the
   API and only displayed. Form schemas (`src/lib/auth-forms.ts`) only spare a round trip; the API
@@ -53,6 +62,18 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 - Question content is structured blocks rendered as text, never HTML.
 - Server state lives in TanStack Query; errors are shown from the API's stable codes, in Arabic
   (`src/lib/messages.ts`), never as raw server text.
+- Login opens `/dashboard`; registration opens the exam catalog. History query keys include
+  the user id and page/filter, and authentication changes clear cached account data. Successful
+  answer/skip submissions invalidate session history. The dashboard shows metadata/progress
+  only; it does not expose the full paid skill report.
+- Plans are shared between the preliminary result and `/subscriptions` through `PlanOffers`.
+  Prices and entitlement status come from the API, and checkout sends only a plan id and an
+  idempotency key. The interface explicitly identifies full diagnostic/training as still in
+  development. A successful redirect is never treated as proof of payment.
+- `/account` uses the existing `POST /auth/sessions/revoke` to sign out other devices; it does
+  not change passwords, identity details or roles.
+- New query keys include the current user id. Displayed result percentages remain the API's,
+  and progress bars reflect finalized items rather than mastery.
 
 ## Environment
 

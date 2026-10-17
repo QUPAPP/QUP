@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Res,
 } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
@@ -19,7 +20,14 @@ import type { Principal } from "../../auth/domain/principal.js";
 import { CurrentPrincipal } from "../../auth/presentation/current-principal.decorator.js";
 import { AssessmentsService, type SubmitResult } from "../application/assessments.service.js";
 import type { Session, SessionProgress } from "../domain/ports.js";
-import { type AnswerBody, answerBody, type SkipBody, skipBody } from "./assessments.dto.js";
+import {
+  type AnswerBody,
+  answerBody,
+  type SessionHistoryQuery,
+  type SkipBody,
+  sessionHistoryQuery,
+  skipBody,
+} from "./assessments.dto.js";
 import { toPreliminaryResultView } from "./assessments.views.js";
 
 const uuid = new ZodValidationPipe(uuidParam);
@@ -54,6 +62,23 @@ function toSubmitView(result: SubmitResult) {
 @Controller()
 export class AssessmentsController {
   constructor(private readonly assessments: AssessmentsService) {}
+
+  @Get("assessments")
+  @ApiOperation({ summary: "The caller's session history and progress, newest first. Paginated." })
+  async history(
+    @CurrentPrincipal() principal: Principal,
+    @Query(new ZodValidationPipe(sessionHistoryQuery)) query: SessionHistoryQuery,
+  ) {
+    const { items, hasMore } = await this.assessments.history(principal.userId, query);
+    return {
+      items: items.map(({ session, progress, examName }) => ({
+        ...toSessionView(session, progress),
+        exam: { id: session.examId, nameAr: examName },
+        createdAt: session.createdAt.toISOString(),
+      })),
+      page: { limit: query.limit, offset: query.offset, hasMore },
+    };
+  }
 
   @Post("exams/:examId/assessments/mini-diagnostic")
   @ApiOperation({

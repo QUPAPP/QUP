@@ -26,6 +26,18 @@ export interface SessionProgress {
   finalized: number;
 }
 
+export interface SessionHistoryQuery {
+  examId?: string;
+  status?: SessionStatus;
+  limit: number;
+  offset: number;
+}
+
+export interface SessionHistoryEntry {
+  session: Session;
+  progress: SessionProgress;
+}
+
 export interface SessionItem {
   id: string;
   ordinal: number;
@@ -94,6 +106,11 @@ export interface PlannedSessionItem {
 }
 
 export interface AssessmentStore {
+  /** Caller-owned sessions, newest first with id as a stable tie-breaker. */
+  history(
+    studentId: string,
+    query: SessionHistoryQuery,
+  ): Promise<{ items: SessionHistoryEntry[]; hasMore: boolean }>;
   findSession(sessionId: string): Promise<Session | null>;
   /** Newest first. */
   sessionsFor(studentId: string, examId: string, type: SessionType): Promise<Session[]>;

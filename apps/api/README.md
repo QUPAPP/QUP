@@ -90,6 +90,13 @@ built by allow-list, so a field added later cannot leak the answer key by defaul
 
 ## Assessments and mastery
 
+`GET /api/v1/assessments` provides the signed-in student's paginated history with optional exam
+and status filters. Each item includes the exam name, session lifecycle timestamps and finalized
+item count. The store reads a bounded page and aggregates progress in one additional query under
+a consistent read-only snapshot; exam names come through `CatalogLookup.examNames`, including
+archived exams. No answer keys, attempt payloads or mastery data are returned. See
+[API_CONTRACTS.md](../../API_CONTRACTS.md) for pagination limits and the response contract.
+
 `modules/assessments` runs sessions and the answer path (ARCHITECTURE.md §7). `modules/mastery`
 persists what `@qup/adaptive-engine` computes. One transaction per submission:
 

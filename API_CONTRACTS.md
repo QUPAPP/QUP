@@ -186,6 +186,7 @@ Never include future answer keys.
 
 Implemented (mini diagnostic — the first vertical slice):
 ```text
+GET  /assessments?examId=&status=&limit=20&offset=0 caller-owned history, newest first
 POST /exams/:examId/assessments/mini-diagnostic   201 new · 200 resumed (open session returned)
 GET  /assessments/:sessionId                      status + progress
 POST /assessments/:sessionId/start                CREATED → IN_PROGRESS
@@ -207,6 +208,37 @@ GET  /assessments/:sessionId/result               preliminary result (below)
   An option that does not exist is `400 INVALID_ANSWER`.
 - The attempt, its mastery evidence (every mapped node) and auto-completion commit in one
   transaction; submissions within a session are serialized by a row lock.
+
+### Session history
+
+`GET /assessments` requires a signed-in account. Optional `examId` (UUID) and `status`
+(`CREATED | IN_PROGRESS | COMPLETED | ABANDONED | EXPIRED`) filter before pagination.
+`limit` defaults to 20, is bounded to 1–100; `offset` defaults to 0 and is bounded to
+0–1,000,000. Unknown query fields, including `studentId`, are rejected.
+
+```json
+{
+  "items": [{
+    "id": "session-uuid", "examId": "exam-uuid", "type": "MINI_DIAGNOSTIC",
+    "status": "IN_PROGRESS", "exam": { "id": "exam-uuid", "nameAr": "اسم الاختبار" },
+    "createdAt": "2026-10-17T10:00:00.000Z",
+    "startedAt": "2026-10-17T10:01:00.000Z", "completedAt": null,
+    "progress": { "answered": 3, "total": 12 }
+  }],
+  "page": { "limit": 20, "offset": 0, "hasMore": false }
+}
+```
+
+- Identity comes only from the session cookie. The result contains no other students' sessions,
+  question content/keys, attempt answers, skill map or mastery estimates.
+- `answered` counts finalized items, including skips, consistently with the session endpoint.
+- Ordered by `createdAt DESC, id DESC`; progress and sessions use one consistent read snapshot.
+  Offset pagination reflects the current history on each request: a newly created session may
+  shift later pages, so this is a browsing view rather than a fixed export.
+- Exam names remain available after an exam is archived. Existing session ownership and result
+  checks still apply when opening a history entry.
+- The web route `/dashboard` displays this history; `/assessments/:sessionId` starts or resumes
+  the exact mini diagnostic without selecting a new set of questions.
 
 ### Preliminary Result
 

@@ -238,6 +238,126 @@ describe("ownership", () => {
   });
 });
 
+describe("student session history", () => {
+  it("requires a session and rejects forged ownership, invalid filters and unbounded pages", async () => {
+    const unauthenticated = await app.inject({ method: "GET", url: "/api/v1/assessments" });
+    expect(unauthenticated.statusCode).toBe(401);
+    for (const query of [
+      `studentId=${studentAId}`,
+      "examId=invalid",
+      "status=UNKNOWN",
+      "limit=0",
+      "limit=101",
+      "limit=1.5",
+      "offset=-1",
+      "offset=1000001",
+      "offset=NaN",
+    ]) {
+      const response = await call(studentA, "GET", `/assessments?${query}`);
+      expect(response.statusCode, query).toBe(400);
+      expect(errorCode(response)).toBe("VALIDATION_FAILED");
+    }
+  });
+
+  it("returns only the caller's sessions, counts skips and reveals no answer or mastery data", async () => {
+    const exam = await liveExam(2);
+    const sessionId = await startedSession(studentA, exam.examId);
+    const otherSession = await startedSession(studentB, exam.examId);
+    await answer(studentA, sessionId, await currentItemId(studentA, sessionId), CORRECT);
+    await call(
+      studentA,
+      "POST",
+      `/assessments/${sessionId}/items/${await currentItemId(studentA, sessionId)}/skip`,
+      {
+        key: randomUUID(),
+      },
+    );
+
+    const response = await call(studentA, "GET", `/assessments?examId=${exam.examId}`);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      items: [
+        {
+          id: sessionId,
+          examId: exam.examId,
+          type: "MINI_DIAGNOSTIC",
+          status: "IN_PROGRESS",
+          exam: { id: exam.examId, nameAr: expect.any(String) },
+          startedAt: expect.any(String),
+          completedAt: null,
+          createdAt: expect.any(String),
+          progress: { answered: 2, total: 4 },
+        },
+      ],
+      page: { limit: 20, offset: 0, hasMore: false },
+    });
+    for (const hidden of [
+      otherSession,
+      studentAId,
+      "questionVersionId",
+      "submittedAnswer",
+      "isCorrect",
+      "mastery",
+      "correctAnswer",
+    ]) {
+      expect(response.payload).not.toContain(hidden);
+    }
+    // An exam filter never grants visibility into the other student's sessions.
+    expect(
+      (await call(studentB, "GET", `/assessments?examId=${exam.examId}`)).json(),
+    ).toMatchObject({
+      items: [{ id: otherSession, progress: { answered: 0, total: 4 } }],
+    });
+  });
+
+  it("keeps history readable after an exam is archived", async () => {
+    const exam = await liveExam(1);
+    const sessionId = await startedSession(studentA, exam.examId);
+    await finish(studentA, sessionId, () => "CORRECT");
+    await e2eSql`UPDATE exams SET status = 'ARCHIVED' WHERE id = ${exam.examId}`;
+    const response = await call(
+      studentA,
+      "GET",
+      `/assessments?examId=${exam.examId}&status=COMPLETED`,
+    );
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      items: [
+        {
+          id: sessionId,
+          exam: { id: exam.examId, nameAr: expect.any(String) },
+          progress: { answered: 2, total: 2 },
+        },
+      ],
+    });
+    const empty = await call(studentA, "GET", `/assessments?examId=${exam.examId}&status=CREATED`);
+    expect(empty.json()).toEqual({ items: [], page: { limit: 20, offset: 0, hasMore: false } });
+  });
+
+  it("paginates deterministically when sessions share a timestamp and filters before pagination", async () => {
+    const exam = await liveExam(1);
+    const [olderId, newestId] = [randomUUID(), randomUUID()].sort() as [string, string];
+    for (const id of [olderId, newestId]) {
+      await e2eSql`
+        INSERT INTO assessment_sessions (id, student_id, exam_id, type, status, scoring_version, created_at)
+        VALUES (${id}, ${studentAId}, ${exam.examId}, 'MINI_DIAGNOSTIC', 'ABANDONED', 'scoring-v1', '2026-01-01T00:00:00Z')`;
+    }
+    const path = `/assessments?examId=${exam.examId}&status=ABANDONED&limit=1`;
+    const first = await call(studentA, "GET", path);
+    expect(first.json()).toMatchObject({
+      items: [{ id: newestId, progress: { answered: 0, total: 0 } }],
+      page: { limit: 1, offset: 0, hasMore: true },
+    });
+    const second = await call(studentA, "GET", `${path}&offset=1`);
+    expect(second.json()).toMatchObject({
+      items: [{ id: olderId }],
+      page: { limit: 1, offset: 1, hasMore: false },
+    });
+    const beyond = await call(studentA, "GET", `${path}&offset=2`);
+    expect(beyond.json()).toEqual({ items: [], page: { limit: 1, offset: 2, hasMore: false } });
+  });
+});
+
 describe("the answer path", () => {
   it("never sends the answer key with a question", async () => {
     const exam = await liveExam(3);

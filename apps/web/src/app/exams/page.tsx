@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-
+import { EmptyState } from "@/components/empty-state";
+import { Icon } from "@/components/icon";
+import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { listExams } from "@/lib/api";
 import { useRequireUser } from "@/lib/session";
@@ -16,27 +18,56 @@ export default function ExamsPage() {
   });
 
   return (
-    <main className="page stack stack--loose">
-      <div className="stack">
-        <h1>اختر اختبارك</h1>
-        <p className="muted">ابدأ بتشخيص مصغّر مجاني لكل اختبار لتعرف مستواك.</p>
+    <main id="main-content" className="page stack stack--loose">
+      <PageHeading
+        title="اختر اختبارك"
+        description="لكل هدف نقطة بداية. اكتشف مستواك، ثم حدد خطوتك التالية."
+        action={
+          <Link href="/dashboard" className="text-link">
+            جلساتي السابقة <Icon name="chevron" />
+          </Link>
+        }
+      />
+      <div className="info-panel">
+        <Icon name="compass" />
+        <div>
+          <h2>ابدأ بمعرفة مستواك</h2>
+          <p>
+            التشخيص المصغّر مجاني لكل اختبار. بعد إكماله، تظهر لك نتيجة مبدئية وأبرز نقاط قوتك وما
+            يحتاج إلى تدريب.
+          </p>
+        </div>
       </div>
 
       {exams.isPending ? <Loading /> : null}
       {exams.isError ? <ErrorNotice error={exams.error} /> : null}
       {exams.data?.items.length === 0 ? (
-        <p className="notice">لا توجد اختبارات متاحة حاليًا. ستظهر هنا فور إتاحتها.</p>
+        <EmptyState
+          title="اختباراتك القادمة تبدأ من هنا"
+          description="لا توجد اختبارات متاحة حاليًا. ستظهر هنا فور إتاحتها."
+        />
       ) : null}
 
-      <ul className="stack">
+      <ul className="exam-grid">
         {exams.data?.items.map((exam) => (
-          <li key={exam.id} className="card stack">
-            <h2>{exam.nameAr}</h2>
-            {exam.description ? <p className="muted">{exam.description}</p> : null}
-            <div>
-              <Link href={`/exams/${exam.id}/diagnostic`} className="btn">
-                التشخيص المصغّر
-              </Link>
+          <li key={exam.id} className="exam-card">
+            <div className="exam-card-top">
+              <span className="item-symbol">
+                <Icon name="book" />
+              </span>
+              <span className="exam-code" dir="ltr">
+                {exam.code}
+              </span>
+            </div>
+            <div className="exam-card-body">
+              <h2>{exam.nameAr}</h2>
+              {exam.description ? <p className="muted">{exam.description}</p> : null}
+              <div className="exam-card-foot">
+                <span>تشخيص مصغّر مجاني</span>
+                <Link href={`/exams/${exam.id}/diagnostic`} className="btn">
+                  ابدأ التشخيص <Icon name="arrow" />
+                </Link>
+              </div>
             </div>
           </li>
         ))}

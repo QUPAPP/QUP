@@ -17,6 +17,8 @@ next-env.d.ts
 
 # Tooling caches
 .turbo/
+.playwright-cli/
+output/playwright/
 
 # Logs
 *.log

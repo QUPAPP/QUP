@@ -4,9 +4,12 @@ import { errorMessage } from "@/lib/messages";
 
 export function Loading({ label = "جارٍ التحميل…" }: { label?: string }) {
   return (
-    <p className="muted" role="status">
-      {label}
-    </p>
+    <div className="loading-state" role="status" aria-live="polite">
+      <span className="small muted">{label}</span>
+      <span className="skeleton" aria-hidden="true" />
+      <span className="skeleton" aria-hidden="true" />
+      <span className="skeleton" aria-hidden="true" />
+    </div>
   );
 }
 

@@ -1,5 +1,25 @@
 # Security Requirements
 
+## Dependency audit — 2026-10-17
+
+`pnpm audit --prod` reports two high-severity advisories in dependencies already present before
+the student-interface/history/logo changes. This is an open dependency-maintenance item, not a
+clean-audit claim:
+
+- `drizzle-orm` 0.44.7, GHSA-gpj5-g38j-94v9: identifier escaping when untrusted runtime strings
+  reach identifier/alias APIs. The inspected application uses static schema identifiers and
+  parameterized values; no request-controlled `sql.identifier()` or alias construction was found.
+  The schema helper's raw column names are literal `email`/`phone`, not request input.
+  Upgrade both ORM consumers together to a patched compatible version (advisory: >=0.45.2),
+  then run DB and API regression tests before production use.
+- Transitive `source-map-js` 1.2.1 via Next/PostCSS, GHSA-68fv-2mgg-jv7q: indexed-source-map offsets
+  can synchronously block parsing. Current HTTP routes do not accept source maps for processing;
+  the untrusted-content import pipeline is not implemented. Update the dependency chain to
+  `source-map-js` >=1.2.2 and recheck the production build before adding such processing.
+
+Reassess these findings when the dependency graph or request-processing paths change. No
+dependency versions, audit suppression or runtime security policy were changed in this patch.
+
 ## High-Value Assets
 
 - student accounts.

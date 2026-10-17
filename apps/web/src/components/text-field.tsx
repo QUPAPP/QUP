@@ -1,5 +1,8 @@
-import type { InputHTMLAttributes } from "react";
+"use client";
+
+import { type InputHTMLAttributes, useState } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
+import { Icon } from "./icon";
 
 interface TextFieldProps {
   label: string;
@@ -23,6 +26,7 @@ export function TextField({
   inputMode,
   ltr = false,
 }: TextFieldProps) {
+  const [visible, setVisible] = useState(false);
   const id = `field-${registration.name}`;
   const describedBy =
     [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") ||
@@ -33,17 +37,31 @@ export function TextField({
       <label className="field__label" htmlFor={id}>
         {label}
       </label>
-      <input
-        id={id}
-        className="field__input"
-        type={type}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        dir={ltr ? "ltr" : undefined}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        {...registration}
-      />
+      <div className={type === "password" ? "password-field" : undefined}>
+        <input
+          id={id}
+          className="field__input"
+          type={type === "password" && visible ? "text" : type}
+          autoComplete={autoComplete}
+          inputMode={inputMode}
+          dir={ltr ? "ltr" : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          {...registration}
+        />
+        {type === "password" ? (
+          <button
+            type="button"
+            className="password-toggle"
+            aria-label={visible ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+            aria-pressed={visible}
+            aria-controls={id}
+            onClick={() => setVisible((value) => !value)}
+          >
+            <Icon name={visible ? "eye-off" : "eye"} />
+          </button>
+        ) : null}
+      </div>
       {hint ? (
         <span id={`${id}-hint`} className="field__hint">
           {hint}

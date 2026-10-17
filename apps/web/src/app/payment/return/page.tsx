@@ -16,7 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PaymentReturnPage() {
   return (
-    <main className="page stack stack--loose">
+    <main id="main-content" className="page page--focused stack stack--loose">
       <h1>حالة الدفع</h1>
       {/* useSearchParams needs a Suspense boundary to be prerendered. */}
       <Suspense fallback={<Loading />}>

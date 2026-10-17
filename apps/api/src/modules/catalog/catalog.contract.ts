@@ -32,6 +32,8 @@ export interface SkillLabel {
 }
 
 export interface CatalogLookup {
+  /** Names for historical sessions, including exams no longer on sale. */
+  examNames(examIds: readonly string[]): Promise<Map<string, string>>;
   /** The exam's status, or null when it does not exist. */
   examStatus(examId: string): Promise<"DRAFT" | "ACTIVE" | "ARCHIVED" | null>;
   /** The exam's single published taxonomy (active nodes only), or null. */

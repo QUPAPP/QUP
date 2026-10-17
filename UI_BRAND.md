@@ -33,6 +33,13 @@ Usage guidance:
 
 Gold للتأكيد والإنجاز والزخرفة، وليس للنصوص الطويلة على الأبيض.
 
+## Logo Assets
+
+The website uses the navy/gold QUP logo in `apps/web/public/brand/qup-logo-v2.png` and the
+matching standalone symbol `qup-symbol-v2.png`. Both preserve native transparency. Shared
+`Brand` rendering retains the Arabic tagline as accessible text. Asset usage and generation
+provenance are documented in `apps/web/BRAND_ASSETS.md`.
+
 ## Typography
 
 - `Noto Kufi Arabic`: headings/buttons/high-presence UI.

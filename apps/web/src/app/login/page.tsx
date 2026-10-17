@@ -5,7 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-
+import { AuthLayout } from "@/components/auth-layout";
+import { Icon } from "@/components/icon";
 import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { login } from "@/lib/api";
@@ -23,19 +24,23 @@ export default function LoginPage() {
   const signIn = useMutation({
     mutationFn: login,
     onSuccess: ({ user }) => {
+      queryClient.clear();
       queryClient.setQueryData(ME_QUERY_KEY, user);
-      router.replace("/exams");
+      router.replace("/dashboard");
     },
   });
 
   return (
-    <main className="page">
+    <AuthLayout>
       <form
-        className="card stack"
+        className="auth-form"
         noValidate
         onSubmit={form.handleSubmit((values) => signIn.mutate(values))}
       >
-        <h1>تسجيل الدخول</h1>
+        <div className="auth-form-heading">
+          <h1>أهلًا بعودتك.</h1>
+          <p>سجّل دخولك، وكمل خطوتك القادمة.</p>
+        </div>
         {signIn.isError ? <ErrorNotice error={signIn.error} /> : null}
         <TextField
           label="البريد الإلكتروني أو رقم الجوال"
@@ -55,10 +60,14 @@ export default function LoginPage() {
         <button type="submit" className="btn btn--block" disabled={signIn.isPending}>
           {signIn.isPending ? "جارٍ الدخول…" : "دخول"}
         </button>
-        <p className="small muted">
+        <p className="auth-form-foot">
           ليس لديك حساب؟ <Link href="/register">أنشئ حسابًا مجانيًا</Link>
         </p>
+        <p className="auth-security">
+          <Icon name="lock" />
+          جلساتك ونتائجك مرتبطة بحسابك
+        </p>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

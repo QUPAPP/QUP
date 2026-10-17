@@ -80,12 +80,41 @@ export interface Exam {
 }
 
 export type SessionStatus = "CREATED" | "IN_PROGRESS" | "COMPLETED" | "ABANDONED" | "EXPIRED";
+export type SessionType =
+  | "MINI_DIAGNOSTIC"
+  | "FULL_DIAGNOSTIC"
+  | "PRACTICE"
+  | "ADAPTIVE_TRAINING"
+  | "SKILL_REASSESSMENT"
+  | "FULL_REASSESSMENT"
+  | "MOCK_EXAM";
 
 export interface AssessmentSession {
   id: string;
   examId: string;
+  type: SessionType;
   status: SessionStatus;
   progress?: { answered: number; total: number };
+}
+
+export interface SessionHistoryEntry extends AssessmentSession {
+  exam: { id: string; nameAr: string };
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  progress: { answered: number; total: number };
+}
+
+export interface SessionHistory {
+  items: SessionHistoryEntry[];
+  page: { limit: number; offset: number; hasMore: boolean };
+}
+
+export interface SessionHistoryFilters {
+  limit: number;
+  offset: number;
+  examId?: string;
+  status?: SessionStatus;
 }
 
 export type ContentBlock = { type: "text"; text: string } | { type: "math"; latex: string };
@@ -144,6 +173,12 @@ export interface Payment {
   checkoutUrl: string | null;
 }
 
+export interface ExamAccess {
+  examId: string;
+  hasAccess: boolean;
+  activeUntil: string | null;
+}
+
 /* --------------------------------- calls ---------------------------------- */
 
 export const getMe = () => api<{ user: User }>("/auth/me");
@@ -161,6 +196,16 @@ export const register = (body: {
 export const logout = () => api<void>("/auth/logout", { method: "POST" });
 
 export const listExams = () => api<{ items: Exam[] }>("/exams");
+
+export const listAssessmentHistory = (filters: SessionHistoryFilters) => {
+  const query = new URLSearchParams({
+    limit: String(filters.limit),
+    offset: String(filters.offset),
+  });
+  if (filters.examId) query.set("examId", filters.examId);
+  if (filters.status) query.set("status", filters.status);
+  return api<SessionHistory>(`/assessments?${query}`);
+};
 
 export const startMiniDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/mini-diagnostic`, { method: "POST" });
@@ -202,3 +247,7 @@ export const checkout = (planId: string, idempotencyKey: string) =>
   api<Payment>("/payments", { method: "POST", idempotencyKey, body: { planId } });
 
 export const getPayment = (paymentId: string) => api<Payment>(`/payments/${paymentId}`);
+
+export const getExamAccess = (examId: string) => api<ExamAccess>(`/exams/${examId}/my-access`);
+
+export const revokeOtherSessions = () => api<void>("/auth/sessions/revoke", { method: "POST" });

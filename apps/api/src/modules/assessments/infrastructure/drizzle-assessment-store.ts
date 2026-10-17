@@ -21,6 +21,8 @@ import type {
   RecordAttemptCommand,
   RecordAttemptResult,
   Session,
+  SessionHistoryEntry,
+  SessionHistoryQuery,
   SessionItem,
   SessionProgress,
   SessionType,
@@ -55,6 +57,61 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     @Inject(DATABASE) private readonly db: Database,
     private readonly mastery: MasteryWriter,
   ) {}
+
+  async history(
+    studentId: string,
+    query: SessionHistoryQuery,
+  ): Promise<{ items: SessionHistoryEntry[]; hasMore: boolean }> {
+    // Read a bounded page first: progress is aggregated only for these sessions,
+    // never once per session or across the student's entire question history.
+    return this.db.transaction(
+      async (tx) => {
+        const rows = await tx
+          .select(sessionColumns)
+          .from(assessmentSessions)
+          .where(
+            and(
+              eq(assessmentSessions.studentId, studentId),
+              query.examId ? eq(assessmentSessions.examId, query.examId) : undefined,
+              query.status ? eq(assessmentSessions.status, query.status) : undefined,
+            ),
+          )
+          .orderBy(desc(assessmentSessions.createdAt), desc(assessmentSessions.id))
+          .limit(query.limit + 1)
+          .offset(query.offset);
+        const sessions = rows.slice(0, query.limit);
+        if (sessions.length === 0) return { items: [], hasMore: false };
+
+        const counts = await tx
+          .select({
+            sessionId: assessmentItems.sessionId,
+            total: count(assessmentItems.id),
+            finalized: count(questionAttempts.id),
+          })
+          .from(assessmentItems)
+          .leftJoin(questionAttempts, eq(questionAttempts.assessmentItemId, assessmentItems.id))
+          .where(
+            inArray(
+              assessmentItems.sessionId,
+              sessions.map((session) => session.id),
+            ),
+          )
+          .groupBy(assessmentItems.sessionId);
+        const progress = new Map(counts.map((row) => [row.sessionId, row]));
+        return {
+          items: sessions.map((session) => ({
+            session,
+            progress: {
+              total: progress.get(session.id)?.total ?? 0,
+              finalized: progress.get(session.id)?.finalized ?? 0,
+            },
+          })),
+          hasMore: rows.length > query.limit,
+        };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
 
   async findSession(sessionId: string): Promise<Session | null> {
     const [row] = await this.db

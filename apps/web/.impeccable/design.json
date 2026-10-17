@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T18:03:29.918739+00:00",
+  "title": "Design System: QUP",
+  "extensions": {
+    "colorMeta": {
+      "navy": {
+        "role": "primary",
+        "displayName": "Navy",
+        "tonalRamp": [
+          "oklch(15.00% 0.06431 256.32)",
+          "oklch(26.43% 0.06431 256.32)",
+          "oklch(37.86% 0.06431 256.32)",
+          "oklch(49.29% 0.06431 256.32)",
+          "oklch(60.71% 0.06431 256.32)",
+          "oklch(72.14% 0.06431 256.32)",
+          "oklch(83.57% 0.06431 256.32)",
+          "oklch(95.00% 0.06431 256.32)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.12699 248.33)",
+          "oklch(26.43% 0.12699 248.33)",
+          "oklch(37.86% 0.12699 248.33)",
+          "oklch(49.29% 0.12699 248.33)",
+          "oklch(60.71% 0.12699 248.33)",
+          "oklch(72.14% 0.12699 248.33)",
+          "oklch(83.57% 0.12699 248.33)",
+          "oklch(95.00% 0.12699 248.33)"
+        ]
+      },
+      "gold": {
+        "role": "secondary",
+        "displayName": "Gold",
+        "tonalRamp": [
+          "oklch(15.00% 0.13873 79.58)",
+          "oklch(26.43% 0.13873 79.58)",
+          "oklch(37.86% 0.13873 79.58)",
+          "oklch(49.29% 0.13873 79.58)",
+          "oklch(60.71% 0.13873 79.58)",
+          "oklch(72.14% 0.13873 79.58)",
+          "oklch(83.57% 0.13873 79.58)",
+          "oklch(95.00% 0.13873 79.58)"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00453 258.32)",
+          "oklch(26.43% 0.00453 258.32)",
+          "oklch(37.86% 0.00453 258.32)",
+          "oklch(49.29% 0.00453 258.32)",
+          "oklch(60.71% 0.00453 258.32)",
+          "oklch(72.14% 0.00453 258.32)",
+          "oklch(83.57% 0.00453 258.32)",
+          "oklch(95.00% 0.00453 258.32)"
+        ]
+      },
+      "blue-surface": {
+        "role": "primary",
+        "displayName": "Blue Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.01201 247.95)",
+          "oklch(26.43% 0.01201 247.95)",
+          "oklch(37.86% 0.01201 247.95)",
+          "oklch(49.29% 0.01201 247.95)",
+          "oklch(60.71% 0.01201 247.95)",
+          "oklch(72.14% 0.01201 247.95)",
+          "oklch(83.57% 0.01201 247.95)",
+          "oklch(95.00% 0.01201 247.95)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "tonalRamp": [
+          "oklch(15.00% 0.01149 252.09)",
+          "oklch(26.43% 0.01149 252.09)",
+          "oklch(37.86% 0.01149 252.09)",
+          "oklch(49.29% 0.01149 252.09)",
+          "oklch(60.71% 0.01149 252.09)",
+          "oklch(72.14% 0.01149 252.09)",
+          "oklch(83.57% 0.01149 252.09)",
+          "oklch(95.00% 0.01149 252.09)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "tonalRamp": [
+          "oklch(15.00% 0.05600 252.82)",
+          "oklch(26.43% 0.05600 252.82)",
+          "oklch(37.86% 0.05600 252.82)",
+          "oklch(49.29% 0.05600 252.82)",
+          "oklch(60.71% 0.05600 252.82)",
+          "oklch(72.14% 0.05600 252.82)",
+          "oklch(83.57% 0.05600 252.82)",
+          "oklch(95.00% 0.05600 252.82)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.03654 251.39)",
+          "oklch(26.43% 0.03654 251.39)",
+          "oklch(37.86% 0.03654 251.39)",
+          "oklch(49.29% 0.03654 251.39)",
+          "oklch(60.71% 0.03654 251.39)",
+          "oklch(72.14% 0.03654 251.39)",
+          "oklch(83.57% 0.03654 251.39)",
+          "oklch(95.00% 0.03654 251.39)"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Success",
+        "tonalRamp": [
+          "oklch(15.00% 0.09749 159.26)",
+          "oklch(26.43% 0.09749 159.26)",
+          "oklch(37.86% 0.09749 159.26)",
+          "oklch(49.29% 0.09749 159.26)",
+          "oklch(60.71% 0.09749 159.26)",
+          "oklch(72.14% 0.09749 159.26)",
+          "oklch(83.57% 0.09749 159.26)",
+          "oklch(95.00% 0.09749 159.26)"
+        ]
+      },
+      "success-surface": {
+        "role": "tertiary",
+        "displayName": "Success Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.01319 159.92)",
+          "oklch(26.43% 0.01319 159.92)",
+          "oklch(37.86% 0.01319 159.92)",
+          "oklch(49.29% 0.01319 159.92)",
+          "oklch(60.71% 0.01319 159.92)",
+          "oklch(72.14% 0.01319 159.92)",
+          "oklch(83.57% 0.01319 159.92)",
+          "oklch(95.00% 0.01319 159.92)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger",
+        "tonalRamp": [
+          "oklch(15.00% 0.15945 27.43)",
+          "oklch(26.43% 0.15945 27.43)",
+          "oklch(37.86% 0.15945 27.43)",
+          "oklch(49.29% 0.15945 27.43)",
+          "oklch(60.71% 0.15945 27.43)",
+          "oklch(72.14% 0.15945 27.43)",
+          "oklch(83.57% 0.15945 27.43)",
+          "oklch(95.00% 0.15945 27.43)"
+        ]
+      },
+      "danger-surface": {
+        "role": "tertiary",
+        "displayName": "Danger Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.01414 22.76)",
+          "oklch(26.43% 0.01414 22.76)",
+          "oklch(37.86% 0.01414 22.76)",
+          "oklch(49.29% 0.01414 22.76)",
+          "oklch(60.71% 0.01414 22.76)",
+          "oklch(72.14% 0.01414 22.76)",
+          "oklch(83.57% 0.01414 22.76)",
+          "oklch(95.00% 0.01414 22.76)"
+        ]
+      },
+      "warning-surface": {
+        "role": "secondary",
+        "displayName": "Warning Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.01711 84.59)",
+          "oklch(26.43% 0.01711 84.59)",
+          "oklch(37.86% 0.01711 84.59)",
+          "oklch(49.29% 0.01711 84.59)",
+          "oklch(60.71% 0.01711 84.59)",
+          "oklch(72.14% 0.01711 84.59)",
+          "oklch(83.57% 0.01711 84.59)",
+          "oklch(95.00% 0.01711 84.59)"
+        ]
+      },
+      "on-navy-muted": {
+        "role": "neutral",
+        "displayName": "On Navy Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.02764 255.11)",
+          "oklch(26.43% 0.02764 255.11)",
+          "oklch(37.86% 0.02764 255.11)",
+          "oklch(49.29% 0.02764 255.11)",
+          "oklch(60.71% 0.02764 255.11)",
+          "oklch(72.14% 0.02764 255.11)",
+          "oklch(83.57% 0.02764 255.11)",
+          "oklch(95.00% 0.02764 255.11)"
+        ]
+      },
+      "navy-elevated": {
+        "role": "neutral",
+        "displayName": "Navy Elevated",
+        "tonalRamp": [
+          "oklch(15.00% 0.06894 254.15)",
+          "oklch(26.43% 0.06894 254.15)",
+          "oklch(37.86% 0.06894 254.15)",
+          "oklch(49.29% 0.06894 254.15)",
+          "oklch(60.71% 0.06894 254.15)",
+          "oklch(72.14% 0.06894 254.15)",
+          "oklch(83.57% 0.06894 254.15)",
+          "oklch(95.00% 0.06894 254.15)"
+        ]
+      },
+      "navy-line": {
+        "role": "neutral",
+        "displayName": "Navy Line",
+        "tonalRamp": [
+          "oklch(15.00% 0.06000 253.68)",
+          "oklch(26.43% 0.06000 253.68)",
+          "oklch(37.86% 0.06000 253.68)",
+          "oklch(49.29% 0.06000 253.68)",
+          "oklch(60.71% 0.06000 253.68)",
+          "oklch(72.14% 0.06000 253.68)",
+          "oklch(83.57% 0.06000 253.68)",
+          "oklch(95.00% 0.06000 253.68)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Desktop public hero; responsive sizing in DESIGN.md."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Base page h1."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Base h2."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Base h3."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Arabic reading and educational content."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Supporting text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Visible field labels."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons and action controls."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient",
+        "value": "0 16px 48px rgb(8 31 61 / 7%)",
+        "purpose": "Available token; ordinary cards remain flat."
+      },
+      {
+        "name": "journey",
+        "value": "0 24px 64px rgb(8 31 61 / 12%)",
+        "purpose": "Public educational journey emphasis."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 4px rgb(23 105 170 / 22%)",
+        "purpose": "Fields and answer-option focus halo."
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-fast",
+        "value": "180ms",
+        "purpose": "State transition duration; 0ms with reduced motion."
+      },
+      {
+        "name": "scroll-behavior",
+        "value": "smooth",
+        "purpose": "Document scroll; auto with reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "800px"
+      },
+      {
+        "name": "small-screen",
+        "value": "520px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Implemented primary button variant; hover, active, focus and disabled states preserved.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><button type=\"button\" class=\"ds-btn\">متابعة</button></div>",
+      "css": ":where(.ds-btn) {display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 0.65rem;\n    min-height: 2.9rem;\n    padding: 0.65rem 1.3rem;\n    border: 1px solid transparent;\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-blue, #1769aa);\n    color: var(--color-white, #ffffff);\n    font-family: var(--font-body, \"Noto Sans Arabic\", system-ui, sans-serif);\n    font-size: 0.9rem;\n    font-weight: 600;\n    line-height: 1.6;\n    text-decoration: none;\n    cursor: pointer;\n    transition:\n      box-shadow var(--motion-fast, 180ms),\n      transform var(--motion-fast, 180ms);}\n:where(.ds-btn:hover:not(:disabled)) {background: var(--color-navy, #081f3d);}\n:where(.ds-btn:active:not(:disabled)) {transform: translateY(1px);}\n:where(.ds-closing-cta .ds-btn:hover) {background: var(--color-white, #ffffff);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-notice > .ds-btn, .ds-notice > a) {margin-top: 0.75rem;}\n:where(.ds-plan-card .ds-btn) {width: 100%;\n    margin-top: auto;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n.ds-btn {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);}"
+    },
+    {
+      "name": "Gold Button",
+      "kind": "button",
+      "refersTo": "button-gold",
+      "description": "Implemented gold button variant; hover, active, focus and disabled states preserved.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><button type=\"button\" class=\"ds-btn ds-btn--gold\">ابدأ الآن</button></div>",
+      "css": ":where(.ds-btn) {display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 0.65rem;\n    min-height: 2.9rem;\n    padding: 0.65rem 1.3rem;\n    border: 1px solid transparent;\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-blue, #1769aa);\n    color: var(--color-white, #ffffff);\n    font-family: var(--font-body, \"Noto Sans Arabic\", system-ui, sans-serif);\n    font-size: 0.9rem;\n    font-weight: 600;\n    line-height: 1.6;\n    text-decoration: none;\n    cursor: pointer;\n    transition:\n      box-shadow var(--motion-fast, 180ms),\n      transform var(--motion-fast, 180ms);}\n:where(.ds-btn:hover:not(:disabled)) {background: var(--color-navy, #081f3d);}\n:where(.ds-btn:active:not(:disabled)) {transform: translateY(1px);}\n:where(.ds-btn--gold) {background: var(--color-gold, #d39a27);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-btn--gold:hover:not(:disabled)) {background: var(--color-navy, #081f3d);\n    color: var(--color-white, #ffffff);}\n:where(.ds-closing-cta .ds-btn:hover) {background: var(--color-white, #ffffff);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-notice > .ds-btn, .ds-notice > a) {margin-top: 0.75rem;}\n:where(.ds-plan-card .ds-btn) {width: 100%;\n    margin-top: auto;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n.ds-btn {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Implemented ghost button variant; hover, active, focus and disabled states preserved.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><button type=\"button\" class=\"ds-btn ds-btn--ghost\">رجوع</button></div>",
+      "css": ":where(.ds-btn) {display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 0.65rem;\n    min-height: 2.9rem;\n    padding: 0.65rem 1.3rem;\n    border: 1px solid transparent;\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-blue, #1769aa);\n    color: var(--color-white, #ffffff);\n    font-family: var(--font-body, \"Noto Sans Arabic\", system-ui, sans-serif);\n    font-size: 0.9rem;\n    font-weight: 600;\n    line-height: 1.6;\n    text-decoration: none;\n    cursor: pointer;\n    transition:\n      box-shadow var(--motion-fast, 180ms),\n      transform var(--motion-fast, 180ms);}\n:where(.ds-btn:hover:not(:disabled)) {background: var(--color-navy, #081f3d);}\n:where(.ds-btn:active:not(:disabled)) {transform: translateY(1px);}\n:where(.ds-btn--ghost) {border-color: var(--color-border, #e1e7ee);\n    background: var(--color-white, #ffffff);\n    color: var(--color-text, #162d47);}\n:where(.ds-btn--ghost:hover:not(:disabled)) {background: var(--color-blue-surface, #edf4fb);\n    color: var(--color-blue, #1769aa);}\n:where(.ds-closing-cta .ds-btn:hover) {background: var(--color-white, #ffffff);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-notice > .ds-btn, .ds-notice > a) {margin-top: 0.75rem;}\n:where(.ds-question-footer .ds-btn--ghost) {margin-inline-start: auto;}\n:where(.ds-plan-card .ds-btn) {width: 100%;\n    margin-top: auto;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n.ds-btn {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);}"
+    },
+    {
+      "name": "On-dark Button",
+      "kind": "button",
+      "refersTo": "button-on-dark",
+      "description": "Implemented on-dark button variant; hover, active, focus and disabled states preserved.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><div style=\"background:var(--color-navy,#081f3d);padding:1.5rem;border-radius:var(--radius,1rem)\"><button type=\"button\" class=\"ds-btn ds-btn--on-dark\">متابعة</button></div></div>",
+      "css": ":where(.ds-btn) {display: inline-flex;\n    align-items: center;\n    justify-content: center;\n    gap: 0.65rem;\n    min-height: 2.9rem;\n    padding: 0.65rem 1.3rem;\n    border: 1px solid transparent;\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-blue, #1769aa);\n    color: var(--color-white, #ffffff);\n    font-family: var(--font-body, \"Noto Sans Arabic\", system-ui, sans-serif);\n    font-size: 0.9rem;\n    font-weight: 600;\n    line-height: 1.6;\n    text-decoration: none;\n    cursor: pointer;\n    transition:\n      box-shadow var(--motion-fast, 180ms),\n      transform var(--motion-fast, 180ms);}\n:where(.ds-btn:hover:not(:disabled)) {background: var(--color-navy, #081f3d);}\n:where(.ds-btn:active:not(:disabled)) {transform: translateY(1px);}\n:where(.ds-btn--on-dark) {background: transparent;\n    color: var(--color-white, #ffffff);\n    border-color: var(--color-navy-line, #2d4664);}\n:where(.ds-closing-cta .ds-btn:hover) {background: var(--color-white, #ffffff);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-notice > .ds-btn, .ds-notice > a) {margin-top: 0.75rem;}\n:where(.ds-plan-card .ds-btn) {width: 100%;\n    margin-top: auto;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n.ds-btn {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Visible label, linked hint and invalid-field treatment.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><div class=\"ds-field\"><label class=\"ds-field__label\" for=\"ds-name\">الاسم</label><input class=\"ds-field__input\" id=\"ds-name\" autocomplete=\"name\" aria-describedby=\"ds-hint\"><span class=\"ds-field__hint\" id=\"ds-hint\">اكتب اسمك</span></div></div>",
+      "css": ":where(.ds-history-filter .ds-field__input) {min-height: 2.5rem;\n    font-size: 0.8rem;\n    min-width: 9.5rem;}\n:where(.ds-field) {display: flex;\n    flex-direction: column;\n    gap: 0.4rem;}\n:where(.ds-field__label) {font-size: 0.85rem;\n    font-weight: 600;}\n:where(.ds-field__hint) {font-size: 0.75rem;\n    color: var(--color-text-muted, #596a7d);}\n:where(.ds-field__input) {width: 100%;\n    min-width: 0;\n    min-height: 3rem;\n    padding: 0.7rem 0.85rem;\n    border: 1px solid var(--color-border, #e1e7ee);\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-white, #ffffff);\n    color: var(--color-text, #162d47);\n    font-size: 0.9rem;\n    transition:\n      border-color var(--motion-fast, 180ms),\n      box-shadow var(--motion-fast, 180ms);}\n:where(.ds-field__input:focus) {border-color: var(--color-blue, #1769aa);\n    outline: none;\n    box-shadow: var(--focus-ring, 0 0 0 4px rgb(23 105 170 / 22%));}\n:where(.ds-field__input[aria-invalid=\"true\"]) {border-color: var(--color-danger, #aa302a);}\n:where(.ds-field__error) {color: var(--color-danger, #aa302a);\n    font-size: 0.75rem;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}"
+    },
+    {
+      "name": "Workspace Navigation",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Current route is marked semantically and visually.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><nav class=\"ds-sidebar-nav\" aria-label=\"التنقل\"><a class=\"ds-sidebar-link ds-is-active\" href=\"#dashboard\" aria-current=\"page\">الرئيسية</a><a class=\"ds-sidebar-link\" href=\"#exams\">الاختبارات</a></nav></div>",
+      "css": ":where(.ds-sidebar-nav) {display: flex;\n    flex-direction: column;\n    gap: 0.45rem;}\n:where(.ds-sidebar-link) {display: flex;\n    align-items: center;\n    gap: 0.85rem;\n    padding: 0.85rem 1rem;\n    border-radius: var(--radius-small, 0.625rem);\n    color: var(--color-text-muted, #596a7d);\n    font-size: 0.9rem;\n    text-decoration: none;\n    transition:\n      background var(--motion-fast, 180ms),\n      color var(--motion-fast, 180ms);}\n:where(.ds-sidebar-link:hover) {background: var(--color-surface, #f5f7fa);\n    color: var(--color-navy, #081f3d);}\n:where(.ds-sidebar-link.ds-is-active) {background: var(--color-blue-surface, #edf4fb);\n    color: var(--color-blue, #1769aa);\n    font-weight: 600;}\n:where(.ds-sidebar-link:not(.ds-is-active) .ds-nav-chevron) {visibility: hidden;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}"
+    },
+    {
+      "name": "Completed Status",
+      "kind": "chip",
+      "refersTo": "status-completed",
+      "description": "Non-interactive status label with dot cue.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><span class=\"ds-status-badge ds-status-badge--completed\">مكتمل</span></div>",
+      "css": ":where(.ds-status-badge) {display: inline-flex;\n    align-items: center;\n    gap: 0.4rem;\n    width: fit-content;\n    padding: 0.25rem 0.65rem;\n    border-radius: 0.4rem;\n    background: var(--color-surface, #f5f7fa);\n    color: var(--color-text-muted, #596a7d);\n    font-size: 0.7rem;\n    font-weight: 600;}\n.ds-status-badge::before {content: \"\";\n    width: 0.3rem;\n    height: 0.3rem;\n    background: currentColor;\n    border-radius: 50%;}\n:where(.ds-status-badge--completed) {background: var(--color-success-surface, #edf7f1);\n    color: var(--color-success, #23734e);}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat bordered content container.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><section class=\"ds-card\"><h3 style=\"font-family:var(--font-heading,Noto Kufi Arabic,sans-serif);font-size:1.125rem;line-height:1.6;margin:0;color:var(--color-navy,#081f3d)\">تفاصيل الحساب</h3><p style=\"margin:.75rem 0 0\">معلوماتك في مكان واحد.</p></section></div>",
+      "css": ":where(.ds-card) {background: var(--color-white, #ffffff);\n    border: 1px solid var(--color-border, #e1e7ee);\n    border-radius: var(--radius, 1rem);\n    padding: 1.75rem;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n@media(max-width:520px){.ds-card{padding:1.25rem;}}"
+    },
+    {
+      "name": "Session History Row",
+      "kind": "custom",
+      "refersTo": "history-row",
+      "description": "Illustrative record structure with no invented activity metrics.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><div class=\"ds-history-row\"><span class=\"ds-item-symbol\" aria-hidden=\"true\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"><path d=\"M8 4H5v17h14V4h-3M9 3h6v4H9zM8 12h8M8 16h5\"/></svg></span><div class=\"ds-history-detail\"><h3 style=\"margin:0;font-family:var(--font-heading,Noto Kufi Arabic,sans-serif)\">عنوان الجلسة</h3><span class=\"ds-small\">تفاصيل الجلسة من الخادم</span></div><div class=\"ds-history-action\"><a class=\"ds-text-link\" href=\"#session\">عرض الجلسة</a></div></div></div>",
+      "css": ":where(.ds-text-link) {display: inline-flex;\n    align-items: center;\n    gap: 0.45rem;\n    color: var(--color-navy, #081f3d);\n    font-size: 0.875rem;\n    font-weight: 600;\n    text-decoration: none;}\n:where(.ds-text-link:hover) {color: var(--color-blue, #1769aa);}\n:where(.ds-history-row) {display: grid;\n    grid-template-columns: auto minmax(0, 1fr) auto auto;\n    align-items: center;\n    gap: 1.25rem;\n    padding: 1.5rem 1.75rem;\n    border-bottom: 1px solid var(--color-border, #e1e7ee);}\n:where(.ds-history-row:last-child) {border-bottom: 0;}\n:where(.ds-history-row h3) {font-size: 0.95rem;}\n:where(.ds-history-row .ds-small) {font-size: 0.75rem;}\n:where(.ds-item-symbol) {width: 3rem;\n    height: 3rem;\n    display: grid;\n    place-items: center;\n    background: var(--color-blue-surface, #edf4fb);\n    color: var(--color-blue, #1769aa);\n    border-radius: var(--radius-small, 0.625rem);}\n:where(.ds-history-detail) {display: flex;\n    flex-direction: column;\n    gap: 0.2rem;}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}\n@media(max-width:520px){.ds-history-row{grid-template-columns:auto minmax(0,1fr);padding:1.25rem 1rem;gap:.75rem;}.ds-history-action{grid-column:2;}}"
+    },
+    {
+      "name": "Answer Option",
+      "kind": "custom",
+      "refersTo": "answer-option",
+      "description": "Full-row radio selection with selected tint and focus halo.",
+      "html": "<div class=\"ds-preview\" lang=\"ar\" dir=\"rtl\"><fieldset class=\"ds-options\"><legend>اختر إجابة</legend><label class=\"ds-option\"><input type=\"radio\" name=\"ds-answer\" value=\"a\"><span>نص الاختيار الأول</span></label><label class=\"ds-option\"><input type=\"radio\" name=\"ds-answer\" value=\"b\"><span>نص الاختيار الثاني</span></label></fieldset></div>",
+      "css": ":where(.ds-options) {display: flex;\n    flex-direction: column;\n    gap: 0.85rem;\n    margin: 0;\n    padding: 0;\n    border: 0;}\n:where(.ds-options legend) {font-size: 1.15rem;\n    line-height: 2;\n    font-weight: 600;\n    padding-bottom: 1.5rem;\n    width: 100%;}\n:where(.ds-option) {display: flex;\n    align-items: center;\n    gap: 1rem;\n    padding: 1rem 1.25rem;\n    border: 1px solid var(--color-border, #e1e7ee);\n    border-radius: var(--radius-small, 0.625rem);\n    background: var(--color-white, #ffffff);\n    cursor: pointer;\n    transition:\n      border-color var(--motion-fast, 180ms),\n      background var(--motion-fast, 180ms);}\n:where(.ds-option:hover) {background: var(--color-surface, #f5f7fa);\n    border-color: var(--color-blue, #1769aa);}\n:where(.ds-option:has(input:checked)) {background: var(--color-blue-surface, #edf4fb);\n    border-color: var(--color-blue, #1769aa);}\n:where(.ds-option:has(input:focus-visible)) {box-shadow: var(--focus-ring, 0 0 0 4px rgb(23 105 170 / 22%));}\n:where(.ds-option input) {width: 1.1rem;\n    height: 1.1rem;\n    flex-shrink: 0;}\n:where(.ds-option-key) {font-size: 0.75rem;\n    color: var(--color-text-muted, #596a7d);}\n.ds-preview {font-family:var(--font-body,\"Noto Sans Arabic\",system-ui,sans-serif);line-height:1.8;color:var(--color-text,#162d47);} .ds-preview :focus-visible {outline:2px solid var(--color-blue,#1769aa);outline-offset:4px;} .ds-preview button:disabled {opacity:.5;cursor:not-allowed;}\n@media(prefers-reduced-motion:reduce){.ds-preview {--motion-fast:0ms;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Guided Learning Workspace",
+    "overview": "QUP is supportive, ambitious and trustworthy. Its existing Arabic identity combines confident navy framing, clear learning-blue actions and selective future-gold emphasis. This documentation records the implemented expansion of that identity; it does not resolve the still-open relationship between QUP and معين or introduce a new brand.\n\nThe interface gives each task a clear hierarchy: generous editorial space for introductions, a quiet canvas for student work and narrower reading space for assessment. Structured educational graphics and consistent stroke icons carry the visual story without stock photography, fictional dashboards or decorative data. Warmth comes from readable Arabic, calm surfaces and useful next steps.",
+    "keyCharacteristics": [
+      "RTL-first composition and logical alignment.",
+      "Kufi headings with Sans Arabic reading and control text.",
+      "White and cool surfaces anchored by navy; blue actions and selective gold emphasis.",
+      "Row-based repeated records, restrained borders and focused task hierarchy.",
+      "Visible states, keyboard focus and reduced-motion support."
+    ],
+    "rules": [
+      {
+        "name": "The Gold Emphasis Rule",
+        "body": "Gold provides emphasis and achievement cues; do not use it for long reading text on white.",
+        "section": "colors"
+      },
+      {
+        "name": "The Explicit State Rule",
+        "body": "Pair status color with a readable label or other semantic cue; color alone never explains status.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading First Rule",
+        "body": "Keep Arabic reading text in Sans Arabic with comfortable leading; reserve Kufi's stronger presence for hierarchy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Quiet Surface Rule",
+        "body": "Use borders and tonal contrast for ordinary containers; reserve the stronger shadow for the established journey emphasis.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** preserve QUP's established navy, blue, gold and Arabic identity.",
+      "**Do** use the existing visual tokens and logical RTL layout properties when adding screens.",
+      "**Do** distinguish broad task workspaces from focused assessment reading space.",
+      "**Do** keep repeated session records as readable divided rows with responsive actions.",
+      "**Do** pair colors with text, preserve visible focus and honor reduced motion.",
+      "**Do** use real API scores, prices, access and activity; fixture screenshots are QA examples only."
+    ],
+    "donts": [
+      "**Don't** use gold for long text on white or default shadows on every card.",
+      "**Don't** add stock photos, fake charts, invented testimonials or decorative performance metrics.",
+      "**Don't** advertise full diagnostics, adaptive training or reassessment as shipped capabilities until product implementation supports them.",
+      "**Don't** resolve the QUP/معين naming relationship through an incidental UI change.",
+      "**Don't** replace meaningful empty/error/loading states with fictional data.",
+      "**Don't** use hidden controls or visual status styling as a substitute for backend authority."
+    ]
+  }
+}
