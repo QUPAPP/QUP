@@ -11,6 +11,13 @@ export { ALGORITHM_VERSION, MASTERY_CONFIG_V1, type MasteryConfig } from "./conf
 export { parentMastery } from "./parent-mastery.js";
 export { aggregateSkill, gapSeverity, rankGaps, type SkillAggregate } from "./profile.js";
 export {
+  holdRemaining,
+  REASSESSMENT_CONFIG_V1,
+  type ReassessmentConfig,
+  reassessmentPassed,
+  requiredCorrect,
+} from "./reassessment.js";
+export {
   confidenceScore,
   coverageScore,
   deriveState,
