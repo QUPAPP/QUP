@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
@@ -341,5 +343,45 @@ describe("publishing", () => {
 
     const v1Tree = await call(admin, "GET", `/admin/taxonomy-versions/${v1}/tree`);
     expect(v1Tree.json()).toMatchObject({ version: { status: "ARCHIVED" } });
+  });
+});
+
+describe("taxonomy versions list", () => {
+  it("lists an exam's versions newest first", async () => {
+    const exam = (
+      await call(admin, "POST", "/admin/exams", {
+        code: e2eExamCode(),
+        slug: `e2e-versions-${Date.now()}`,
+        nameAr: "نسخ",
+      })
+    ).json<{ id: string }>();
+    for (const versionCode of ["v1", "v2"]) {
+      await call(admin, "POST", `/admin/exams/${exam.id}/taxonomy-versions`, { versionCode });
+    }
+
+    const response = await call(admin, "GET", `/admin/exams/${exam.id}/taxonomy-versions`);
+    expect(response.statusCode).toBe(200);
+    const { items } = response.json<{
+      items: { versionCode: string; status: string; examId: string }[];
+    }>();
+    expect(items.map((version) => version.versionCode)).toEqual(["v2", "v1"]);
+    for (const version of items) {
+      expect(version).toMatchObject({ status: "DRAFT", examId: exam.id });
+    }
+  });
+
+  it("returns 404 for an unknown exam", async () => {
+    const response = await call(admin, "GET", `/admin/exams/${randomUUID()}/taxonomy-versions`);
+    expect(response.statusCode).toBe(404);
+    expect(code(response)).toBe("EXAM_NOT_FOUND");
+  });
+
+  it("refuses content managers and students", async () => {
+    const { examId } = await draftExamWithSkill();
+    for (const token of [manager, student]) {
+      const response = await call(token, "GET", `/admin/exams/${examId}/taxonomy-versions`);
+      expect(response.statusCode).toBe(403);
+      expect(code(response)).toBe("FORBIDDEN");
+    }
   });
 });

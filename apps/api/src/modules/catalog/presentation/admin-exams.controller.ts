@@ -79,6 +79,15 @@ export class AdminExamsController {
     return toExamView(await this.exams.update(id, body));
   }
 
+  @Get(":id/taxonomy-versions")
+  @ApiOperation({ summary: "The exam's taxonomy versions, newest first, in every status." })
+  async listTaxonomyVersions(
+    @Param("id", new ZodValidationPipe(uuidParam)) examId: string,
+  ): Promise<{ items: TaxonomyVersionView[] }> {
+    // An exam has a handful of versions over its life; pagination adds nothing.
+    return { items: (await this.taxonomy.listVersions(examId)).map(toVersionView) };
+  }
+
   @Post(":id/taxonomy-versions")
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Start a new DRAFT taxonomy version for the exam." })

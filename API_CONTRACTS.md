@@ -63,6 +63,7 @@ Admin:
 GET   /admin/exams
 POST  /admin/exams
 PATCH /admin/exams/:id
+GET   /admin/exams/:id/taxonomy-versions
 POST  /admin/exams/:id/taxonomy-versions
 POST  /admin/taxonomy-versions/:id/publish
 ```
@@ -73,6 +74,9 @@ Implemented (permission `taxonomy.manage`, currently ADMIN only — OPEN_QUESTIO
   `slug` are not editable. Activation requires a published taxonomy (`EXAM_HAS_NO_PUBLISHED_TAXONOMY`).
 - Publishing requires at least one active domain, each with at least one active skill
   (`TAXONOMY_INCOMPLETE`); it archives the exam's previously published version and is audited.
+- `GET /admin/exams/:id/taxonomy-versions` lists the exam's versions in every status, newest first:
+  `{ items: TaxonomyVersion[] }`. Unknown exam: `404 EXAM_NOT_FOUND`. Not paginated — an exam has a
+  handful of versions over its life.
 
 ## Taxonomy
 

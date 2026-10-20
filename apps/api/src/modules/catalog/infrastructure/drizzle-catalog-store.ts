@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Database, tables } from "@qup/db";
-import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import type { ActorContext } from "../../../common/actor.js";
 import { DomainError } from "../../../common/errors/domain-error.js";
@@ -171,6 +171,14 @@ export class DrizzleCatalogStore implements CatalogStore {
       .from(taxonomyVersions)
       .where(eq(taxonomyVersions.id, versionId));
     return row ?? null;
+  }
+
+  listTaxonomyVersions(examId: string): Promise<TaxonomyVersion[]> {
+    return this.db
+      .select(versionColumns)
+      .from(taxonomyVersions)
+      .where(eq(taxonomyVersions.examId, examId))
+      .orderBy(desc(taxonomyVersions.createdAt), desc(taxonomyVersions.id));
   }
 
   async versionOfNode(type: NodeType, nodeId: string): Promise<TaxonomyVersion | null> {

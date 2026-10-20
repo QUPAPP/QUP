@@ -47,6 +47,11 @@ export class TaxonomyService {
     return this.store.createTaxonomyVersion({ examId, ...input, createdBy: actor.userId });
   }
 
+  async listVersions(examId: string): Promise<TaxonomyVersion[]> {
+    if (!(await this.store.findExam(examId))) throw new ExamNotFound();
+    return this.store.listTaxonomyVersions(examId);
+  }
+
   async tree(versionId: string): Promise<TaxonomyTree> {
     const tree = await this.store.loadTree(versionId);
     if (!tree) throw new TaxonomyVersionNotFound();

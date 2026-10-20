@@ -164,6 +164,8 @@ export interface CatalogStore {
     createdBy: string | null;
   }): Promise<TaxonomyVersion>;
   findTaxonomyVersion(versionId: string): Promise<TaxonomyVersion | null>;
+  /** The exam's versions in every status, newest first. */
+  listTaxonomyVersions(examId: string): Promise<TaxonomyVersion[]>;
   /** The version owning a node, or null when the node does not exist. */
   versionOfNode(type: NodeType, nodeId: string): Promise<TaxonomyVersion | null>;
   loadTree(versionId: string): Promise<TaxonomyTree | null>;
