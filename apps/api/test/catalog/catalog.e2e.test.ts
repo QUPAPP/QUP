@@ -385,3 +385,91 @@ describe("taxonomy versions list", () => {
     }
   });
 });
+
+describe("editing domains and subskills", () => {
+  let draft: Awaited<ReturnType<typeof draftExamWithSkill>>;
+  let subskillId: string;
+
+  const tree = async (versionId: string) =>
+    (await call(admin, "GET", `/admin/taxonomy-versions/${versionId}/tree`)).json<{
+      domains: {
+        name: string;
+        weight: number;
+        skills: { subskills: { masteryThreshold: number | null }[] }[];
+      }[];
+    }>();
+
+  beforeAll(async () => {
+    draft = await draftExamWithSkill();
+    subskillId = (
+      await call(admin, "POST", "/admin/subskills", {
+        skillId: draft.skillId,
+        code: "WORD_RELATIONS",
+        name: "علاقات الكلمات",
+      })
+    ).json<{ id: string }>().id;
+  });
+
+  it("renames a domain and changes its weight", async () => {
+    const response = await call(admin, "PATCH", `/admin/domains/${draft.domainId}`, {
+      name: "مجال معدل",
+      weight: 2.5,
+    });
+    expect(response.statusCode).toBe(204);
+    expect((await tree(draft.versionId)).domains[0]).toMatchObject({
+      name: "مجال معدل",
+      weight: 2.5,
+    });
+  });
+
+  it("sets and clears a subskill threshold", async () => {
+    const subskill = async () =>
+      (await tree(draft.versionId)).domains[0]?.skills[0]?.subskills[0]?.masteryThreshold;
+
+    const set = await call(admin, "PATCH", `/admin/subskills/${subskillId}`, {
+      masteryThreshold: 0.9,
+    });
+    expect(set.statusCode).toBe(204);
+    expect(await subskill()).toBe(0.9);
+
+    await call(admin, "PATCH", `/admin/subskills/${subskillId}`, { masteryThreshold: null });
+    expect(await subskill()).toBeNull();
+  });
+
+  it("rejects an empty body and an attempt to change code", async () => {
+    for (const payload of [{}, { code: "X" }]) {
+      for (const url of [`/admin/domains/${draft.domainId}`, `/admin/subskills/${subskillId}`]) {
+        const response = await call(admin, "PATCH", url, payload);
+        expect(response.statusCode).toBe(400);
+        expect(code(response)).toBe("VALIDATION_FAILED");
+      }
+    }
+  });
+
+  it("returns 404 for an unknown node", async () => {
+    for (const url of [`/admin/domains/${randomUUID()}`, `/admin/subskills/${randomUUID()}`]) {
+      const response = await call(admin, "PATCH", url, { name: "x" });
+      expect(response.statusCode).toBe(404);
+      expect(code(response)).toBe("TAXONOMY_NODE_NOT_FOUND");
+    }
+  });
+
+  it("refuses edits once the version is published", async () => {
+    const published = await draftExamWithSkill();
+    await call(admin, "POST", `/admin/taxonomy-versions/${published.versionId}/publish`);
+
+    const response = await call(admin, "PATCH", `/admin/domains/${published.domainId}`, {
+      name: "متأخر",
+    });
+    expect(response.statusCode).toBe(422);
+    expect(code(response)).toBe("TAXONOMY_VERSION_NOT_DRAFT");
+  });
+
+  it("refuses content managers", async () => {
+    const response = await call(manager, "PATCH", `/admin/domains/${draft.domainId}`, {
+      name: "x",
+    });
+    expect(response.statusCode).toBe(403);
+    expect(code(response)).toBe("FORBIDDEN");
+  });
+});

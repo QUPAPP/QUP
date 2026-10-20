@@ -85,7 +85,9 @@ GET  /admin/taxonomy-versions/:id/tree
 POST /admin/domains
 POST /admin/skills
 POST /admin/subskills
+PATCH /admin/domains/:id
 PATCH /admin/skills/:id
+PATCH /admin/subskills/:id
 POST /admin/skills/:id/prerequisites
 POST /admin/nodes/:type/:id/archive
 ```
@@ -98,6 +100,10 @@ Implemented:
 - Prerequisites: `204`; re-adding updates the importance weight. A cycle or self-reference returns
   `422 PREREQUISITE_CYCLE`; a skill from another version, `422 PREREQUISITE_OUTSIDE_VERSION`.
 - Codes are unique per parent (`409 TAXONOMY_CODE_TAKEN`). `:type` is `domain | skill | subskill`.
+- Edits (`PATCH`, `204`): domains take `name`, `description`, `weight`, `displayOrder`; skills add
+  `masteryThreshold`, `priorityWeight`, `minCoverage`; subskills take the domain fields plus
+  `masteryThreshold`. `code` is never editable — questions and imports refer to it. At least one
+  field; unknown node `404 TAXONOMY_NODE_NOT_FOUND`.
 
 ## Questions
 

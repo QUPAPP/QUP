@@ -81,6 +81,17 @@ export const createSkillBody = z.strictObject({
 });
 export type CreateSkillBody = z.output<typeof createSkillBody>;
 
+/** `code` is not editable: questions and imports refer to nodes by it. */
+export const updateDomainBody = z
+  .strictObject({
+    name: z.string().trim().min(1).max(NAME_MAX).optional(),
+    description: z.string().trim().min(1).max(DESCRIPTION_MAX).nullable().optional(),
+    weight: weight.optional(),
+    displayOrder: displayOrder.optional(),
+  })
+  .refine(atLeastOneField, "provide at least one field to change");
+export type UpdateDomainBody = z.output<typeof updateDomainBody>;
+
 export const updateSkillBody = z
   .strictObject({
     name: z.string().trim().min(1).max(NAME_MAX).optional(),
@@ -105,6 +116,18 @@ export const createSubskillBody = z.strictObject({
   displayOrder: displayOrder.optional(),
 });
 export type CreateSubskillBody = z.output<typeof createSubskillBody>;
+
+export const updateSubskillBody = z
+  .strictObject({
+    name: z.string().trim().min(1).max(NAME_MAX).optional(),
+    description: z.string().trim().min(1).max(DESCRIPTION_MAX).nullable().optional(),
+    weight: weight.optional(),
+    // null clears the override, falling back to the versioned config default.
+    masteryThreshold: masteryThreshold.nullable().optional(),
+    displayOrder: displayOrder.optional(),
+  })
+  .refine(atLeastOneField, "provide at least one field to change");
+export type UpdateSubskillBody = z.output<typeof updateSubskillBody>;
 
 export const addPrerequisiteBody = z.strictObject({
   prerequisiteSkillId: z.uuid(),

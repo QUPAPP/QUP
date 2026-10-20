@@ -69,6 +69,21 @@ export interface NewSkill {
   displayOrder: number | undefined;
 }
 
+export interface DomainChanges {
+  name?: string | undefined;
+  description?: string | null | undefined;
+  weight?: number | undefined;
+  displayOrder?: number | undefined;
+}
+
+export interface SubskillChanges {
+  name?: string | undefined;
+  description?: string | null | undefined;
+  weight?: number | undefined;
+  masteryThreshold?: number | null | undefined;
+  displayOrder?: number | undefined;
+}
+
 export interface SkillChanges {
   name?: string | undefined;
   description?: string | null | undefined;
@@ -180,7 +195,9 @@ export interface CatalogStore {
   createDomain(domain: NewDomain): Promise<CreatedNode>;
   createSkill(skill: NewSkill): Promise<CreatedNode>;
   createSubskill(subskill: NewSubskill): Promise<CreatedNode>;
+  updateDomain(domainId: string, changes: DomainChanges): Promise<void>;
   updateSkill(skillId: string, changes: SkillChanges): Promise<void>;
+  updateSubskill(subskillId: string, changes: SubskillChanges): Promise<void>;
   archiveNode(type: NodeType, nodeId: string): Promise<void>;
   /**
    * Adds the edge under a per-version lock. `assertAcyclic` runs inside the

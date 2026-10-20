@@ -29,8 +29,12 @@ import {
   createSkillBody,
   createSubskillBody,
   nodeTypeParam,
+  type UpdateDomainBody,
   type UpdateSkillBody,
+  type UpdateSubskillBody,
+  updateDomainBody,
   updateSkillBody,
+  updateSubskillBody,
 } from "./catalog.dto.js";
 import { type TaxonomyVersionView, toVersionView } from "./catalog.views.js";
 
@@ -80,6 +84,15 @@ export class AdminTaxonomyController {
     });
   }
 
+  @Patch("domains/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updateDomain(
+    @Param("id", new ZodValidationPipe(uuidParam)) domainId: string,
+    @Body(new ZodValidationPipe(updateDomainBody)) body: UpdateDomainBody,
+  ): Promise<void> {
+    await this.taxonomy.updateDomain(domainId, body);
+  }
+
   @Post("skills")
   @HttpCode(HttpStatus.CREATED)
   createSkill(
@@ -121,6 +134,15 @@ export class AdminTaxonomyController {
       masteryThreshold: body.masteryThreshold ?? null,
       displayOrder: body.displayOrder,
     });
+  }
+
+  @Patch("subskills/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updateSubskill(
+    @Param("id", new ZodValidationPipe(uuidParam)) subskillId: string,
+    @Body(new ZodValidationPipe(updateSubskillBody)) body: UpdateSubskillBody,
+  ): Promise<void> {
+    await this.taxonomy.updateSubskill(subskillId, body);
   }
 
   @Post("skills/:id/prerequisites")

@@ -14,12 +14,14 @@ import {
   CATALOG_STORE,
   type CatalogStore,
   type CreatedNode,
+  type DomainChanges,
   type NewDomain,
   type NewPrerequisite,
   type NewSkill,
   type NewSubskill,
   type NodeType,
   type SkillChanges,
+  type SubskillChanges,
   type TaxonomyTree,
   type TaxonomyVersion,
 } from "../domain/ports.js";
@@ -75,9 +77,19 @@ export class TaxonomyService {
     return this.store.createSubskill(subskill);
   }
 
+  async updateDomain(domainId: string, changes: DomainChanges): Promise<void> {
+    requireDraft(await this.versionOf("domain", domainId));
+    await this.store.updateDomain(domainId, changes);
+  }
+
   async updateSkill(skillId: string, changes: SkillChanges): Promise<void> {
     requireDraft(await this.versionOf("skill", skillId));
     await this.store.updateSkill(skillId, changes);
+  }
+
+  async updateSubskill(subskillId: string, changes: SubskillChanges): Promise<void> {
+    requireDraft(await this.versionOf("subskill", subskillId));
+    await this.store.updateSubskill(subskillId, changes);
   }
 
   async archiveNode(type: NodeType, nodeId: string): Promise<void> {

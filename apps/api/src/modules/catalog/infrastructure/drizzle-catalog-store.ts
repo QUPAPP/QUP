@@ -20,6 +20,7 @@ import {
 import type {
   CatalogStore,
   CreatedNode,
+  DomainChanges,
   DomainNode,
   Exam,
   ExamChanges,
@@ -32,6 +33,7 @@ import type {
   PublishReadiness,
   SkillChanges,
   SkillNode,
+  SubskillChanges,
   TaxonomyTree,
   TaxonomyVersion,
 } from "../domain/ports.js";
@@ -392,6 +394,28 @@ export class DrizzleCatalogStore implements CatalogStore {
         .returning({ id: subskills.id });
       if (!row) throw new Error("Subskill insert returned no row.");
       return row;
+    });
+  }
+
+  updateDomain(domainId: string, changes: DomainChanges): Promise<void> {
+    return guarded(async () => {
+      await this.db
+        .update(domains)
+        .set({ ...changes, weight: toWeight(changes.weight) })
+        .where(eq(domains.id, domainId));
+    });
+  }
+
+  updateSubskill(subskillId: string, changes: SubskillChanges): Promise<void> {
+    return guarded(async () => {
+      await this.db
+        .update(subskills)
+        .set({
+          ...changes,
+          weight: toWeight(changes.weight),
+          masteryThreshold: toThreshold(changes.masteryThreshold),
+        })
+        .where(eq(subskills.id, subskillId));
     });
   }
 
