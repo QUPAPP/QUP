@@ -9,6 +9,7 @@ export {
 } from "./apply-evidence.js";
 export { ALGORITHM_VERSION, MASTERY_CONFIG_V1, type MasteryConfig } from "./config.js";
 export { parentMastery } from "./parent-mastery.js";
+export { aggregateSkill, gapSeverity, rankGaps, type SkillAggregate } from "./profile.js";
 export {
   confidenceScore,
   coverageScore,
