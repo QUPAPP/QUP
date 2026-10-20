@@ -87,6 +87,18 @@ Audit = durable business/security record.
 App log = operational diagnostics.
 One does not replace the other.
 
+## V1 Implementation (C2, 2026-10-21)
+
+- Structured logs: Pino (nestjs-pino) with request ids, as before.
+- Transactional outbox: `outbox_events` written with the change; drained by the worker into the
+  `learning_events` analytics stream (API_CONTRACTS.md "Outbox events").
+- Admin metrics (`/admin/analytics`): learning (from the stream), question bank backlog and thin
+  skills, imports, and outbox depth/age/failures ("queue depth/failures").
+- Audit log viewer (`/admin/audit`) and adaptive decision audit per session
+  (`/admin/adaptive-decisions`).
+- Not yet: OpenTelemetry tracing, Sentry, a metrics endpoint for scraping, payment/AI metrics
+  (OPEN_QUESTIONS.md #21a).
+
 ## Adaptive Decision Audit
 
 Persist:

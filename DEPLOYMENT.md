@@ -39,6 +39,11 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 
 `CORS_ALLOWED_ORIGINS` stays empty: the browser never calls the API cross-origin.
 
+**Worker (not deployed yet).** The outbox worker is a second process from the same backend image:
+`node dist/worker.js` (`pnpm --filter @qup/api worker`), with the same environment as qup-backend
+and no port. Without it events accumulate (nothing is lost) and the learning metrics stop updating.
+Adding it on CranL is a separate, explicit deployment step.
+
 `IMPORT_STORAGE_DIR` (default `var/imports`) is where question-import originals are kept. On CranL
 the container disk is not durable: before relying on originals in production, mount persistent
 storage there or replace the storage adapter with object storage (OPEN_QUESTIONS.md #16g).

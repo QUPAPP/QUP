@@ -1,7 +1,7 @@
 # C2 — Outbox worker, metrics and audit screens
 
 Date: 2026-10-21. Branch: `ahmeddev`. Executed on the user's request ("كمّل بالشريحة C2"). Assumed
-rules are recorded in `OPEN_QUESTIONS.md` #19a.
+rules are recorded in `OPEN_QUESTIONS.md` #21a.
 
 ## Why
 
@@ -95,7 +95,7 @@ only (`400` otherwise).
 
 ## Out of scope
 
-- Redis/BullMQ (OPEN_QUESTIONS #19a);
+- Redis/BullMQ (OPEN_QUESTIONS #21a);
 - OpenTelemetry tracing and Sentry (C4);
 - a Prometheus `/metrics` endpoint;
 - exposure analytics per question.
