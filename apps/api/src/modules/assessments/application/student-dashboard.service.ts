@@ -98,10 +98,11 @@ export class StudentDashboardService {
       for (const sub of skill.subskills) names.set(sub.id, sub.name);
     }
     const since = new Date(now.getTime() - DASHBOARD_DEFAULTS.improvementWindowDays * DAY_MS);
+    // The nodes the profile reports: a skill with subskills is read through them (§14).
     const changes = await this.standings.recentChanges(
       studentId,
       {
-        skillIds: skills.map((skill) => skill.id),
+        skillIds: skills.filter((skill) => skill.subskills.length === 0).map((skill) => skill.id),
         subskillIds: skills.flatMap((skill) => skill.subskills.map((sub) => sub.id)),
       },
       since,
