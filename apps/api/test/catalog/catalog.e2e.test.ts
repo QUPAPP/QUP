@@ -43,7 +43,7 @@ async function registerUser(label: string): Promise<{ email: string; id: string 
   return { email, id: response.json<{ user: { id: string } }>().user.id };
 }
 
-type Method = "GET" | "POST" | "PATCH";
+type Method = "GET" | "POST" | "PATCH" | "DELETE";
 function call(token: string, method: Method, url: string, payload?: unknown) {
   return app.inject({
     method,
@@ -469,6 +469,66 @@ describe("editing domains and subskills", () => {
     const response = await call(manager, "PATCH", `/admin/domains/${draft.domainId}`, {
       name: "x",
     });
+    expect(response.statusCode).toBe(403);
+    expect(code(response)).toBe("FORBIDDEN");
+  });
+});
+
+describe("removing prerequisites", () => {
+  /** A draft version where skill A (ANALOGY) requires skill B (COMPLETION). */
+  async function linkedSkills() {
+    const draft = await draftExamWithSkill();
+    const b = (
+      await call(admin, "POST", "/admin/skills", {
+        domainId: draft.domainId,
+        code: "COMPLETION",
+        name: "إكمال الجمل",
+      })
+    ).json<{ id: string }>().id;
+    await call(admin, "POST", `/admin/skills/${draft.skillId}/prerequisites`, {
+      prerequisiteSkillId: b,
+    });
+    return { ...draft, a: draft.skillId, b };
+  }
+
+  const removal = (token: string, skillId: string, prerequisiteSkillId: string) =>
+    call(token, "DELETE", `/admin/skills/${skillId}/prerequisites/${prerequisiteSkillId}`);
+
+  it("removes a prerequisite", async () => {
+    const { versionId, a, b } = await linkedSkills();
+    expect((await removal(admin, a, b)).statusCode).toBe(204);
+
+    const tree = (await call(admin, "GET", `/admin/taxonomy-versions/${versionId}/tree`)).json<{
+      domains: { skills: { id: string; prerequisites: unknown[] }[] }[];
+    }>();
+    const skillA = tree.domains[0]?.skills.find((skill) => skill.id === a);
+    expect(skillA?.prerequisites).toEqual([]);
+  });
+
+  it("is idempotent", async () => {
+    const { a, b } = await linkedSkills();
+    await removal(admin, a, b);
+    expect((await removal(admin, a, b)).statusCode).toBe(204);
+  });
+
+  it("returns 404 for an unknown skill", async () => {
+    const response = await removal(admin, randomUUID(), randomUUID());
+    expect(response.statusCode).toBe(404);
+    expect(code(response)).toBe("TAXONOMY_NODE_NOT_FOUND");
+  });
+
+  it("refuses removal once the version is published", async () => {
+    const { versionId, a, b } = await linkedSkills();
+    await call(admin, "POST", `/admin/taxonomy-versions/${versionId}/publish`);
+
+    const response = await removal(admin, a, b);
+    expect(response.statusCode).toBe(422);
+    expect(code(response)).toBe("TAXONOMY_VERSION_NOT_DRAFT");
+  });
+
+  it("refuses content managers", async () => {
+    const { a, b } = await linkedSkills();
+    const response = await removal(manager, a, b);
     expect(response.statusCode).toBe(403);
     expect(code(response)).toBe("FORBIDDEN");
   });

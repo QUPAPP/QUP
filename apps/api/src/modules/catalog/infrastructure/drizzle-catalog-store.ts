@@ -493,4 +493,17 @@ export class DrizzleCatalogStore implements CatalogStore {
       translate(error);
     }
   }
+
+  removePrerequisite(skillId: string, prerequisiteSkillId: string): Promise<void> {
+    return guarded(async () => {
+      await this.db
+        .delete(skillPrerequisites)
+        .where(
+          and(
+            eq(skillPrerequisites.skillId, skillId),
+            eq(skillPrerequisites.prerequisiteSkillId, prerequisiteSkillId),
+          ),
+        );
+    });
+  }
 }

@@ -209,6 +209,8 @@ export interface CatalogStore {
     versionId: string,
     assertAcyclic: (edges: readonly PrerequisiteEdge[]) => void,
   ): Promise<void>;
+  /** Removes the link if present; removing an absent link is not an error. */
+  removePrerequisite(skillId: string, prerequisiteSkillId: string): Promise<void>;
 }
 
 export const CATALOG_STORE = Symbol("CATALOG_STORE");

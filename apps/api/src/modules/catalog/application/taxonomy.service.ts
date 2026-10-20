@@ -110,6 +110,11 @@ export class TaxonomyService {
     });
   }
 
+  async removePrerequisite(skillId: string, prerequisiteSkillId: string): Promise<void> {
+    requireDraft(await this.versionOf("skill", skillId));
+    await this.store.removePrerequisite(skillId, prerequisiteSkillId);
+  }
+
   async publish(versionId: string, actor: ActorContext): Promise<TaxonomyVersion> {
     const version = await this.store.findTaxonomyVersion(versionId);
     if (!version) throw new TaxonomyVersionNotFound();

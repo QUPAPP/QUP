@@ -89,6 +89,7 @@ PATCH /admin/domains/:id
 PATCH /admin/skills/:id
 PATCH /admin/subskills/:id
 POST /admin/skills/:id/prerequisites
+DELETE /admin/skills/:id/prerequisites/:prerequisiteSkillId
 POST /admin/nodes/:type/:id/archive
 ```
 
@@ -99,6 +100,9 @@ Implemented:
   Values with more precision are rejected (`VALIDATION_FAILED`), never rounded.
 - Prerequisites: `204`; re-adding updates the importance weight. A cycle or self-reference returns
   `422 PREREQUISITE_CYCLE`; a skill from another version, `422 PREREQUISITE_OUTSIDE_VERSION`.
+  Removing one is `204` and idempotent (removing an absent link is also `204`); unknown skill
+  `404 TAXONOMY_NODE_NOT_FOUND`. Links in a DRAFT have never been used by an assessment, so nothing
+  historical is lost.
 - Codes are unique per parent (`409 TAXONOMY_CODE_TAKEN`). `:type` is `domain | skill | subskill`.
 - Edits (`PATCH`, `204`): domains take `name`, `description`, `weight`, `displayOrder`; skills add
   `masteryThreshold`, `priorityWeight`, `minCoverage`; subskills take the domain fields plus

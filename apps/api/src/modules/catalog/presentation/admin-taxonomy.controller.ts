@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -157,6 +158,16 @@ export class AdminTaxonomyController {
       prerequisiteSkillId: body.prerequisiteSkillId,
       importanceWeight: body.importanceWeight,
     });
+  }
+
+  @Delete("skills/:id/prerequisites/:prerequisiteSkillId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Remove a prerequisite link from a DRAFT skill. Idempotent." })
+  async removePrerequisite(
+    @Param("id", new ZodValidationPipe(uuidParam)) skillId: string,
+    @Param("prerequisiteSkillId", new ZodValidationPipe(uuidParam)) prerequisiteSkillId: string,
+  ): Promise<void> {
+    await this.taxonomy.removePrerequisite(skillId, prerequisiteSkillId);
   }
 
   @Post("nodes/:type/:id/archive")
