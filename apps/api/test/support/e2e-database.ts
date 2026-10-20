@@ -52,8 +52,12 @@ export async function deleteE2eUsers(): Promise<void> {
   );
   if (ids.length === 0) return;
 
-  // Their import batches (items cascade) — before the users, whose deletion would orphan them.
+  // Their import batches (items cascade) and events — before the users, whose deletion would orphan them.
+  await e2eSql`
+    DELETE FROM outbox_events WHERE aggregate_type = 'import_batch' AND aggregate_id IN (
+      SELECT id::text FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)})`;
   await e2eSql`DELETE FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)}`;
+  await e2eSql`DELETE FROM learning_events WHERE student_id IN ${e2eSql(ids)}`;
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;
     await tx`DELETE FROM audit_logs WHERE resource_type = 'user' AND resource_id IN ${tx(ids)}`;
@@ -96,6 +100,7 @@ export async function purgeE2eCatalog(): Promise<void> {
       await tx<{ id: string }[]>`SELECT id FROM assessment_sessions WHERE exam_id IN ${tx(examIds)}`
     ).map((r) => r.id);
     if (sessionIds.length > 0) {
+      await tx`DELETE FROM outbox_events WHERE aggregate_id IN ${tx(sessionIds)}`;
       await tx`DELETE FROM skill_reassessments WHERE session_id IN ${tx(sessionIds)}`;
       const itemIds = (
         await tx<

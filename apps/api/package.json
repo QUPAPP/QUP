@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
+    "worker": "node dist/worker.js",
     "dev": "nest start --watch",
     "admin:create": "node dist/cli/create-admin.js",
     "typecheck": "tsc --noEmit",

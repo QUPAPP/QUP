@@ -3,6 +3,7 @@ import { type Database, tables } from "@qup/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
+import { OutboxEventType, writeOutbox } from "../../../infrastructure/outbox/outbox.js";
 import type {
   ImportBatch,
   ImportBatchStatus,
@@ -236,21 +237,35 @@ export class DrizzleImportStore implements ImportStore {
       .where(eq(importItems.id, itemId));
   }
 
-  async updateBatch(
+  updateBatch(
     batchId: string,
     input: { status?: ImportBatchStatus; totals: ImportTotals; completed?: boolean },
   ): Promise<ImportBatch> {
-    const [row] = await this.db
-      .update(importBatches)
-      .set({
-        totals: input.totals,
-        ...(input.status ? { status: input.status } : {}),
-        ...(input.completed ? { completedAt: sql`now()` } : {}),
-      })
-      .where(eq(importBatches.id, batchId))
-      .returning(batchColumns);
-    if (!row) throw new Error(`Import batch ${batchId} vanished.`);
-    return toBatch(row);
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(importBatches)
+        .set({
+          totals: input.totals,
+          ...(input.status ? { status: input.status } : {}),
+          ...(input.completed ? { completedAt: sql`now()` } : {}),
+        })
+        .where(eq(importBatches.id, batchId))
+        .returning(batchColumns);
+      if (!row) throw new Error(`Import batch ${batchId} vanished.`);
+      if (input.completed) {
+        await writeOutbox(tx, {
+          type: OutboxEventType.ImportDraftsCreated,
+          aggregateType: "import_batch",
+          aggregateId: batchId,
+          payload: {
+            batchId,
+            imported: input.totals.imported,
+            rejected: input.totals.errors.DRAFT_REJECTED ?? 0,
+          },
+        });
+      }
+      return toBatch(row);
+    });
   }
 }
 

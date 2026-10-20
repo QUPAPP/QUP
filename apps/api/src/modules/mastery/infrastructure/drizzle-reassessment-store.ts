@@ -4,6 +4,7 @@ import { and, countDistinct, desc, eq, gt, inArray, or, sql } from "drizzle-orm"
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { DbExecutor } from "../../../infrastructure/database/executor.js";
+import { OutboxEventType, writeOutbox } from "../../../infrastructure/outbox/outbox.js";
 import type { ReassessmentOutcome } from "../mastery.contract.js";
 
 const { skillReassessments, masteryEvents, studentMasteryStates } = tables;
@@ -106,7 +107,23 @@ export class DrizzleReassessmentStore {
       })
       .onConflictDoNothing({ target: skillReassessments.sessionId })
       .returning(outcomeColumns);
-    return row ?? null;
+    if (!row) return null;
+    // Same transaction as the outcome (and its MASTERED marks): reported exactly when recorded.
+    await writeOutbox(executor, {
+      type: OutboxEventType.ReassessmentRecorded,
+      aggregateType: "skill_reassessment",
+      aggregateId: outcome.sessionId,
+      payload: {
+        sessionId: outcome.sessionId,
+        studentId: outcome.studentId,
+        examId: outcome.examId,
+        skillId: outcome.skillId,
+        passed: outcome.passed,
+        correct: outcome.correct,
+        total: outcome.total,
+      },
+    });
+    return row;
   }
 
   /**

@@ -7,6 +7,7 @@ import { DomainError } from "../../../common/errors/domain-error.js";
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { DbExecutor } from "../../../infrastructure/database/executor.js";
 import { PgErrorCode, pgErrorInfo } from "../../../infrastructure/database/postgres-errors.js";
+import { OutboxEventType, writeOutbox } from "../../../infrastructure/outbox/outbox.js";
 import { MasteryWriter } from "../../mastery/infrastructure/mastery-writer.js";
 import {
   AssessmentIncomplete,
@@ -30,6 +31,9 @@ import type {
 } from "../domain/ports.js";
 
 const { assessmentSessions, assessmentItems, questionAttempts } = tables;
+
+/** Outbox aggregate for session events (assessment.attempt.recorded, assessment.session.completed). */
+const SESSION_AGGREGATE = "assessment_session";
 
 const sessionColumns = {
   id: assessmentSessions.id,
@@ -315,7 +319,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     try {
       return await this.db.transaction(async (tx) => {
         const [session] = await tx
-          .select({ status: assessmentSessions.status })
+          .select({ status: assessmentSessions.status, type: assessmentSessions.type })
           .from(assessmentSessions)
           .where(eq(assessmentSessions.id, command.sessionId))
           .for("update");
@@ -389,6 +393,25 @@ export class DrizzleAssessmentStore implements AssessmentStore {
           })),
         });
 
+        const sessionFacts = {
+          sessionId: command.sessionId,
+          sessionType: session.type,
+          examId: command.examId,
+          studentId: command.studentId,
+        };
+        await writeOutbox(tx, {
+          type: OutboxEventType.AttemptRecorded,
+          aggregateType: SESSION_AGGREGATE,
+          aggregateId: command.sessionId,
+          payload: {
+            ...sessionFacts,
+            itemId: command.itemId,
+            attemptId: attempt.id,
+            resultType: attempt.resultType,
+            isCorrect: attempt.isCorrect,
+          },
+        });
+
         const progress = await progressOf(tx, command.sessionId);
         const completed = progress.finalized === progress.total;
         if (completed) {
@@ -396,6 +419,12 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             .update(assessmentSessions)
             .set({ status: "COMPLETED", completedAt: answeredAt })
             .where(eq(assessmentSessions.id, command.sessionId));
+          await writeOutbox(tx, {
+            type: OutboxEventType.SessionCompleted,
+            aggregateType: SESSION_AGGREGATE,
+            aggregateId: command.sessionId,
+            payload: sessionFacts,
+          });
         }
         return { kind: "RECORDED" as const, attempt, progress, completed };
       });
@@ -419,12 +448,33 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     if (!options?.endingEarly && progress.finalized < progress.total) {
       throw new AssessmentIncomplete();
     }
-    await this.db
-      .update(assessmentSessions)
-      .set({ status: "COMPLETED", completedAt: sql`now()` })
-      .where(
-        and(eq(assessmentSessions.id, sessionId), eq(assessmentSessions.status, "IN_PROGRESS")),
-      );
+    await this.db.transaction(async (tx) => {
+      const [ended] = await tx
+        .update(assessmentSessions)
+        .set({ status: "COMPLETED", completedAt: sql`now()` })
+        .where(
+          and(eq(assessmentSessions.id, sessionId), eq(assessmentSessions.status, "IN_PROGRESS")),
+        )
+        .returning({
+          type: assessmentSessions.type,
+          examId: assessmentSessions.examId,
+          studentId: assessmentSessions.studentId,
+        });
+      // Only the request that actually ended the session reports it.
+      if (ended) {
+        await writeOutbox(tx, {
+          type: OutboxEventType.SessionCompleted,
+          aggregateType: SESSION_AGGREGATE,
+          aggregateId: sessionId,
+          payload: {
+            sessionId,
+            sessionType: ended.type,
+            examId: ended.examId,
+            studentId: ended.studentId,
+          },
+        });
+      }
+    });
     const session = await this.findSession(sessionId);
     if (!session) throw new AssessmentNotFound();
     return session;
