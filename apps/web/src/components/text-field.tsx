@@ -14,6 +14,8 @@ interface TextFieldProps {
   inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
   /** Emails, phone numbers and passwords read left-to-right even on an RTL page. */
   ltr?: boolean;
+  /** Keeps ids unique when several forms with the same field names share a page. */
+  idPrefix?: string;
 }
 
 export function TextField({
@@ -25,9 +27,10 @@ export function TextField({
   autoComplete,
   inputMode,
   ltr = false,
+  idPrefix = "field",
 }: TextFieldProps) {
   const [visible, setVisible] = useState(false);
-  const id = `field-${registration.name}`;
+  const id = `${idPrefix}-${registration.name}`;
   const describedBy =
     [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") ||
     undefined;

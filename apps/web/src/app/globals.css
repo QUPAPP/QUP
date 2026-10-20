@@ -1984,4 +1984,86 @@
   :where(.confirm-panel p) {
     margin: 0;
   }
+  :where(.field__static) {
+    padding: 0.6rem 0;
+    font-weight: 600;
+  }
+  :where(.tree) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  :where(.tree--nested) {
+    margin-top: 0.75rem;
+    padding-inline-start: 1.25rem;
+    border-inline-start: 2px solid var(--color-border);
+  }
+  :where(.tree-node) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  :where(.tree-node--domain) {
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+  }
+  :where(.tree-node__row) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+    min-width: 0;
+  }
+  /* Long names wrap inside the row instead of widening the page (320 px). */
+  :where(.tree-node__name) {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  :where(.tree-node__code) {
+    color: var(--color-text-muted);
+    font-family: ui-monospace, "Cascadia Mono", monospace;
+  }
+  :where(.tree-node__meta, .tree-node__prerequisites) {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  :where(.tree-toggle) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.25rem 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    border-radius: var(--radius-small);
+  }
+  :where(.tree-toggle:focus-visible) {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  :where(.tree-toggle__icon) {
+    flex-shrink: 0;
+    transition: transform var(--motion-fast);
+  }
+  :where(.tree-toggle[aria-expanded="true"] .tree-toggle__icon) {
+    transform: rotate(-90deg);
+  }
+  :where(.tree-panel) {
+    padding: 1rem;
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+  }
+  :where(.tree-panel h4) {
+    margin: 0;
+  }
 }

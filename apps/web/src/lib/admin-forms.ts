@@ -192,3 +192,10 @@ export const skillFormSchema = domainFormSchema
   }));
 export type SkillFormInput = z.input<typeof skillFormSchema>;
 export type SkillForm = z.output<typeof skillFormSchema>;
+
+export const prerequisiteFormSchema = z.object({
+  prerequisiteSkillId: z.string().min(1, "اختر المهارة المطلوبة أولًا"),
+  importanceWeight: weightField,
+});
+export type PrerequisiteFormInput = z.input<typeof prerequisiteFormSchema>;
+export type PrerequisiteForm = z.output<typeof prerequisiteFormSchema>;

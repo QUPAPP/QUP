@@ -4,6 +4,7 @@ import {
   dropNulls,
   examCreateSchema,
   percentToShare,
+  prerequisiteFormSchema,
   shareToPercent,
   skillFormSchema,
   versionCreateSchema,
@@ -104,4 +105,19 @@ describe("catalog error messages", () => {
       expect(message).not.toBe(errorMessage(new ApiError(500, "UNKNOWN", "x", null)));
     },
   );
+});
+
+describe("prerequisite form", () => {
+  it("requires a skill and accepts an optional importance weight", () => {
+    expect(
+      prerequisiteFormSchema.safeParse({ prerequisiteSkillId: "", importanceWeight: "" }).success,
+    ).toBe(false);
+    expect(
+      prerequisiteFormSchema.parse({ prerequisiteSkillId: "s2", importanceWeight: "" }),
+    ).toEqual({ prerequisiteSkillId: "s2", importanceWeight: undefined });
+    expect(
+      prerequisiteFormSchema.safeParse({ prerequisiteSkillId: "s2", importanceWeight: "1.23456" })
+        .success,
+    ).toBe(false);
+  });
 });
