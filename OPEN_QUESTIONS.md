@@ -120,8 +120,19 @@
 
 12b. تفسير Coverage في V1: لكل عقدة قابلة للقياس
     `coverage = min(1, distinct_question_count / min_coverage)` (min_coverage = 0 ⇒ 1).
-    "coverage satisfied" = coverage ≥ 1. تجميع coverage للمهارة الأم من المهارات الفرعية يأتي مع
-    Skill Profile.
+    "coverage satisfied" = coverage ≥ 1. تجميع coverage للمهارة الأم من المهارات الفرعية في #12c.
+
+12c. ملف المهارات: كيف تُقرأ مهارة لها مهارات فرعية؟ (ADAPTIVE_ENGINE.md §14 يحدد الإتقان فقط.)
+    مؤقتًا في B1 (`aggregateSkill`):
+    - الإتقان = `parentMastery` (متوسط موزون للمهارات الفرعية المقيسة فقط).
+    - الثقة = متوسط موزون لثقة المهارات الفرعية المقيسة.
+    - التغطية = متوسط موزون لكل المهارات الفرعية؛ غير المقيسة تُحسب 0.
+    - الحالة تُشتق من هذه الأرقام بقواعد المحرك، إلا MASTERED: لا تكون المهارة متقنة إلا إذا أُتقنت
+      كل مهاراتها الفرعية.
+    - Evidence مباشر على المهارة نفسها لا يُخلط بمهاراتها الفرعية حين توجد.
+    - الفجوة: عقدة مقيسة، ثقتها ≥ `minConfidence`، تحت الـthreshold وغير متقنة؛ ترتيبها بشدتها
+      `(threshold − mastery) / threshold` ثم بترتيب العرض. DEVELOPING تحت الـthreshold فجوة أيضًا.
+    تحتاج تأكيد صاحب المنتج، خصوصًا قاعدة MASTERED وعدّ DEVELOPING فجوة.
 
 13. Mock Exam rules.
 

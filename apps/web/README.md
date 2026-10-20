@@ -42,6 +42,7 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/account` | Account details, sign out, and revoke other device sessions |
 | `/exams` | Exams on offer |
 | `/exams/:examId/diagnostic` | The free mini diagnostic: start or resume, answer, skip |
+| `/exams/:examId/profile` | Paid skill profile: summary, gaps by priority, every skill and subskill with its state |
 | `/assessments/:sessionId` | Resume the exact mini diagnostic at its next unanswered item |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
