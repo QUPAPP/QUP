@@ -26,13 +26,21 @@ export function shareToPercent(share: number): number {
   return Math.round(share * SHARE_DECIMAL_FACTOR) / PERCENT_DECIMAL_FACTOR;
 }
 
+/** Fields that can be empty become optional; the others stay required. */
+type WithoutNulls<T> = {
+  [K in keyof T as null extends T[K] ? K : undefined extends T[K] ? K : never]?: Exclude<
+    T[K],
+    null | undefined
+  >;
+} & {
+  [K in keyof T as null extends T[K] ? never : undefined extends T[K] ? never : K]: T[K];
+};
+
 /** Removes empty fields: create requests omit what was left blank. */
-export function dropNulls<T extends Record<string, unknown>>(
-  values: T,
-): { [K in keyof T]?: Exclude<T[K], null> } {
+export function dropNulls<T extends Record<string, unknown>>(values: T): WithoutNulls<T> {
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== null && value !== undefined),
-  ) as { [K in keyof T]?: Exclude<T[K], null> };
+  ) as WithoutNulls<T>;
 }
 
 const ARABIC_INDIC_ZERO = 0x0660;

@@ -1915,3 +1915,73 @@
     --motion-fast: 0ms;
   }
 }
+
+/* Admin panel (A1). Same tokens as the workspace; no new visual language. */
+@layer components {
+  :where(.status-badge--draft) {
+    background: var(--color-warning-surface);
+    color: var(--color-text);
+  }
+  :where(.status-badge--active, .status-badge--published) {
+    background: var(--color-success-surface);
+    color: var(--color-success);
+  }
+  :where(.status-badge--archived) {
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+  :where(.btn--danger) {
+    background: var(--color-danger);
+    color: var(--color-white);
+  }
+  :where(.btn--danger:hover:not(:disabled)) {
+    background: var(--color-danger);
+    filter: brightness(0.92);
+  }
+  :where(.admin-row) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+  }
+  :where(.admin-row__main) {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    color: inherit;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  :where(.admin-row__main:hover strong) {
+    color: var(--color-blue);
+  }
+  :where(.admin-form) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 1rem 1.25rem;
+    align-items: start;
+  }
+  :where(.admin-form > .notice, .admin-form > .btn, .admin-form > .admin-form__actions) {
+    grid-column: 1 / -1;
+  }
+  :where(.admin-form > .btn) {
+    justify-self: start;
+  }
+  :where(.confirm-panel) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+  }
+  :where(.confirm-panel p) {
+    margin: 0;
+  }
+}
