@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           {hasAdminAccess(me) ? (
-            <Link href="/admin/exams" className="sidebar-link">
+            <Link href="/admin" className="sidebar-link">
               <Icon name="lock" />
               <span>لوحة الإدارة</span>
               <Icon name="chevron" className="nav-chevron" />
@@ -89,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           {hasAdminAccess(me) ? (
-            <Link href="/admin/exams">
+            <Link href="/admin">
               <Icon name="lock" />
               الإدارة
             </Link>

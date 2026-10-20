@@ -9,6 +9,9 @@ import type { Me } from "./api";
  */
 export const ADMIN_PERMISSIONS = {
   taxonomyManage: "taxonomy.manage",
+  questionsCreate: "questions.create",
+  questionsReview: "questions.review",
+  questionsPublish: "questions.publish",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -33,6 +36,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     icon: "book",
     permission: ADMIN_PERMISSIONS.taxonomyManage,
   },
+  {
+    href: "/admin/questions",
+    title: "بنك الأسئلة",
+    icon: "grid",
+    permission: ADMIN_PERMISSIONS.questionsCreate,
+  },
 ];
 
 export function adminNavItems(
@@ -41,4 +50,9 @@ export function adminNavItems(
   return ADMIN_NAV.filter((item) => hasPermission(me, item.permission)).map(
     ({ href, title, icon }) => ({ href, title, icon }),
   );
+}
+
+/** Where /admin opens for this account: its first permitted screen, or null for none. */
+export function firstAdminScreen(me: Me | null | undefined): string | null {
+  return adminNavItems(me)[0]?.href ?? null;
 }

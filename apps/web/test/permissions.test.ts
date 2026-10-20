@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { Me } from "../src/lib/api";
-import { adminNavItems, hasAdminAccess, hasPermission } from "../src/lib/permissions";
+import {
+  adminNavItems,
+  firstAdminScreen,
+  hasAdminAccess,
+  hasPermission,
+} from "../src/lib/permissions";
 
 const account = (permissions: string[]): Me => ({
   user: { id: "u1", email: "u@qup.test", phone: null, displayName: null },
@@ -28,13 +33,23 @@ describe("permissions", () => {
   it("offers the admin panel only to holders of a permission it uses", () => {
     expect(hasAdminAccess(admin)).toBe(true);
     expect(hasAdminAccess(student)).toBe(false);
-    // A1 has no screen for question permissions yet (A2 adds one).
-    expect(hasAdminAccess(contentManager)).toBe(false);
+    // A2: content managers author questions in the panel.
+    expect(hasAdminAccess(contentManager)).toBe(true);
   });
 
   it("lists only the admin screens the account may use", () => {
-    expect(adminNavItems(admin).map((item) => item.href)).toEqual(["/admin/exams"]);
-    expect(adminNavItems(contentManager)).toEqual([]);
+    expect(adminNavItems(admin).map((item) => item.href)).toEqual([
+      "/admin/exams",
+      "/admin/questions",
+    ]);
+    // Taxonomy management stays admin-only (OPEN_QUESTIONS.md #16a).
+    expect(adminNavItems(contentManager).map((item) => item.href)).toEqual(["/admin/questions"]);
     expect(adminNavItems(null)).toEqual([]);
+  });
+
+  it("opens the panel on the first screen the account may use", () => {
+    expect(firstAdminScreen(admin)).toBe("/admin/exams");
+    expect(firstAdminScreen(contentManager)).toBe("/admin/questions");
+    expect(firstAdminScreen(student)).toBeNull();
   });
 });

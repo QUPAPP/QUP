@@ -23,7 +23,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="workspace">
       <aside className="sidebar" aria-label="قائمة الإدارة">
-        <Brand href="/admin/exams" />
+        <Brand href="/admin" />
         <div className="sidebar-section-label">لوحة الإدارة</div>
         <nav className="sidebar-nav" aria-label="تنقل الإدارة">
           {items.map((item) => (
