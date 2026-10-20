@@ -362,6 +362,17 @@ describe("versions", () => {
 });
 
 describe("listing", () => {
+  it("shows a preview of each question's stem", async () => {
+    const version = await createQuestion(
+      completeContent({ stem: text("سؤال للمعاينة في القائمة") }),
+    );
+    const list = (await call(manager, "GET", "/admin/questions?limit=100")).json<{
+      items: { id: string; latestVersion: { stemPreview: string } }[];
+    }>();
+    const item = list.items.find((entry) => entry.id === version.questionId);
+    expect(item?.latestVersion.stemPreview).toBe("سؤال للمعاينة في القائمة");
+  });
+
   it("filters by the newest version's status and paginates", async () => {
     const response = await call(
       manager,

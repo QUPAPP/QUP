@@ -67,7 +67,8 @@ export interface QuestionListItem {
   id: string;
   stableCode: string;
   archivedAt: Date | null;
-  latestVersion: VersionSummary;
+  /** The list shows a one-line preview of the newest version's stem (stem-preview.ts). */
+  latestVersion: VersionSummary & { stemPreview: string };
 }
 
 export interface QuestionStore {

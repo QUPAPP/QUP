@@ -146,6 +146,8 @@ PUT  /admin/question-versions/:id     replace the whole content of a DRAFT
   previous live version. One version in progress per question (`409 QUESTION_VERSION_IN_PROGRESS`).
 - `GET /admin/questions?status=&taxonomyVersionId=&limit=&offset=` lists each question once, by its
   newest version: `{ items, page: { limit, offset, total } }`, `limit` ≤ 100.
+  Each item's `latestVersion.stemPreview` is one line of plain text: text blocks joined by a space,
+  math as `[…]`, cut to 140 characters with `…`.
 - Publish and archive are audited. Admin responses include the answer key; students will only
   ever receive `StudentQuestionView` (no answer key, explanation, difficulty or mappings).
 

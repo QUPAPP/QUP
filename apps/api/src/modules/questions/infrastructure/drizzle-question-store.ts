@@ -28,6 +28,7 @@ import {
   StableCodeTaken,
   VersionAlreadyInProgress,
 } from "../domain/questions.errors.js";
+import { stemPreview } from "../domain/stem-preview.js";
 
 const { questions, questionVersions, questionOptions, questionSkillMappings, contentReviews } =
   tables;
@@ -213,7 +214,8 @@ export class DrizzleQuestionStore implements QuestionStore {
     const where = sql.join(conditions, sql` AND `);
     const latest = sql`
       SELECT DISTINCT ON (question_id)
-        id, question_id, version_number, status, question_type, taxonomy_version_id, updated_at
+        id, question_id, version_number, status, question_type, taxonomy_version_id, updated_at,
+        stem_content
       FROM question_versions
       ORDER BY question_id, version_number DESC`;
 
@@ -227,10 +229,11 @@ export class DrizzleQuestionStore implements QuestionStore {
       question_type: string;
       taxonomy_version_id: string;
       updated_at: string;
+      stem_content: RichContent;
     }>(sql`
       SELECT q.id, q.stable_code, q.archived_at,
              l.id AS version_id, l.version_number, l.status, l.question_type,
-             l.taxonomy_version_id, l.updated_at
+             l.taxonomy_version_id, l.updated_at, l.stem_content
       FROM questions q JOIN (${latest}) l ON l.question_id = q.id
       WHERE ${where}
       ORDER BY q.created_at DESC, q.id
@@ -254,6 +257,7 @@ export class DrizzleQuestionStore implements QuestionStore {
           questionType: toQuestionType(r.question_type),
           taxonomyVersionId: r.taxonomy_version_id,
           updatedAt: new Date(r.updated_at),
+          stemPreview: stemPreview(r.stem_content),
         },
       })),
     };
