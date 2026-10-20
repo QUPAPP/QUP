@@ -131,6 +131,12 @@ export const assessmentSessions = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }),
     scoringVersion: text("scoring_version").notNull(),
+    /**
+     * Version of the `assessment.preliminaryResult.levels` setting in effect
+     * when the session was created; its result is always scored with it.
+     * NULL = the code default (every session before settings existed).
+     */
+    resultConfigVersion: integer("result_config_version"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

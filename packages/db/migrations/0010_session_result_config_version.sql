@@ -1,0 +1,1 @@
+ALTER TABLE "assessment_sessions" ADD COLUMN "result_config_version" integer;

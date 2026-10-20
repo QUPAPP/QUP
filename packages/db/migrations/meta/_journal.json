@@ -71,6 +71,20 @@
       "when": 1791122817257,
       "tag": "0009_payments_checkout",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792529999109,
+      "tag": "0010_session_result_config_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792529999508,
+      "tag": "0011_settings_permission",
+      "breakpoints": true
     }
   ]
 }
