@@ -15,5 +15,13 @@ export const IMPORT_LIMITS = Object.freeze({
 
 export type ImportLimits = typeof IMPORT_LIMITS;
 
+/**
+ * The upload route's own JSON body limit: a 2 MiB file is about 2.7 MiB of
+ * base64. Every other route keeps the global limit (bootstrap/create-app.ts).
+ */
+export const IMPORT_UPLOAD_BODY_LIMIT_BYTES = 3_145_728;
+/** Longest base64 the upload accepts: the file limit, encoded. */
+export const MAX_UPLOAD_BASE64_CHARS = Math.ceil(IMPORT_LIMITS.maxFileBytes / 3) * 4;
+
 /** Recorded on each batch: how its rows were read. */
 export const PARSER_VERSION = "structured-v1";

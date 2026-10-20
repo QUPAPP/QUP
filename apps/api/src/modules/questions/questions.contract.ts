@@ -1,4 +1,10 @@
-import type { MappingRole, QuestionType, RichContent } from "./domain/question-content.js";
+import type { ActorContext } from "../../common/actor.js";
+import type {
+  DraftContent,
+  MappingRole,
+  QuestionType,
+  RichContent,
+} from "./domain/question-content.js";
 
 /**
  * Public read contract of the question bank, for assessments (AGENTS.md §5).
@@ -55,3 +61,25 @@ export interface QuestionReader {
 }
 
 export const QUESTION_READER = Symbol("QUESTION_READER");
+
+/**
+ * Writing questions from outside the editor (content import, A3): the same
+ * content rules and the same draft path an author goes through, so imported
+ * content enters review like any other draft and is never published by itself.
+ */
+export interface QuestionAuthor {
+  /** What review would refuse in this complete question (answer key, mappings, structure). */
+  contentProblems(content: DraftContent): { rule: string; message: string }[];
+  /** Creates a DRAFT question as the actor; refuses invalid content (QUESTION_CONTENT_INVALID). */
+  createDraft(
+    content: DraftContent,
+    actor: ActorContext,
+  ): Promise<{ questionId: string; versionId: string }>;
+  /** Stem text of every version of the exam's questions that are not archived (duplicate checks). */
+  stemTextsInExam(examId: string): Promise<{ questionId: string; text: string }[]>;
+}
+
+export const QUESTION_AUTHOR = Symbol("QUESTION_AUTHOR");
+
+export type { DraftContent, RichContent } from "./domain/question-content.js";
+export { DEFAULT_ATTRIBUTION_WEIGHT } from "./domain/question-content.js";

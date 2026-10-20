@@ -52,6 +52,8 @@ export async function deleteE2eUsers(): Promise<void> {
   );
   if (ids.length === 0) return;
 
+  // Their import batches (items cascade) — before the users, whose deletion would orphan them.
+  await e2eSql`DELETE FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)}`;
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;
     await tx`DELETE FROM audit_logs WHERE resource_type = 'user' AND resource_id IN ${tx(ids)}`;
@@ -164,6 +166,8 @@ export async function purgeE2eCatalog(): Promise<void> {
             SELECT DISTINCT question_id FROM question_versions WHERE id IN ${tx(questionVersionIds)}`
         ).map((r) => r.question_id);
         await tx`DELETE FROM content_reviews WHERE question_version_id IN ${tx(questionVersionIds)}`;
+        await tx`
+          DELETE FROM import_items WHERE resulting_question_version_id IN ${tx(questionVersionIds)}`;
         await tx`DELETE FROM question_options WHERE question_version_id IN ${tx(questionVersionIds)}`;
         await tx`
           DELETE FROM question_skill_mappings WHERE question_version_id IN ${tx(questionVersionIds)}`;

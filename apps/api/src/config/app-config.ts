@@ -54,7 +54,11 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: commaSeparatedList.default([]),
   /** Trust X-Forwarded-* headers. Enable only behind a known reverse proxy. */
   TRUST_PROXY: booleanFlag.default(false),
-  /** Maximum JSON body size. File uploads go to object storage, not through the API body. */
+  /**
+   * Maximum JSON body size. File uploads belong in object storage; the one
+   * exception is the structured-import upload (≤ 2 MiB), which has its own
+   * route limit until object storage exists (OPEN_QUESTIONS.md #16d).
+   */
   BODY_LIMIT_BYTES: z.coerce.number().int().min(1).default(ONE_MEBIBYTE),
   /** Serve the generated OpenAPI document. Defaults to off in production. */
   API_DOCS_ENABLED: booleanFlag.optional(),
@@ -81,6 +85,9 @@ const envSchema = z.object({
   PAYMENT_FAILURE_URL: optionalUrl,
   /** How long a checkout link accepts payment. */
   CHECKOUT_TTL_MINUTES: z.coerce.number().int().min(5).max(ONE_DAY_IN_MINUTES).default(60),
+
+  /** Private directory for uploaded import files (V1 storage adapter). Relative to the working directory. */
+  IMPORT_STORAGE_DIR: z.string().min(1).default("var/imports"),
 });
 
 /** Checks that span several variables. Messages name variables, never values. */
@@ -142,6 +149,9 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
       successUrl: env.PAYMENT_SUCCESS_URL ?? null,
       failureUrl: env.PAYMENT_FAILURE_URL ?? null,
       checkoutTtlMinutes: env.CHECKOUT_TTL_MINUTES,
+    },
+    imports: {
+      storageDir: env.IMPORT_STORAGE_DIR,
     },
   } as const;
 }

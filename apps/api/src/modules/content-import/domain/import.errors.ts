@@ -100,3 +100,13 @@ export class ImportTaxonomyVersionNotFound extends DomainError {
     super("The taxonomy version does not exist or is archived.");
   }
 }
+
+/** Drafts are created from processed rows: map and validate the file first. */
+export class ImportNotProcessed extends DomainError {
+  readonly code = "IMPORT_NOT_PROCESSED";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("Map and validate the file before creating drafts.");
+  }
+}

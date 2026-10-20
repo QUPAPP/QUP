@@ -4,6 +4,7 @@ import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-cor
 import { createdAt, importBatchStatusEnum, importItemStatusEnum, primaryKeyId } from "./_shared.js";
 import { users } from "./identity.js";
 import { questions, questionVersions } from "./questions.js";
+import { taxonomyVersions } from "./taxonomy.js";
 
 /**
  * Content import.
@@ -22,6 +23,14 @@ export const importBatches = pgTable(
     objectKey: text("object_key").notNull(),
     status: importBatchStatusEnum("status").notNull().default("UPLOADED"),
     parserVersion: text("parser_version"),
+    /** The file's column names, in order (structured imports, A3). */
+    headers: jsonb("headers"),
+    /** The column chosen for each question field at the last processing. */
+    columnMapping: jsonb("column_mapping"),
+    /** The taxonomy version rows were matched against, and drafts are written for. */
+    taxonomyVersionId: uuid("taxonomy_version_id").references(() => taxonomyVersions.id, {
+      onDelete: "restrict",
+    }),
     totals: jsonb("totals"),
     createdAt: createdAt(),
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),

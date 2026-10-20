@@ -27,10 +27,10 @@ export function normaliseText(value: string): string {
     .toLowerCase();
 }
 
-/** As `normaliseText`, without punctuation or symbols: for comparing wording only. */
+/** As `normaliseText`, with punctuation and symbols as spaces: for comparing wording only. */
 export function normaliseWording(value: string): string {
   return normaliseText(value)
-    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

@@ -13,6 +13,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthenticationGuard } from "./modules/auth/presentation/authentication.guard.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
 import { CatalogModule } from "./modules/catalog/catalog.module.js";
+import { ContentImportModule } from "./modules/content-import/content-import.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { QuestionsModule } from "./modules/questions/questions.module.js";
 import { PermissionsGuard } from "./modules/rbac/require-permissions.js";
@@ -36,6 +37,7 @@ export class AppModule {
         AuthModule,
         CatalogModule,
         AssessmentsModule,
+        ContentImportModule,
         QuestionsModule,
         BillingModule,
         HealthModule,

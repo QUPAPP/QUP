@@ -11,6 +11,7 @@ import { AppModule, type AppModuleOptions } from "../app.module.js";
 import { ErrorResponseFilter } from "../common/errors/error-response.filter.js";
 import { REQUEST_ID_HEADER, resolveRequestId } from "../common/http/request-id.js";
 import type { AppConfig } from "../config/app-config.js";
+import { IMPORT_UPLOAD_BODY_LIMIT_BYTES } from "../modules/content-import/domain/import-limits.js";
 
 /**
  * Production and tests build the application through the same two functions,
@@ -20,6 +21,11 @@ import type { AppConfig } from "../config/app-config.js";
 export const API_PREFIX = "api/v1";
 const HEALTH_ROUTES = ["health/live", "health/ready"];
 const OPENAPI_JSON_PATH = "api/openapi.json";
+
+/** Routes whose JSON body carries a file, each with its own limit; every other keeps the global one. */
+const UPLOAD_BODY_LIMITS: Readonly<Record<string, number>> = {
+  [`/${API_PREFIX}/admin/imports/upload`]: IMPORT_UPLOAD_BODY_LIMIT_BYTES,
+};
 
 /**
  * Keeps each request's exact bytes next to its parsed body: a webhook
@@ -54,16 +60,20 @@ export async function configureApp(app: NestFastifyApplication, config: AppConfi
   errorLogger.setContext("HttpError");
   app.useGlobalFilters(new ErrorResponseFilter(errorLogger));
 
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook("onRequest", async (request, reply) => {
-      reply.header(REQUEST_ID_HEADER, request.id);
-      // The API sits behind a CDN, and every response is either private to a
-      // signed-in user or must be fresh. Nothing here may be stored by a
-      // shared cache and replayed to someone else.
-      reply.header("cache-control", "no-store");
-    });
+  const fastify = app.getHttpAdapter().getInstance();
+  // Registered before Nest adds its routes (app.init), so it sees every one.
+  fastify.addHook("onRoute", (route) => {
+    const limit = UPLOAD_BODY_LIMITS[route.url];
+    if (limit !== undefined) route.bodyLimit = limit;
+  });
+
+  fastify.addHook("onRequest", async (request, reply) => {
+    reply.header(REQUEST_ID_HEADER, request.id);
+    // The API sits behind a CDN, and every response is either private to a
+    // signed-in user or must be fresh. Nothing here may be stored by a
+    // shared cache and replayed to someone else.
+    reply.header("cache-control", "no-store");
+  });
 
   await app.register(helmet);
   await app.register(cookie);

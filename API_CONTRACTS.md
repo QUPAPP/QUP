@@ -246,15 +246,43 @@ default.
 
 ## Imports
 
+Structured import (A3, QUESTION_BANK_IMPORT.md). Permission `questions.create` — imports only ever
+make DRAFT questions, which then go through review like any other.
+
 ```text
-POST /admin/imports/upload
-GET  /admin/imports/:id
-GET  /admin/imports/:id/items
-POST /admin/imports/:id/column-mapping
-POST /admin/imports/:id/process
-POST /admin/import-items/:id/resolve
-POST /admin/imports/:id/create-drafts
+GET  /admin/imports?limit&offset                   batches, newest first
+POST /admin/imports/upload                         { filename, contentBase64 } → 201 batch (UPLOADED)
+GET  /admin/imports/:id                            batch + suggestedMapping
+GET  /admin/imports/:id/items?status&limit&offset  rows in file order
+POST /admin/imports/:id/process                    { taxonomyVersionId, mapping } → batch (READY_FOR_REVIEW)
+POST /admin/import-items/:id/resolve               { action: "SKIP" | "INCLUDE" } → item
+POST /admin/imports/:id/create-drafts              → batch (COMPLETED | PARTIALLY_FAILED)
 ```
+
+- Files: `.csv`, `.tsv` (UTF-8, BOM allowed, RFC 4180 quoting), `.json` (array of flat objects), `.xlsx`
+  (first sheet only; no other part is read). At most 2 MiB, 1000 rows, 50 columns, 5000 characters a
+  cell; XLSX at most 200 entries and 20 MiB inflated. The upload route alone accepts a 3 MiB body.
+  Errors: `422 IMPORT_FILE_TYPE_UNSUPPORTED`, `422 IMPORT_FILE_TOO_LARGE`, `422 IMPORT_FILE_INVALID`
+  with `details.reason` (`NOT_UTF8 | BINARY_CONTENT | MALFORMED | EMPTY | TOO_MANY_ROWS |
+  TOO_MANY_COLUMNS | CELL_TOO_LONG | ZIP_TOO_LARGE | NO_WORKSHEET`). The original is kept in private
+  storage under a random key.
+- Batch: `{ id, originalFilename, detectedType, status, headers, mapping, taxonomyVersionId, totals,
+  createdAt, completedAt, suggestedMapping? }`; `totals: { detected, valid, invalid, duplicate,
+  imported, skipped, errors: { CODE: rows } }`.
+- `mapping`: `{ stem, options: [2–6 columns], correctAnswer, skill, subskill?, questionType?,
+  explanation?, difficulty?, source? }` — column names of the file (`422 IMPORT_MAPPING_INVALID`,
+  `details.fields`). The version must exist and not be archived (`404 TAXONOMY_VERSION_NOT_FOUND`).
+- Row codes: `STEM_MISSING, OPTIONS_TOO_FEW, CORRECT_ANSWER_MISSING, CORRECT_ANSWER_UNKNOWN,
+  QUESTION_TYPE_UNKNOWN, SKILL_UNKNOWN, SUBSKILL_UNKNOWN, DIFFICULTY_INVALID`, the question bank's
+  content rules (`OPTION_COUNT, CORRECT_ANSWER_COUNT, …`), `DUPLICATE_IN_BANK` (with
+  `duplicateOfQuestionId`), `DUPLICATE_IN_FILE`, and after creation `DRAFT_REJECTED`.
+- Item: `{ id, sourceLocator ("row N"), status, errors, duplicateOfQuestionId, resultingQuestionVersionId,
+  cells, question }`. Resolve: `SKIP` any row not imported; `INCLUDE` a duplicate (human
+  confirmation) or undo a skip; anything else `409 IMPORT_ITEM_NOT_RESOLVABLE`.
+- Processing again after drafts exist: `409 IMPORT_ALREADY_IMPORTED`; creating drafts before
+  processing: `409 IMPORT_NOT_PROCESSED`. Drafts: `source_type "IMPORT"`, `source_reference` = the
+  source column, else `"<file> · row N"`; created by the importer. Each row is claimed before its draft
+  is written, so a double click imports it once.
 
 ## Assessments
 
