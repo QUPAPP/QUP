@@ -48,6 +48,10 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/admin/exams` | Admin: every exam with its status; create an exam |
 | `/admin/exams/:examId` | Admin: edit names, move the status forward, list and start taxonomy versions |
 | `/admin/taxonomy-versions/:versionId` | Admin: the taxonomy tree; edit it while DRAFT, then publish |
+| `/admin/questions` | Question bank: filter by status and taxonomy version, paged list with stem previews |
+| `/admin/questions/new` | The question editor; saving creates a DRAFT |
+| `/admin/questions/:questionId` | A question's versions; start the next version; archive (admin) |
+| `/admin/question-versions/:versionId` | Preview, review history and the workflow: edit/submit, review, publish |
 
 ### Admin panel
 
@@ -68,6 +72,13 @@ admin call it should.
   screen turns read-only.
 - Confirmations (publish, activate, archive) are inline, focus the confirm button and say what will
   happen. Submit and confirm buttons are disabled while their request is in flight.
+- The question bank is open to `questions.create` (content managers and admins); review controls need
+  `questions.review`, publish and archive `questions.publish`. Authors pick a taxonomy and skills
+  from the API's authoring context, so they never need `taxonomy.manage`.
+- The question editor never decides an answer key or mapping rule: "correct" is a checkbox for every
+  type, and the API's `QUESTION_CONTENT_INVALID` rule codes are listed in Arabic
+  (`src/lib/question-form.ts`). Changing the taxonomy version clears mappings with a note. Submitting
+  for review is held back while the editor has unsaved changes. Every request is single-flight.
 
 ## Rules this app keeps
 
