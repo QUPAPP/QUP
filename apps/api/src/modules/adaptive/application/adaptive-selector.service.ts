@@ -171,6 +171,10 @@ export class AdaptiveSelectorService implements AdaptiveSelector {
     return this.decisions.record(executor, decision);
   }
 
+  decisionDetails(decisionIds: readonly string[]) {
+    return this.decisions.details(decisionIds);
+  }
+
   targetsOf(decisionIds: readonly string[]) {
     return this.decisions.targets(decisionIds);
   }

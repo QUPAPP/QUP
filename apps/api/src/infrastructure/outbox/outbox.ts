@@ -11,6 +11,7 @@ import type { DbExecutor } from "../database/executor.js";
  */
 
 export const OutboxEventType = {
+  SessionCreated: "assessment.session.created",
   AttemptRecorded: "assessment.attempt.recorded",
   SessionCompleted: "assessment.session.completed",
   ReassessmentRecorded: "mastery.reassessment.recorded",

@@ -115,6 +115,7 @@ describe("transactional outbox", () => {
 
     const pending = await eventsOf(sessionId);
     expect(pending.map((e) => [e.event_type, e.status])).toEqual([
+      [OutboxEventType.SessionCreated, "PENDING"],
       [OutboxEventType.AttemptRecorded, "PENDING"],
       [OutboxEventType.AttemptRecorded, "PENDING"],
       [OutboxEventType.SessionCompleted, "PENDING"],
@@ -130,7 +131,7 @@ describe("transactional outbox", () => {
     >`
       SELECT event_type, student_id, schema_version FROM learning_events
       WHERE id IN ${e2eSql(published.map((e) => e.id))}`;
-    expect(projected).toHaveLength(3);
+    expect(projected).toHaveLength(4);
     expect(projected.every((e) => e.student_id === studentId && e.schema_version === "1")).toBe(
       true,
     );

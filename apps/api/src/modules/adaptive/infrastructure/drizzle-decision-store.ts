@@ -4,7 +4,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { DbExecutor } from "../../../infrastructure/database/executor.js";
-import type { AdaptiveDecision } from "../adaptive.contract.js";
+import type { AdaptiveDecision, DecisionDetail } from "../adaptive.contract.js";
 
 const { adaptiveDecisions, skills } = tables;
 
@@ -50,5 +50,33 @@ export class DrizzleDecisionStore {
       .innerJoin(skills, eq(skills.id, adaptiveDecisions.targetSkillId))
       .where(inArray(adaptiveDecisions.id, [...decisionIds]));
     return new Map(rows.map((r) => [r.id, { skillId: r.skillId, skillName: r.skillName }]));
+  }
+
+  async details(decisionIds: readonly string[]): Promise<Map<string, DecisionDetail>> {
+    if (decisionIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ decision: adaptiveDecisions, skillName: skills.name })
+      .from(adaptiveDecisions)
+      .innerJoin(skills, eq(skills.id, adaptiveDecisions.targetSkillId))
+      .where(inArray(adaptiveDecisions.id, [...decisionIds]));
+    const number = (value: string | null) => (value === null ? null : Number(value));
+    return new Map(
+      rows.map(({ decision, skillName }) => [
+        decision.id,
+        {
+          id: decision.id,
+          targetSkill: { id: decision.targetSkillId ?? "", name: skillName },
+          masterySnapshot: number(decision.masterySnapshot),
+          confidenceSnapshot: number(decision.confidenceSnapshot),
+          targetDifficulty: number(decision.targetDifficulty),
+          reasons: Array.isArray(decision.reasonCodes) ? (decision.reasonCodes as string[]) : [],
+          candidates: Array.isArray(decision.candidateSnapshot) ? decision.candidateSnapshot : [],
+          selectedQuestionVersionId: decision.selectedQuestionVersionId,
+          engineVersion: decision.engineVersion,
+          configVersion: decision.configVersion,
+          createdAt: decision.createdAt.toISOString(),
+        },
+      ]),
+    );
   }
 }

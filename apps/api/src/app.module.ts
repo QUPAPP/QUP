@@ -8,7 +8,9 @@ import { ConfigModule } from "./config/config.module.js";
 import { DatabaseModule } from "./infrastructure/database/database.module.js";
 import { LoggingModule } from "./infrastructure/logging/logging.module.js";
 import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module.js";
+import { AnalyticsModule } from "./modules/analytics/analytics.module.js";
 import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
+import { AuditModule } from "./modules/audit/audit.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthenticationGuard } from "./modules/auth/presentation/authentication.guard.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
@@ -38,6 +40,8 @@ export class AppModule {
         CatalogModule,
         AssessmentsModule,
         ContentImportModule,
+        AnalyticsModule,
+        AuditModule,
         QuestionsModule,
         BillingModule,
         HealthModule,

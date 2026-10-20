@@ -581,12 +581,42 @@ POST  /admin/entitlements/:id/revoke    idempotent, audited
 
 ## Admin Analytics/Audit
 
+Implemented in C2. Permission `audit.view` (ADMIN only). Windows are `days=7` or `days=30` (anything
+else `400`).
+
 ```text
-GET /admin/analytics/content-quality
-GET /admin/analytics/learning
-GET /admin/analytics/imports
-GET /admin/audit-logs
+GET /admin/analytics/learning?days=7|30
+GET /admin/analytics/content
+GET /admin/analytics/imports?days=7|30
+GET /admin/audit-logs?action&resourceType&resourceId&actorId&from&to&limit&offset
+GET /admin/adaptive-decisions?sessionId=…
+GET /admin/operations/outbox
 ```
+
+- `learning` is computed from the analytics stream (`learning_events`, fed by the outbox worker; it
+  lags until the worker drains): `{ days, activeStudents, diagnostics: { miniStarted, miniCompleted,
+  fullStarted, fullCompleted }, trainingSessions, attempts: { answered, skipped, correctRate | null },
+  reassessments: { passed, failed } }`.
+- `content`: `{ questions: { STATUS: count } (newest version per question), reviewBacklog
+  (UNDER_REVIEW + APPROVED), thinSkills: [{ examName, skillName, published }] }` — active skills of
+  live exams with fewer than 5 published questions, fewest first, at most 20.
+- `imports`: `{ days, batches: { STATUS: count }, rows: { imported, invalid, duplicate, skipped } }`.
+- `audit-logs`: newest first; `{ items: [{ id, action, resourceType, resourceId, actor: { id, email,
+  displayName } | null, requestId, metadata, createdAt }], page }`. Metadata is what was stored
+  (redacted at write time).
+- `adaptive-decisions`: `{ session: { id, type, status, examId, examName, studentId, createdAt },
+  items: [{ itemOrdinal, answered, id, targetSkill { id, name }, masterySnapshot, confidenceSnapshot,
+  targetDifficulty, reasons, candidates, selectedQuestionVersionId, engineVersion, configVersion,
+  createdAt }] }`; unknown session `404 ASSESSMENT_NOT_FOUND`. No answer keys or attempt answers.
+- `operations/outbox`: `{ pending, processing, failed, published24h, oldestPendingSeconds | null,
+  recentFailures: [{ id, eventType, attempts, lastError, createdAt }] }`.
+
+### Outbox events (ARCHITECTURE.md §10)
+
+Written in the same transaction as the change; drained by the worker (`pnpm --filter @qup/api worker`)
+into `learning_events` (payload schema `1`, ids only): `assessment.session.created`,
+`assessment.attempt.recorded`, `assessment.session.completed`, `mastery.reassessment.recorded`,
+`import.drafts.created`.
 
 ## Internal Application Services
 

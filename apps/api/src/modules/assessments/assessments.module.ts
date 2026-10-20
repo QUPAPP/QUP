@@ -13,6 +13,7 @@ import { ASSESSMENT_STORE, BLUEPRINT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
 import { DrizzleBlueprintStore } from "./infrastructure/drizzle-blueprint-store.js";
 import { AdminBlueprintsController } from "./presentation/admin-blueprints.controller.js";
+import { AdminDecisionsController } from "./presentation/admin-decisions.controller.js";
 import { AssessmentsController } from "./presentation/assessments.controller.js";
 import { MeController } from "./presentation/me.controller.js";
 
@@ -30,7 +31,12 @@ import { MeController } from "./presentation/me.controller.js";
     SettingsModule,
     AdaptiveModule,
   ],
-  controllers: [AssessmentsController, AdminBlueprintsController, MeController],
+  controllers: [
+    AssessmentsController,
+    AdminBlueprintsController,
+    MeController,
+    AdminDecisionsController,
+  ],
   providers: [
     AssessmentsService,
     BlueprintsService,

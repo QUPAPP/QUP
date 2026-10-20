@@ -6,6 +6,8 @@ import { QuestionsService } from "./application/questions.service.js";
 import { QUESTION_STORE } from "./domain/ports.js";
 import { DrizzleQuestionReader } from "./infrastructure/drizzle-question-reader.js";
 import { DrizzleQuestionStore } from "./infrastructure/drizzle-question-store.js";
+import { QuestionBankStats } from "./infrastructure/question-bank-stats.js";
+import { AdminContentAnalyticsController } from "./presentation/admin-content-analytics.controller.js";
 import { AdminQuestionsController } from "./presentation/admin-questions.controller.js";
 import { QuestionAuthoringController } from "./presentation/question-authoring.controller.js";
 import { QUESTION_AUTHOR, QUESTION_READER } from "./questions.contract.js";
@@ -14,12 +16,17 @@ import { QUESTION_AUTHOR, QUESTION_READER } from "./questions.contract.js";
 @Module({
   // Only the catalog's read contract (CATALOG_LOOKUP) is used.
   imports: [CatalogModule],
-  controllers: [AdminQuestionsController, QuestionAuthoringController],
+  controllers: [
+    AdminQuestionsController,
+    QuestionAuthoringController,
+    AdminContentAnalyticsController,
+  ],
   providers: [
     QuestionsService,
     { provide: QUESTION_STORE, useClass: DrizzleQuestionStore },
     { provide: QUESTION_READER, useClass: DrizzleQuestionReader },
     QuestionAuthorService,
+    QuestionBankStats,
     { provide: QUESTION_AUTHOR, useExisting: QuestionAuthorService },
   ],
   // Other modules read published questions, or write drafts, through the contracts only.

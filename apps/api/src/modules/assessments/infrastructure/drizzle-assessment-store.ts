@@ -258,6 +258,17 @@ export class DrizzleAssessmentStore implements AssessmentStore {
           })
           .returning(sessionColumns);
         if (!created) throw new Error("Session insert returned no row.");
+        await writeOutbox(tx, {
+          type: OutboxEventType.SessionCreated,
+          aggregateType: SESSION_AGGREGATE,
+          aggregateId: created.id,
+          payload: {
+            sessionId: created.id,
+            sessionType: created.type,
+            examId: created.examId,
+            studentId: created.studentId,
+          },
+        });
         // A training session starts empty: its items are chosen as it goes.
         if (input.items.length === 0) return created;
         await tx.insert(assessmentItems).values(

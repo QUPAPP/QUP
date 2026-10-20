@@ -6,6 +6,7 @@ import { ImportsService } from "./application/imports.service.js";
 import { IMPORT_FILE_STORAGE, IMPORT_STORE } from "./domain/ports.js";
 import { DrizzleImportStore } from "./infrastructure/drizzle-import-store.js";
 import { LocalImportFileStorage } from "./infrastructure/local-file-storage.js";
+import { AdminImportAnalyticsController } from "./presentation/admin-import-analytics.controller.js";
 import { AdminImportsController } from "./presentation/admin-imports.controller.js";
 
 /**
@@ -15,7 +16,7 @@ import { AdminImportsController } from "./presentation/admin-imports.controller.
  */
 @Module({
   imports: [CatalogModule, QuestionsModule],
-  controllers: [AdminImportsController],
+  controllers: [AdminImportsController, AdminImportAnalyticsController],
   providers: [
     ImportsService,
     { provide: IMPORT_STORE, useClass: DrizzleImportStore },

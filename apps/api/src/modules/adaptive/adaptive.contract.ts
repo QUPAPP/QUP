@@ -49,10 +49,27 @@ export interface AdaptiveSelector {
     askedQuestionIds: ReadonlySet<string>;
     size: number;
   }): Promise<string[]>;
+  /** Full decisions by id, for the audit screen; candidates as stored. */
+  decisionDetails(decisionIds: readonly string[]): Promise<Map<string, DecisionDetail>>;
   /** The target skill of each decision, with its name. */
   targetsOf(
     decisionIds: readonly string[],
   ): Promise<Map<string, { skillId: string; skillName: string }>>;
+}
+
+/** A stored decision as an auditor reads it (OBSERVABILITY.md "Adaptive Decision Audit"). */
+export interface DecisionDetail {
+  id: string;
+  targetSkill: { id: string; name: string };
+  masterySnapshot: number | null;
+  confidenceSnapshot: number | null;
+  targetDifficulty: number | null;
+  reasons: string[];
+  candidates: unknown[];
+  selectedQuestionVersionId: string | null;
+  engineVersion: string;
+  configVersion: string;
+  createdAt: string;
 }
 
 export const ADAPTIVE_SELECTOR = Symbol("ADAPTIVE_SELECTOR");
