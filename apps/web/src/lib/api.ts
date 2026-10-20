@@ -22,7 +22,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   /** Required by the API on answer, skip and checkout; a retry must reuse it. */
   idempotencyKey?: string;
@@ -70,6 +70,16 @@ export interface User {
   email: string | null;
   phone: string | null;
   displayName: string | null;
+}
+
+/**
+ * The signed-in account. Permissions only decide what the interface offers;
+ * the API checks them again on every call.
+ */
+export interface Me {
+  user: User;
+  roles: string[];
+  permissions: string[];
 }
 
 export interface Exam {
@@ -181,7 +191,7 @@ export interface ExamAccess {
 
 /* --------------------------------- calls ---------------------------------- */
 
-export const getMe = () => api<{ user: User }>("/auth/me");
+export const getMe = () => api<Me>("/auth/me");
 
 export const login = (body: { identifier: string; password: string }) =>
   api<{ user: User }>("/auth/login", { method: "POST", body });
