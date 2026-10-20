@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { AssessmentHistory, SESSION_STATUS_LABELS } from "@/components/assessment-history";
+import { ExamProgressCard } from "@/components/exam-progress-card";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
-import { isApiError, listAssessmentHistory, type SessionStatus } from "@/lib/api";
+import { getDashboard, isApiError, listAssessmentHistory, type SessionStatus } from "@/lib/api";
 import { useCurrentUser, useRequireUser } from "@/lib/session";
 
 const PAGE_SIZE = 10;
@@ -22,6 +23,11 @@ export default function DashboardPage() {
     queryKey: ["assessment-history", user?.id, status, offset],
     queryFn: () =>
       listAssessmentHistory({ limit: PAGE_SIZE, offset, ...(status ? { status } : {}) }),
+    enabled: user !== null,
+  });
+  const dashboard = useQuery({
+    queryKey: ["dashboard", user?.id],
+    queryFn: getDashboard,
     enabled: user !== null,
   });
 
@@ -45,6 +51,20 @@ export default function DashboardPage() {
         <span className="welcome-panel-symbol">
           <Icon name="compass" />
         </span>
+      </section>
+      <section className="stack" aria-labelledby="progress-heading">
+        <h2 id="progress-heading">أين أنت الآن، وماذا بعد</h2>
+        {dashboard.isPending && user ? <Loading /> : null}
+        {dashboard.isError ? <ErrorNotice error={dashboard.error} /> : null}
+        {dashboard.data?.exams.length === 0 ? (
+          <p className="muted">
+            لم تبدأ أي اختبار بعد.{" "}
+            <Link href="/exams">اختر اختبارك وابدأ بالتشخيص المصغّر المجاني.</Link>
+          </p>
+        ) : null}
+        {dashboard.data?.exams.map((progress) => (
+          <ExamProgressCard key={progress.exam.id} progress={progress} />
+        ))}
       </section>
       <section className="history-panel" aria-labelledby="history-heading">
         <div className="history-toolbar">

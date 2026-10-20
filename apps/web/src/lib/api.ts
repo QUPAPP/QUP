@@ -278,6 +278,31 @@ export const startMiniDiagnostic = (examId: string) =>
 export const startFullDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/full-diagnostic`, { method: "POST" });
 
+/** The server's choice of the student's next learning action in one exam (OPEN_QUESTIONS.md #12f). */
+export type NextStep =
+  | { type: "RESUME_SESSION"; sessionId: string; sessionType: SessionType }
+  | { type: "START_MINI_DIAGNOSTIC" }
+  | { type: "SUBSCRIBE" }
+  | { type: "START_FULL_DIAGNOSTIC" }
+  | { type: "REASSESS"; skillId: string; skillName: string }
+  | { type: "TRAIN"; skillName: string | null }
+  | { type: "ALL_MASTERED" };
+
+export interface ExamProgress {
+  exam: { id: string; nameAr: string };
+  hasAccess: boolean;
+  nextStep: NextStep;
+  /** Paid only. */
+  standing: {
+    summary: SkillProfile["summary"];
+    strengths: { skillName: string; state: MasteryState; mastery: number }[];
+    gaps: { skillName: string; severity: number }[];
+    improvements: { nodeName: string; before: number; after: number }[];
+  } | null;
+}
+
+export const getDashboard = () => api<{ exams: ExamProgress[] }>("/me/dashboard");
+
 export interface ReassessmentResult {
   skill: { id: string; name: string };
   passed: boolean;
