@@ -240,6 +240,10 @@ Exactly one learning target reference per mapping row.
 - status
 - config_version
 
+Indexes: `(exam_id, code)` unique; at most one `ACTIVE` blueprint per `(exam_id, type)` (partial
+unique index, migration 0012). V1 uses only `max_questions` (the diagnosis size; `min_questions`
+is 1) and domain-level rules carrying `target_weight` (OPEN_QUESTIONS.md #9a).
+
 ### blueprint_rules
 - id
 - blueprint_id
