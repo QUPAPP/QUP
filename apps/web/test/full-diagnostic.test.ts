@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { startFullDiagnostic } from "../src/lib/api";
-import { completionHref, DIAGNOSTIC_TITLES, isDiagnostic } from "../src/lib/diagnostics";
+import {
+  COMPLETION_LABELS,
+  completionHref,
+  DIAGNOSTIC_TITLES,
+  isDiagnostic,
+} from "../src/lib/diagnostics";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,6 +28,11 @@ describe("full diagnostic", () => {
     expect(completionHref({ id: "s2", examId: "e1", type: "FULL_DIAGNOSTIC" })).toBe(
       "/exams/e1/profile",
     );
+  });
+
+  it("names the last button after where it leads", () => {
+    expect(COMPLETION_LABELS.MINI_DIAGNOSTIC).toBe("عرض النتيجة");
+    expect(COMPLETION_LABELS.FULL_DIAGNOSTIC).toBe("عرض ملف مهاراتي");
   });
 
   it("titles both diagnostics in Arabic and recognises only them", () => {

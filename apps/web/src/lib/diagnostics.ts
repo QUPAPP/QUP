@@ -11,6 +11,12 @@ export const DIAGNOSTIC_TITLES: Record<DiagnosticType, string> = {
 export const isDiagnostic = (type: SessionType): type is DiagnosticType =>
   type === "MINI_DIAGNOSTIC" || type === "FULL_DIAGNOSTIC";
 
+/** The last button of a diagnostic names where it leads (see completionHref). */
+export const COMPLETION_LABELS: Record<DiagnosticType, string> = {
+  MINI_DIAGNOSTIC: "عرض النتيجة",
+  FULL_DIAGNOSTIC: "عرض ملف مهاراتي",
+};
+
 /**
  * Where a finished diagnostic leads: the mini one to its preliminary result,
  * the full one to the skill profile it fills in (PRD §6).

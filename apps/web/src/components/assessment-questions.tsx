@@ -18,12 +18,13 @@ const PERCENT = 100;
 
 export function AssessmentQuestions({
   sessionId,
-  completedHref,
+  completion,
 }: {
   sessionId: string;
-  /** Where the student goes once every item is finalized. */
-  completedHref: string;
+  /** Where the student goes once every item is finalized, and the button that says so. */
+  completion: { href: string; label: string };
 }) {
+  const completedHref = completion.href;
   const router = useRouter();
   const queryClient = useQueryClient();
   const queryKey = ["current-item", sessionId];
@@ -48,6 +49,7 @@ export function AssessmentQuestions({
       sessionId={sessionId}
       item={item}
       progress={current.data.progress}
+      completedLabel={completion.label}
       onNext={(completed) =>
         completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
       }
@@ -59,10 +61,11 @@ interface QuestionProps {
   sessionId: string;
   item: NonNullable<CurrentItem["item"]>;
   progress: CurrentItem["progress"];
+  completedLabel: string;
   onNext: (completed: boolean) => void;
 }
 
-function Question({ sessionId, item, progress, onNext }: QuestionProps) {
+function Question({ sessionId, item, progress, completedLabel, onNext }: QuestionProps) {
   const queryClient = useQueryClient();
   const multiple = item.question.questionType === "MULTIPLE_CHOICE";
   const [selected, setSelected] = useState<string[]>([]);
@@ -144,7 +147,7 @@ function Question({ sessionId, item, progress, onNext }: QuestionProps) {
             className="btn"
             onClick={() => onNext(outcome.next.type === "COMPLETED")}
           >
-            {outcome.next.type === "COMPLETED" ? "عرض النتيجة" : "السؤال التالي"}
+            {outcome.next.type === "COMPLETED" ? completedLabel : "السؤال التالي"}
           </button>
         ) : (
           <>

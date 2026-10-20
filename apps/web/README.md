@@ -42,8 +42,9 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/account` | Account details, sign out, and revoke other device sessions |
 | `/exams` | Exams on offer |
 | `/exams/:examId/diagnostic` | The free mini diagnostic: start or resume, answer, skip |
+| `/exams/:examId/full-diagnostic` | Paid full diagnostic: start or resume; explains access, or links to the profile when done |
 | `/exams/:examId/profile` | Paid skill profile: summary, gaps by priority, every skill and subskill with its state |
-| `/assessments/:sessionId` | Resume the exact mini diagnostic at its next unanswered item |
+| `/assessments/:sessionId` | Resume the exact mini or full diagnostic at its next unanswered item |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
 | `/admin/exams` | Admin: every exam with its status; create an exam |
@@ -53,6 +54,7 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/admin/questions/new` | The question editor; saving creates a DRAFT |
 | `/admin/questions/:questionId` | A question's versions; start the next version; archive (admin) |
 | `/admin/question-versions/:versionId` | Preview, review history and the workflow: edit/submit, review, publish |
+| `/admin/blueprints/:blueprintId` | Admin: a diagnostic blueprint — edit the draft's size and domain weights, activate, archive (listed on the exam page) |
 | `/admin/settings` | Admin: versioned settings — the diagnostic level boundaries and their history |
 
 ### Admin panel
@@ -123,5 +125,5 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 
 ## Not built yet
 
-Math rendering (formulas show as their source), the full diagnostic and training screens, the
-admin screens for questions, imports and users, and browser end-to-end tests.
+Math rendering (formulas show as their source), adaptive training and reassessment screens, the
+admin screens for imports and users, and browser end-to-end tests.

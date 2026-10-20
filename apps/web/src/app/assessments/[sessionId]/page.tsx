@@ -8,7 +8,12 @@ import { useEffect } from "react";
 import { AssessmentQuestions } from "@/components/assessment-questions";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getSession, startSession } from "@/lib/api";
-import { completionHref, DIAGNOSTIC_TITLES, isDiagnostic } from "@/lib/diagnostics";
+import {
+  COMPLETION_LABELS,
+  completionHref,
+  DIAGNOSTIC_TITLES,
+  isDiagnostic,
+} from "@/lib/diagnostics";
 import { useRequireUser } from "@/lib/session";
 
 /** Resumes a mini or full diagnostic at its next unanswered item. */
@@ -51,7 +56,10 @@ export default function AssessmentPage() {
         <AssessmentQuestions
           key={sessionId}
           sessionId={sessionId}
-          completedHref={completionHref({ id: data.id, examId: data.examId, type })}
+          completion={{
+            href: completionHref({ id: data.id, examId: data.examId, type }),
+            label: COMPLETION_LABELS[type],
+          }}
         />
       ) : data && !finishedHref ? (
         <p className="notice">هذه الجلسة غير متاحة للاستكمال.</p>
