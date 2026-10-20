@@ -33,8 +33,8 @@ import {
   PRELIMINARY_RESULT_DEFAULTS,
   SCORING_VERSION,
 } from "../domain/assessment-config.js";
+import { type PlanDomain, planDiagnostic } from "../domain/diagnostic-plan.js";
 import { gradeChoice } from "../domain/grading.js";
-import { type PlanDomain, planMiniDiagnostic } from "../domain/mini-diagnostic-plan.js";
 import {
   ASSESSMENT_STORE,
   type AssessmentStore,
@@ -172,7 +172,7 @@ export class AssessmentsService {
         candidates: bySkill.get(s.id) ?? [],
       })),
     }));
-    const plan = planMiniDiagnostic({
+    const plan = planDiagnostic({
       domains,
       size,
       targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,

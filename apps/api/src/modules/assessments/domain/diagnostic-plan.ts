@@ -1,14 +1,16 @@
 import { apportion } from "./apportion.js";
 
 /**
- * Chooses the questions of a mini diagnostic (PRD §7: "representative
- * coverage, not random first 12"; OPEN_QUESTIONS.md #10a).
+ * Chooses the questions of a diagnostic (PRD §7: "representative coverage,
+ * not random first 12"; OPEN_QUESTIONS.md #10a, #9a).
  *
  *   1. slots are split across domains by domain weight;
  *   2. each domain's slots are split across its skills by skill weight;
- *   3. within a skill, questions closest to the target difficulty win, with a
+ *   3. questions the student already answered count towards their skill's
+ *      share, so a full diagnostic continues the mini one (PRD §3, §7);
+ *   4. within a skill, questions closest to the target difficulty win, with a
  *      random tie-break so students do not all see the same form;
- *   4. items are interleaved across domains so the test does not run in blocks.
+ *   5. items are interleaved across domains so the test does not run in blocks.
  *
  * A domain or skill with too few questions gives its unused share to the
  * others. Pure: randomness is injected, so a seeded source makes it
@@ -38,14 +40,19 @@ export interface PlannedItem extends PlanCandidate {
   skillId: string;
 }
 
-export function planMiniDiagnostic(input: {
+export function planDiagnostic(input: {
   domains: readonly PlanDomain[];
+  /** Questions in the whole diagnosis, already answered ones included. */
   size: number;
   targetDifficulty: number;
   /** Returns a float in [0, 1), like Math.random. */
   random: () => number;
+  /** Distinct questions the student already answered, per skill id. */
+  answered?: ReadonlyMap<string, number>;
 }): PlannedItem[] {
-  const capacityOf = (skill: PlanSkill) => distinctQuestions(skill.candidates).length;
+  const answeredOf = (skill: PlanSkill) => input.answered?.get(skill.id) ?? 0;
+  const capacityOf = (skill: PlanSkill) =>
+    answeredOf(skill) + distinctQuestions(skill.candidates).length;
 
   const domainSlots = apportion(
     input.size,
@@ -65,7 +72,12 @@ export function planMiniDiagnostic(input: {
       domain.skills.map((s) => ({ key: s.id, weight: s.weight, capacity: capacityOf(s) })),
     );
     const perSkill: PlannedItem[][] = domain.skills.map((skill) =>
-      pickClosest(skill, skillSlots.get(skill.id) ?? 0, input, usedQuestions).map((c) => ({
+      pickClosest(
+        skill,
+        Math.max(0, (skillSlots.get(skill.id) ?? 0) - answeredOf(skill)),
+        input,
+        usedQuestions,
+      ).map((c) => ({
         ...c,
         domainId: domain.id,
         skillId: skill.id,

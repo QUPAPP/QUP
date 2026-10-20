@@ -2,11 +2,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { apportion } from "../../src/modules/assessments/domain/apportion.js";
-import { gradeChoice } from "../../src/modules/assessments/domain/grading.js";
 import {
   type PlanDomain,
-  planMiniDiagnostic,
-} from "../../src/modules/assessments/domain/mini-diagnostic-plan.js";
+  planDiagnostic,
+} from "../../src/modules/assessments/domain/diagnostic-plan.js";
+import { gradeChoice } from "../../src/modules/assessments/domain/grading.js";
 
 /** Deterministic PRNG (mulberry32), so random tie-breaks are reproducible in tests. */
 function seeded(seed: number): () => number {
@@ -72,7 +72,7 @@ function candidates(skill: string, difficulties: number[]) {
   }));
 }
 
-describe("mini diagnostic plan", () => {
+describe("diagnostic plan", () => {
   const domains: PlanDomain[] = [
     {
       id: "verbal",
@@ -104,7 +104,17 @@ describe("mini diagnostic plan", () => {
   ];
 
   const plan = (size: number, seed = 1, source = domains) =>
-    planMiniDiagnostic({ domains: source, size, targetDifficulty: 0.5, random: seeded(seed) });
+    planDiagnostic({ domains: source, size, targetDifficulty: 0.5, random: seeded(seed) });
+  const continuing = (size: number, answered: Record<string, number>) =>
+    planDiagnostic({
+      domains,
+      size,
+      targetDifficulty: 0.5,
+      random: seeded(1),
+      answered: new Map(Object.entries(answered)),
+    });
+  const perSkill = (items: { skillId: string }[], id: string) =>
+    items.filter((i) => i.skillId === id).length;
 
   it("covers domains in proportion to their weight", () => {
     const items = plan(6);
@@ -133,6 +143,31 @@ describe("mini diagnostic plan", () => {
         .slice(0, 2)
         .map((i) => i.domainId),
     ).toEqual(["verbal", "quant"]);
+  });
+
+  it("counts questions already answered towards each skill's share (PRD §7)", () => {
+    // Shares of 6: analogy 2, algebra 2, geometry 2. One analogy question is already answered.
+    const items = continuing(6, { analogy: 1 });
+    expect(perSkill(items, "analogy")).toBe(1);
+    expect(perSkill(items, "algebra")).toBe(2);
+    expect(perSkill(items, "geometry")).toBe(2);
+  });
+
+  it("asks nothing more on a skill answered beyond its share, and leaves the others alone", () => {
+    const items = continuing(6, { analogy: 5 });
+    expect(perSkill(items, "analogy")).toBe(0);
+    expect(perSkill(items, "algebra")).toBe(2);
+    expect(perSkill(items, "geometry")).toBe(2);
+  });
+
+  it("plans nothing when every share is already answered", () => {
+    expect(continuing(6, { analogy: 2, algebra: 2, geometry: 2 })).toEqual([]);
+  });
+
+  it("ignores answered counts for skills outside the taxonomy", () => {
+    expect(continuing(6, { retired: 9 }).map((i) => i.questionVersionId)).toEqual(
+      plan(6).map((i) => i.questionVersionId),
+    );
   });
 
   it("is reproducible for a given random source, and varies across sources", () => {
