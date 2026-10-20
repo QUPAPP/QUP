@@ -11,33 +11,40 @@ export const DIAGNOSTIC_TITLES: Record<DiagnosticType, string> = {
 export const isDiagnostic = (type: SessionType): type is DiagnosticType =>
   type === "MINI_DIAGNOSTIC" || type === "FULL_DIAGNOSTIC";
 
-/** Sessions the question runner plays: both diagnostics and adaptive training. */
-export type RunnerType = DiagnosticType | "ADAPTIVE_TRAINING";
+/** Sessions the question runner plays: diagnostics, adaptive training and skill reassessment. */
+export type RunnerType = DiagnosticType | "ADAPTIVE_TRAINING" | "SKILL_REASSESSMENT";
 
 export const SESSION_TITLES: Record<RunnerType, string> = {
   ...DIAGNOSTIC_TITLES,
   ADAPTIVE_TRAINING: "التدريب التكيفي",
+  SKILL_REASSESSMENT: "إعادة قياس المهارة",
 };
 
 export const isRunnable = (type: SessionType): type is RunnerType =>
-  isDiagnostic(type) || type === "ADAPTIVE_TRAINING";
+  isDiagnostic(type) || type === "ADAPTIVE_TRAINING" || type === "SKILL_REASSESSMENT";
 
 /** The last button of a session names where it leads (see completionHref). */
 export const COMPLETION_LABELS: Record<RunnerType, string> = {
   MINI_DIAGNOSTIC: "عرض النتيجة",
   FULL_DIAGNOSTIC: "عرض ملف مهاراتي",
   ADAPTIVE_TRAINING: "عرض ملف مهاراتي",
+  SKILL_REASSESSMENT: "عرض النتيجة",
 };
 
 /**
- * Where a finished session leads: the mini diagnostic to its preliminary
- * result; the full diagnostic and training to the skill profile they update
- * (PRD §6).
+ * Where a finished session leads: the mini diagnostic and a reassessment to
+ * their own result; the full diagnostic and training to the skill profile
+ * they update (PRD §6).
  */
 export function completionHref(session: { id: string; examId: string; type: RunnerType }) {
-  return session.type === "MINI_DIAGNOSTIC"
-    ? `/assessments/${session.id}/result`
-    : `/exams/${session.examId}/profile`;
+  switch (session.type) {
+    case "MINI_DIAGNOSTIC":
+      return `/assessments/${session.id}/result`;
+    case "SKILL_REASSESSMENT":
+      return `/assessments/${session.id}/reassessment`;
+    default:
+      return `/exams/${session.examId}/profile`;
+  }
 }
 
 /** The options a training review marks as correct, in the order the question shows them. */

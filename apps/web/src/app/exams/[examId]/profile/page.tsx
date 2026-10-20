@@ -9,7 +9,7 @@ import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getSkillProfile, isApiError, type ProfileNode, type SkillProfile } from "@/lib/api";
-import { coverageText, MASTERY_STATE_LABELS, percentText } from "@/lib/mastery-labels";
+import { answersText, coverageText, MASTERY_STATE_LABELS, percentText } from "@/lib/mastery-labels";
 import { useRequireUser } from "@/lib/session";
 
 /** The student's skill profile for a paid exam (PRD §6). Every figure is the API's. */
@@ -135,6 +135,19 @@ function Profile({ profile }: { profile: SkillProfile }) {
             {domain.skills.map((skill) => (
               <li key={skill.id} className="profile-skill">
                 <NodeRow node={skill} />
+                {skill.state === "READY_FOR_REASSESSMENT" ? (
+                  <Link
+                    href={`/exams/${profile.exam.id}/skills/${skill.id}/reassessment`}
+                    className="btn btn--small profile-skill__action"
+                  >
+                    أعد قياس المهارة
+                  </Link>
+                ) : null}
+                {skill.reassessment ? (
+                  <p className="small muted">
+                    {`لم تكتمل إعادة القياس الأخيرة. باقي ${answersText(skill.reassessment.remainingAttempts)} في التدريب قبل المحاولة التالية.`}
+                  </p>
+                ) : null}
                 {skill.subskills.length > 0 ? (
                   <ul className="profile-subskills">
                     {skill.subskills.map((subskill) => (

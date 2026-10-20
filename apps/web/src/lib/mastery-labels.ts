@@ -22,3 +22,13 @@ export function coverageText(coverage: number): string {
 export function percentText(share: number): string {
   return `${Math.round(share * PERCENT)}٪`;
 }
+
+const DUAL = 2;
+const PLURAL_UP_TO = 10;
+
+/** "إجابة واحدة", "إجابتان", "5 إجابات", "11 إجابة" — Arabic counts the noun by number. */
+export function answersText(count: number): string {
+  if (count === 1) return "إجابة واحدة";
+  if (count === DUAL) return "إجابتان";
+  return count <= PLURAL_UP_TO ? `${count} إجابات` : `${count} إجابة`;
+}

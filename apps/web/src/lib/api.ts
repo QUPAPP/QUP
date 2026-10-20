@@ -228,7 +228,12 @@ export interface SkillProfile {
   domains: {
     id: string;
     name: string;
-    skills: (ProfileNode & { gapSeverity: number | null; subskills: ProfileNode[] })[];
+    skills: (ProfileNode & {
+      gapSeverity: number | null;
+      /** Set while a failed reassessment holds the skill. */
+      reassessment: { remainingAttempts: number } | null;
+      subskills: ProfileNode[];
+    })[];
   }[];
   gaps: {
     skillId: string;
@@ -272,6 +277,22 @@ export const startMiniDiagnostic = (examId: string) =>
 
 export const startFullDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/full-diagnostic`, { method: "POST" });
+
+export interface ReassessmentResult {
+  skill: { id: string; name: string };
+  passed: boolean;
+  correct: number;
+  total: number;
+  requiredCorrect: number;
+  /** Answers still needed before a retry; null after a pass. */
+  remainingAttempts: number | null;
+}
+
+export const startReassessment = (examId: string, skillId: string) =>
+  api<AssessmentSession>(`/exams/${examId}/skills/${skillId}/reassessment`, { method: "POST" });
+
+export const getReassessmentResult = (sessionId: string) =>
+  api<ReassessmentResult>(`/assessments/${sessionId}/reassessment-result`);
 
 export const startTraining = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/training`, { method: "POST" });

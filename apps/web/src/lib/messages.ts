@@ -17,6 +17,11 @@ const BY_CODE: Record<string, string> = {
   FULL_DIAGNOSTIC_REQUIRES_ACCESS: "التشخيص الكامل ضمن باقة هذا الاختبار.",
   TRAINING_REQUIRES_ACCESS: "التدريب التكيفي ضمن باقة هذا الاختبار.",
   NOTHING_TO_TRAIN: "لا يوجد ما تتدرّب عليه الآن في هذا الاختبار.",
+  REASSESSMENT_REQUIRES_ACCESS: "إعادة القياس ضمن باقة هذا الاختبار.",
+  SKILL_NOT_FOUND: "هذه المهارة ليست ضمن الاختبار.",
+  SKILL_NOT_READY_FOR_REASSESSMENT: "هذه المهارة ليست جاهزة لإعادة القياس بعد.",
+  REASSESSMENT_NOT_ENOUGH_QUESTIONS:
+    "لا توجد أسئلة كافية لإعادة قياس هذه المهارة حاليًا. تابع التدريب وسنضيف أسئلة قريبًا.",
   ASSESSMENT_NOT_FOUND: "لم نجد هذا التشخيص.",
   ASSESSMENT_NOT_COMPLETED: "النتيجة تظهر بعد إكمال التشخيص.",
   ASSESSMENT_ITEM_ALREADY_ANSWERED: "تمت الإجابة عن هذا السؤال من قبل.",

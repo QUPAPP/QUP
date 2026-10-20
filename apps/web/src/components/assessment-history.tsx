@@ -88,7 +88,9 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
                   className="btn btn--ghost btn--small"
                   href={completionHref({ ...session, type: session.type })}
                 >
-                  {session.type === "MINI_DIAGNOSTIC" ? "عرض النتيجة" : "ملف مهاراتي"}{" "}
+                  {session.type === "MINI_DIAGNOSTIC" || session.type === "SKILL_REASSESSMENT"
+                    ? "عرض النتيجة"
+                    : "ملف مهاراتي"}{" "}
                   <Icon name="chevron" />
                 </Link>
               ) : session.status === "CREATED" || session.status === "IN_PROGRESS" ? (
