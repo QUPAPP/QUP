@@ -1,13 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Database, tables } from "@qup/db";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type {
+  AuthoringExam,
   CatalogLookup,
   NodeSettings,
   PublishedTaxonomy,
   SkillLabel,
+  TaxonomyOutline,
   TaxonomyVersionStatus,
 } from "../catalog.contract.js";
 
@@ -18,6 +20,117 @@ const toThreshold = (value: string | null) => (value === null ? null : Number(va
 @Injectable()
 export class DrizzleCatalogLookup implements CatalogLookup {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  /** Two queries whatever the number of exams. */
+  async authoringTaxonomies(): Promise<AuthoringExam[]> {
+    const examRows = await this.db
+      .select({ id: exams.id, code: exams.code, nameAr: exams.nameAr, status: exams.status })
+      .from(exams)
+      .where(ne(exams.status, "ARCHIVED"))
+      .orderBy(asc(exams.code));
+    if (examRows.length === 0) return [];
+
+    const versionRows = await this.db
+      .select({
+        id: taxonomyVersions.id,
+        examId: taxonomyVersions.examId,
+        versionCode: taxonomyVersions.versionCode,
+        status: taxonomyVersions.status,
+      })
+      .from(taxonomyVersions)
+      .where(
+        and(
+          inArray(
+            taxonomyVersions.examId,
+            examRows.map((exam) => exam.id),
+          ),
+          ne(taxonomyVersions.status, "ARCHIVED"),
+        ),
+      )
+      .orderBy(desc(taxonomyVersions.createdAt), desc(taxonomyVersions.id));
+
+    return examRows.map((exam) => ({
+      // Archived exams were filtered out above.
+      exam: { ...exam, status: exam.status as "DRAFT" | "ACTIVE" },
+      versions: versionRows
+        .filter((version) => version.examId === exam.id)
+        .map(({ id, versionCode, status }) => ({
+          id,
+          versionCode,
+          // Archived versions were filtered out above.
+          status: status as "DRAFT" | "PUBLISHED",
+        })),
+    }));
+  }
+
+  /** Four queries whatever the tree size (PRD §16: no N+1). */
+  async activeOutline(taxonomyVersionId: string): Promise<TaxonomyOutline | null> {
+    const [version] = await this.db
+      .select({
+        id: taxonomyVersions.id,
+        examId: taxonomyVersions.examId,
+        versionCode: taxonomyVersions.versionCode,
+        status: taxonomyVersions.status,
+      })
+      .from(taxonomyVersions)
+      .where(eq(taxonomyVersions.id, taxonomyVersionId));
+    if (!version) return null;
+
+    const domainRows = await this.db
+      .select({ id: domains.id, code: domains.code, name: domains.name })
+      .from(domains)
+      .where(and(eq(domains.taxonomyVersionId, version.id), eq(domains.status, "ACTIVE")))
+      .orderBy(asc(domains.displayOrder), asc(domains.code));
+    const domainIds = domainRows.map((d) => d.id);
+
+    const skillRows = domainIds.length
+      ? await this.db
+          .select({
+            id: skills.id,
+            domainId: skills.domainId,
+            code: skills.code,
+            name: skills.name,
+          })
+          .from(skills)
+          .where(and(inArray(skills.domainId, domainIds), eq(skills.status, "ACTIVE")))
+          .orderBy(asc(skills.displayOrder), asc(skills.code))
+      : [];
+    const skillIds = skillRows.map((s) => s.id);
+
+    const subskillRows = skillIds.length
+      ? await this.db
+          .select({
+            id: subskills.id,
+            skillId: subskills.skillId,
+            code: subskills.code,
+            name: subskills.name,
+          })
+          .from(subskills)
+          .where(and(inArray(subskills.skillId, skillIds), eq(subskills.status, "ACTIVE")))
+          .orderBy(asc(subskills.displayOrder), asc(subskills.code))
+      : [];
+
+    return {
+      version,
+      domains: domainRows.map((d) => ({
+        ...d,
+        skills: skillRows
+          .filter((s) => s.domainId === d.id)
+          .map(({ id, code, name }) => ({
+            id,
+            code,
+            name,
+            subskills: subskillRows
+              .filter((ss) => ss.skillId === id)
+              .map(({ id: subskillId, code: subskillCode, name: subskillName }) => ({
+                id: subskillId,
+                code: subskillCode,
+                name: subskillName,
+              })),
+          })),
+      })),
+    };
+  }
 
   async examNames(examIds: readonly string[]): Promise<Map<string, string>> {
     if (examIds.length === 0) return new Map();

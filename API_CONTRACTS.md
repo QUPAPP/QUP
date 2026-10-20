@@ -151,6 +151,22 @@ PUT  /admin/question-versions/:id     replace the whole content of a DRAFT
 - Publish and archive are audited. Admin responses include the answer key; students will only
   ever receive `StudentQuestionView` (no answer key, explanation, difficulty or mappings).
 
+### Question authoring context
+
+```text
+GET /admin/question-authoring/taxonomies
+GET /admin/question-authoring/taxonomy-versions/:id/outline
+```
+
+Permission `questions.create`: authors choose a taxonomy and map skills without
+`taxonomy.manage` (admins only, OPEN_QUESTIONS.md #16a). Read-only, through the catalog's contract.
+- `taxonomies` → `{ items: [{ exam: { id, code, nameAr, status }, versions: [{ id, versionCode,
+  status }] }] }`: exams that are not ARCHIVED, by code; their versions that are not ARCHIVED,
+  newest first.
+- `outline` → `{ version: { id, examId, versionCode, status }, domains: [{ id, code, name, skills:
+  [{ id, code, name, subskills: [{ id, code, name }] }] }] }`: ACTIVE nodes only, in display
+  order. Unknown version: `404 TAXONOMY_VERSION_NOT_FOUND`.
+
 ## Imports
 
 ```text

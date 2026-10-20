@@ -84,3 +84,13 @@ export class TaxonomyNotPublished extends DomainError {
     super("The question's taxonomy version is not published.");
   }
 }
+
+/** The taxonomy version an author asked to map to does not exist. Same code as the catalog's. */
+export class AuthoringTaxonomyNotFound extends DomainError {
+  readonly code = "TAXONOMY_VERSION_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The taxonomy version was not found.");
+  }
+}

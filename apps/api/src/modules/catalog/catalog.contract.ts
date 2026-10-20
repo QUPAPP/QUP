@@ -31,7 +31,34 @@ export interface SkillLabel {
   name: string;
 }
 
+/** An exam question authors may write for, with the versions they may map to. */
+export interface AuthoringExam {
+  exam: { id: string; code: string; nameAr: string; status: "DRAFT" | "ACTIVE" };
+  /** Not archived, newest first. */
+  versions: { id: string; versionCode: string; status: "DRAFT" | "PUBLISHED" }[];
+}
+
+/** A version's active nodes, named, in display order — what a mapping may point at. */
+export interface TaxonomyOutline {
+  version: { id: string; examId: string; versionCode: string; status: TaxonomyVersionStatus };
+  domains: {
+    id: string;
+    code: string;
+    name: string;
+    skills: {
+      id: string;
+      code: string;
+      name: string;
+      subskills: { id: string; code: string; name: string }[];
+    }[];
+  }[];
+}
+
 export interface CatalogLookup {
+  /** Exams that are not archived, by code, each with its versions that are not archived. */
+  authoringTaxonomies(): Promise<AuthoringExam[]>;
+  /** The version's active domains, skills and subskills, or null when it does not exist. */
+  activeOutline(taxonomyVersionId: string): Promise<TaxonomyOutline | null>;
   /** Names for historical sessions, including exams no longer on sale. */
   examNames(examIds: readonly string[]): Promise<Map<string, string>>;
   /** The exam's status, or null when it does not exist. */
