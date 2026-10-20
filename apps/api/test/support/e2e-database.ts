@@ -61,6 +61,8 @@ export async function deleteE2eUsers(): Promise<void> {
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;
     await tx`DELETE FROM audit_logs WHERE resource_type = 'user' AND resource_id IN ${tx(ids)}`;
+    // Everything test accounts did (settings saves, publishes…), so the local audit log stays readable.
+    await tx`DELETE FROM audit_logs WHERE actor_id IN ${tx(ids)}`;
     // Training decisions name the student; items pointing at them go with their exams.
     await tx`DELETE FROM adaptive_decisions WHERE student_id IN ${tx(ids)}`;
   });

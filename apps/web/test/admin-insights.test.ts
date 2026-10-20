@@ -5,7 +5,12 @@ import {
   getSessionDecisions,
   listAuditLogs,
 } from "../src/lib/admin-insights-api";
-import { REASON_CODES, reasonLabel, windowFromQuery } from "../src/lib/decision-labels";
+import {
+  REASON_CODES,
+  reasonLabel,
+  WINDOW_LABELS,
+  windowFromQuery,
+} from "../src/lib/decision-labels";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -32,5 +37,6 @@ describe("admin insights", () => {
     expect(windowFromQuery("30")).toBe(30);
     expect(windowFromQuery("3")).toBe(7);
     expect(windowFromQuery(null)).toBe(7);
+    expect(WINDOW_LABELS).toEqual({ 7: "آخر 7 أيام", 30: "آخر 30 يومًا" });
   });
 });

@@ -12,7 +12,7 @@ import {
   getLearningMetrics,
   getOutboxStatus,
 } from "@/lib/admin-insights-api";
-import { ANALYTICS_WINDOWS } from "@/lib/decision-labels";
+import { ANALYTICS_WINDOWS, WINDOW_LABELS } from "@/lib/decision-labels";
 import { BATCH_STATUS_LABELS } from "@/lib/import-mapping";
 import { percentText } from "@/lib/mastery-labels";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
@@ -51,7 +51,7 @@ function Analytics({ userId }: { userId: string }) {
                 aria-pressed={window === days}
                 onClick={() => setDays(window)}
               >
-                {`آخر ${window} يومًا`}
+                {WINDOW_LABELS[window]}
               </button>
             ))}
           </fieldset>

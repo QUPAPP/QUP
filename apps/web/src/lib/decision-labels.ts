@@ -18,6 +18,12 @@ export function reasonLabel(code: string): string {
 }
 
 export const ANALYTICS_WINDOWS: readonly AnalyticsWindow[] = [7, 30];
+
+/** Arabic counts the noun by number: "آخر 7 أيام", "آخر 30 يومًا". */
+export const WINDOW_LABELS: Record<AnalyticsWindow, string> = {
+  7: "آخر 7 أيام",
+  30: "آخر 30 يومًا",
+};
 const DEFAULT_WINDOW: AnalyticsWindow = 7;
 
 /** The window a URL asks for, when the API accepts it; otherwise the default. */

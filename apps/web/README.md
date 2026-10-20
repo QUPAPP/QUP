@@ -60,6 +60,9 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/admin/blueprints/:blueprintId` | Admin: a diagnostic blueprint — edit the draft's size and domain weights, activate, archive (listed on the exam page) |
 | `/admin/imports` | Upload a CSV/TSV/JSON/XLSX of questions; earlier uploads (questions.create) |
 | `/admin/imports/:batchId` | Map columns to a taxonomy version, the row report, skip/include rows, create drafts |
+| `/admin/analytics` | Admin (audit.view): learning, question bank, imports and outbox metrics over 7 or 30 days |
+| `/admin/audit` | Admin: the audit log, filterable by action and resource type |
+| `/admin/adaptive-decisions` | Admin: why each question of a training session was chosen (`?sessionId=`) |
 | `/admin/settings` | Admin: versioned settings — the diagnostic level boundaries and their history |
 
 ### Admin panel
@@ -131,4 +134,4 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 ## Not built yet
 
 Math rendering (formulas show as their source), the full re-diagnostic, the
-admin screens for users and adaptive decisions, and browser end-to-end tests.
+admin screens for users, and browser end-to-end tests.

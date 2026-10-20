@@ -91,7 +91,7 @@ function Audit({ userId }: { userId: string }) {
                   </span>
                 </div>
                 <span className="small">
-                  {`${entry.actor?.displayName ?? entry.actor?.email ?? "النظام"} · `}
+                  {`${entry.actor ? (entry.actor.displayName ?? entry.actor.email ?? "حساب بلا اسم") : "حساب غير متاح"} · `}
                   <bdi dir="ltr">{`${entry.resourceType}${entry.resourceId ? ` ${entry.resourceId}` : ""}`}</bdi>
                 </span>
                 {entry.metadata ? (
