@@ -37,7 +37,7 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | --- | --- |
 | `/` | Landing page |
 | `/register`, `/login` | Account (email or phone; React Hook Form + Zod) |
-| `/dashboard` | Private session history, status filter, pagination and result/resume links |
+| `/dashboard` | Per exam: the next step (from the API), standing, strengths, gaps and this week's progress; then the session history with filter, pagination and result/resume links |
 | `/subscriptions` | Exam selector, server-priced plans, access state and hosted checkout |
 | `/account` | Account details, sign out, and revoke other device sessions |
 | `/exams` | Exams on offer |
@@ -128,5 +128,5 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 
 ## Not built yet
 
-Math rendering (formulas show as their source), the full re-diagnostic, the student dashboard, the
+Math rendering (formulas show as their source), the full re-diagnostic, the
 admin screens for imports, users and adaptive decisions, and browser end-to-end tests.
