@@ -322,6 +322,28 @@ GET  /assessments/:sessionId/result               preliminary result (below)
 - The attempt, its mastery evidence (every mapped node) and auto-completion commit in one
   transaction; submissions within a session are serialized by a row lock.
 
+### Full diagnostic
+
+```text
+POST /exams/:examId/assessments/full-diagnostic   201 new · 200 resumed (open session returned)
+```
+
+The paid diagnosis that continues the mini one (PRD §6–§7, OPEN_QUESTIONS.md #9a). Same session
+view and the same session endpoints as the mini diagnostic.
+
+- Requires active access to the exam: `403 FULL_DIAGNOSTIC_REQUIRES_ACCESS`. A session already
+  started can be finished. Inactive exam: `404 EXAM_NOT_AVAILABLE`.
+- Size: the exam's active `FULL_DIAGNOSTIC` blueprint (see Blueprints), else 40. The size is the
+  whole diagnosis: distinct questions the student already **answered** in this exam (skips do
+  not count) count towards their primary skill's share, so after a 12-question mini diagnostic
+  the session holds 28 more. Shares follow domain weights (blueprint override, else taxonomy),
+  then skill weights; within a skill the questions nearest difficulty 0.5 win; a question already
+  given in any session is never repeated. Nothing left to ask: `422 NO_QUESTIONS_AVAILABLE`.
+- One per exam for now: after completing it, `409 FULL_DIAGNOSTIC_ALREADY_COMPLETED` with
+  `details: { sessionId }`. Re-diagnostic (PRD §8) comes later.
+- A blueprint pinned to a taxonomy version that is no longer published is ignored (defaults apply).
+  Both diagnostics record the blueprint they were planned from.
+
 ### Session history
 
 `GET /assessments` requires a signed-in account. Optional `examId` (UUID) and `status`

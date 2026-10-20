@@ -20,6 +20,17 @@ export const MINI_DIAGNOSTIC_DEFAULTS = Object.freeze({
 });
 
 /**
+ * OPEN_QUESTIONS.md #9a (assumed, awaiting the product owner): the full
+ * diagnostic asks 40 questions in total, the ones already answered included,
+ * at the same middling difficulty as the mini diagnostic (fixed form; adaptive
+ * selection is B3). An exam's active FULL_DIAGNOSTIC blueprint overrides the size.
+ */
+export const FULL_DIAGNOSTIC_DEFAULTS = Object.freeze({
+  questionCount: 40,
+  targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,
+});
+
+/**
  * OPEN_QUESTIONS.md #10b (decided 2026-10-04): the level comes from the
  * performance percentage; at most 2 strengths and 3 weaknesses are shown.
  * The numbers themselves are defaults awaiting confirmation (#10c). They are

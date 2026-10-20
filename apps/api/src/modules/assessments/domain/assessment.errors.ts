@@ -183,3 +183,28 @@ export class BlueprintTaxonomyNotPublished extends DomainError {
     super("The blueprint's taxonomy version is no longer the published one.");
   }
 }
+
+/* ----------------------------------------------------------- full diagnostic */
+
+/** PRD §7: the full diagnostic comes with the exam's package. */
+export class FullDiagnosticRequiresAccess extends DomainError {
+  readonly code = "FULL_DIAGNOSTIC_REQUIRES_ACCESS";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("The full diagnostic is part of this exam's package.");
+  }
+}
+
+/** One full diagnostic per exam until re-diagnostic exists (PRD §8, a later slice). */
+export class FullDiagnosticAlreadyCompleted extends DomainError {
+  readonly code = "FULL_DIAGNOSTIC_ALREADY_COMPLETED";
+  readonly kind = "CONFLICT";
+  /** The caller's own completed session. */
+  override readonly details: { sessionId: string };
+
+  constructor(sessionId: string) {
+    super("You have already completed the full diagnostic for this exam.");
+    this.details = { sessionId };
+  }
+}

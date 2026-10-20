@@ -124,8 +124,8 @@ export interface AssessmentStore {
   progress(sessionId: string): Promise<SessionProgress>;
   /** Question versions the student has already been given in this exam (any session). */
   askedQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
-  /** The exam's active MINI_DIAGNOSTIC blueprint size, if an admin configured one. */
-  miniDiagnosticSize(examId: string): Promise<number | null>;
+  /** Question versions the student answered (not skipped) in this exam, any session. */
+  answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
 
   /**
    * Creates the session with its items. When another request opened a session
@@ -135,6 +135,8 @@ export interface AssessmentStore {
     studentId: string;
     examId: string;
     type: SessionType;
+    /** The blueprint the items were planned from; null when the defaults applied. */
+    blueprintId: string | null;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];

@@ -29,7 +29,7 @@ import type {
   StoredAttempt,
 } from "../domain/ports.js";
 
-const { assessmentSessions, assessmentItems, questionAttempts, assessmentBlueprints } = tables;
+const { assessmentSessions, assessmentItems, questionAttempts } = tables;
 
 const sessionColumns = {
   id: assessmentSessions.id,
@@ -178,25 +178,27 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     return rows.map((r) => r.questionVersionId);
   }
 
-  async miniDiagnosticSize(examId: string): Promise<number | null> {
-    const [row] = await this.db
-      .select({ size: assessmentBlueprints.maxQuestions })
-      .from(assessmentBlueprints)
+  async answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ questionVersionId: assessmentItems.questionVersionId })
+      .from(assessmentItems)
+      .innerJoin(assessmentSessions, eq(assessmentSessions.id, assessmentItems.sessionId))
+      .innerJoin(questionAttempts, eq(questionAttempts.assessmentItemId, assessmentItems.id))
       .where(
         and(
-          eq(assessmentBlueprints.examId, examId),
-          eq(assessmentBlueprints.type, "MINI_DIAGNOSTIC"),
-          eq(assessmentBlueprints.status, "ACTIVE"),
+          eq(assessmentSessions.studentId, studentId),
+          eq(assessmentSessions.examId, examId),
+          eq(questionAttempts.resultType, "ANSWERED"),
         ),
-      )
-      .limit(1);
-    return row?.size ?? null;
+      );
+    return rows.map((r) => r.questionVersionId);
   }
 
   async createSession(input: {
     studentId: string;
     examId: string;
     type: SessionType;
+    blueprintId: string | null;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
@@ -209,6 +211,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             studentId: input.studentId,
             examId: input.examId,
             type: input.type,
+            blueprintId: input.blueprintId,
             scoringVersion: input.scoringVersion,
             resultConfigVersion: input.resultConfigVersion,
           })

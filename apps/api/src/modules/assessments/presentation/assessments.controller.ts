@@ -97,6 +97,23 @@ export class AssessmentsController {
     return { ...toSessionView(session), resumed: !created };
   }
 
+  @Post("exams/:examId/assessments/full-diagnostic")
+  @ApiOperation({
+    summary: "Start the paid full diagnostic, or resume the open one (201 new, 200 resumed).",
+  })
+  async startFullDiagnostic(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, created } = await this.assessments.startFullDiagnostic(
+      principal.userId,
+      examId,
+    );
+    reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return { ...toSessionView(session), resumed: !created };
+  }
+
   @Get("assessments/:sessionId")
   async get(@CurrentPrincipal() principal: Principal, @Param("sessionId", uuid) sessionId: string) {
     const { session, progress } = await this.assessments.get(principal.userId, sessionId);

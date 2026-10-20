@@ -23,22 +23,32 @@ import {
   AssessmentNotCompleted,
   AssessmentNotFound,
   ExamNotAvailable,
+  FullDiagnosticAlreadyCompleted,
+  FullDiagnosticRequiresAccess,
   IdempotencyKeyReused,
   InvalidAnswer,
   MiniDiagnosticAlreadyCompleted,
   NoQuestionsAvailable,
 } from "../domain/assessment.errors.js";
 import {
+  FULL_DIAGNOSTIC_DEFAULTS,
   MINI_DIAGNOSTIC_DEFAULTS,
   PRELIMINARY_RESULT_DEFAULTS,
   SCORING_VERSION,
 } from "../domain/assessment-config.js";
+import {
+  type Blueprint,
+  type DiagnosticBlueprintType,
+  effectiveDomainWeights,
+} from "../domain/blueprint.js";
 import { type PlanDomain, planDiagnostic } from "../domain/diagnostic-plan.js";
 import { gradeChoice } from "../domain/grading.js";
 import {
   ASSESSMENT_STORE,
   type AssessmentStore,
   type AttemptOutcome,
+  BLUEPRINT_STORE,
+  type BlueprintStore,
   type EvidenceTarget,
   type Session,
   type SessionHistoryQuery,
@@ -53,6 +63,30 @@ import {
   summarizePreliminaryResult,
   type WeaknessRating,
 } from "../domain/preliminary-result.js";
+
+/** How each diagnostic is planned (PRD §7, OPEN_QUESTIONS.md #9a, #10). */
+interface Diagnostic {
+  type: DiagnosticBlueprintType;
+  defaults: { questionCount: number; targetDifficulty: number };
+  /** The size covers questions already answered: the diagnosis continues, never restarts. */
+  continuesEvidence: boolean;
+  alreadyCompleted: (sessionId: string) => Error;
+}
+
+const DIAGNOSTICS: Record<DiagnosticBlueprintType, Diagnostic> = {
+  MINI_DIAGNOSTIC: {
+    type: "MINI_DIAGNOSTIC",
+    defaults: MINI_DIAGNOSTIC_DEFAULTS,
+    continuesEvidence: false,
+    alreadyCompleted: (sessionId) => new MiniDiagnosticAlreadyCompleted(sessionId),
+  },
+  FULL_DIAGNOSTIC: {
+    type: "FULL_DIAGNOSTIC",
+    defaults: FULL_DIAGNOSTIC_DEFAULTS,
+    continuesEvidence: true,
+    alreadyCompleted: (sessionId) => new FullDiagnosticAlreadyCompleted(sessionId),
+  },
+};
 
 export type SubmitInput =
   | { kind: "ANSWER"; chosenKeys: string[]; responseTimeMs: number | null }
@@ -90,6 +124,7 @@ export interface CurrentItem {
 export class AssessmentsService {
   constructor(
     @Inject(ASSESSMENT_STORE) private readonly store: AssessmentStore,
+    @Inject(BLUEPRINT_STORE) private readonly blueprints: BlueprintStore,
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(QUESTION_READER) private readonly questions: QuestionReader,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
@@ -121,19 +156,59 @@ export class AssessmentsService {
     studentId: string,
     examId: string,
   ): Promise<{ session: Session; created: boolean }> {
-    if ((await this.catalog.examStatus(examId)) !== "ACTIVE") throw new ExamNotAvailable();
+    await this.assertExamActive(examId);
+    return this.openDiagnostic(studentId, examId, DIAGNOSTICS.MINI_DIAGNOSTIC);
+  }
 
-    const previous = await this.store.sessionsFor(studentId, examId, "MINI_DIAGNOSTIC");
+  /**
+   * Starts — or resumes — the paid full diagnostic (PRD §6–§7, OPEN_QUESTIONS.md
+   * #9a). It completes what the student already answered in this exam.
+   */
+  async startFullDiagnostic(
+    studentId: string,
+    examId: string,
+  ): Promise<{ session: Session; created: boolean }> {
+    await this.assertExamActive(examId);
+    if (!(await this.access.hasExamAccess(studentId, examId))) {
+      throw new FullDiagnosticRequiresAccess();
+    }
+    return this.openDiagnostic(studentId, examId, DIAGNOSTICS.FULL_DIAGNOSTIC);
+  }
+
+  private async assertExamActive(examId: string): Promise<void> {
+    if ((await this.catalog.examStatus(examId)) !== "ACTIVE") throw new ExamNotAvailable();
+  }
+
+  /** Resumes the open session of this kind, or plans and creates one. */
+  private async openDiagnostic(
+    studentId: string,
+    examId: string,
+    kind: Diagnostic,
+  ): Promise<{ session: Session; created: boolean }> {
+    const previous = await this.store.sessionsFor(studentId, examId, kind.type);
     const open = previous.find((s) => s.status === "CREATED" || s.status === "IN_PROGRESS");
     if (open) return { session: open, created: false };
     const completed = previous.find((s) => s.status === "COMPLETED");
-    if (completed) throw new MiniDiagnosticAlreadyCompleted(completed.id);
+    if (completed) throw kind.alreadyCompleted(completed.id);
 
     const taxonomy = await this.catalog.publishedTaxonomy(examId);
     if (!taxonomy) throw new ExamNotAvailable();
+    const blueprint = await this.usableBlueprint(examId, kind.type, taxonomy.taxonomyVersionId);
+    const size = blueprint?.questionCount ?? kind.defaults.questionCount;
+    const domainWeights = blueprint
+      ? effectiveDomainWeights(taxonomy.domains, blueprint.domainWeights)
+      : null;
 
-    const size =
-      (await this.store.miniDiagnosticSize(examId)) ?? MINI_DIAGNOSTIC_DEFAULTS.questionCount;
+    // A question mapped to a subskill counts toward that subskill's skill.
+    const skillOfSubskill = new Map<string, string>();
+    for (const domain of taxonomy.domains) {
+      for (const skill of domain.skills) {
+        for (const subskillId of skill.subskillIds) skillOfSubskill.set(subskillId, skill.id);
+      }
+    }
+    const skillOf = (node: { skillId: string | null; subskillId: string | null }) =>
+      node.skillId ?? (node.subskillId ? skillOfSubskill.get(node.subskillId) : undefined);
+
     const asked = new Set(
       (
         await this.questions.questionIdsOf(
@@ -144,28 +219,19 @@ export class AssessmentsService {
     const candidates = (
       await this.questions.publishedCandidates(taxonomy.taxonomyVersionId)
     ).filter((c) => !asked.has(c.questionId));
-
-    // A question mapped to a subskill counts toward that subskill's skill.
-    const skillOfSubskill = new Map<string, string>();
-    for (const domain of taxonomy.domains) {
-      for (const skill of domain.skills) {
-        for (const subskillId of skill.subskillIds) skillOfSubskill.set(subskillId, skill.id);
-      }
-    }
     const bySkill = new Map<string, typeof candidates>();
     for (const candidate of candidates) {
-      const skillId =
-        candidate.primarySkillId ??
-        (candidate.primarySubskillId
-          ? skillOfSubskill.get(candidate.primarySubskillId)
-          : undefined);
+      const skillId = skillOf({
+        skillId: candidate.primarySkillId,
+        subskillId: candidate.primarySubskillId,
+      });
       if (!skillId) continue;
       bySkill.set(skillId, [...(bySkill.get(skillId) ?? []), candidate]);
     }
 
     const domains: PlanDomain[] = taxonomy.domains.map((d) => ({
       id: d.id,
-      weight: d.weight,
+      weight: domainWeights?.get(d.id) ?? d.weight,
       skills: d.skills.map((s) => ({
         id: s.id,
         weight: s.weight,
@@ -175,14 +241,17 @@ export class AssessmentsService {
     const plan = planDiagnostic({
       domains,
       size,
-      targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,
+      targetDifficulty: kind.defaults.targetDifficulty,
       random: Math.random,
+      answered: kind.continuesEvidence
+        ? await this.answeredPerSkill(studentId, examId, skillOf)
+        : undefined,
     });
     if (plan.length === 0) throw new NoQuestionsAvailable();
     if (plan.length < size) {
-      this.logger.warn(
-        { examId, requested: size, planned: plan.length },
-        "Mini diagnostic short of questions",
+      this.logger.info(
+        { examId, type: kind.type, requested: size, planned: plan.length },
+        "Diagnostic planned below its size (questions already answered, or too few published)",
       );
     }
 
@@ -191,11 +260,54 @@ export class AssessmentsService {
     return this.store.createSession({
       studentId,
       examId,
-      type: "MINI_DIAGNOSTIC",
+      type: kind.type,
+      blueprintId: blueprint?.id ?? null,
       scoringVersion: SCORING_VERSION,
       resultConfigVersion: levels.version === 0 ? null : levels.version,
       items: plan.map((p) => ({ questionVersionId: p.questionVersionId })),
     });
+  }
+
+  /**
+   * The exam's active blueprint of this type, unless it is pinned to a
+   * taxonomy version that is no longer the published one: its domain weights
+   * would point at retired nodes, so the defaults apply until an admin
+   * activates a blueprint for the new version.
+   */
+  private async usableBlueprint(
+    examId: string,
+    type: DiagnosticBlueprintType,
+    publishedVersionId: string,
+  ): Promise<Blueprint | null> {
+    const blueprint = await this.blueprints.active(examId, type);
+    if (!blueprint || blueprint.taxonomyVersionId === publishedVersionId) return blueprint;
+    this.logger.warn(
+      { examId, type, blueprintId: blueprint.id },
+      "Active blueprint is pinned to an unpublished taxonomy version; defaults apply",
+    );
+    return null;
+  }
+
+  /** Distinct questions the student answered in this exam, per skill (OPEN_QUESTIONS.md #9a). */
+  private async answeredPerSkill(
+    studentId: string,
+    examId: string,
+    skillOf: (node: { skillId: string | null; subskillId: string | null }) => string | undefined,
+  ): Promise<Map<string, number>> {
+    const versionIds = await this.store.answeredQuestionVersionIds(studentId, examId);
+    const [questionOf, targets] = await Promise.all([
+      this.questions.questionIdsOf(versionIds),
+      this.questions.primaryTargetsOf(versionIds),
+    ]);
+    const perSkill = new Map<string, Set<string>>();
+    for (const versionId of versionIds) {
+      const target = targets.get(versionId);
+      const questionId = questionOf.get(versionId);
+      const skillId = target ? skillOf(target) : undefined;
+      if (!skillId || !questionId) continue;
+      perSkill.set(skillId, (perSkill.get(skillId) ?? new Set()).add(questionId));
+    }
+    return new Map([...perSkill].map(([skillId, questions]) => [skillId, questions.size]));
   }
 
   async get(
