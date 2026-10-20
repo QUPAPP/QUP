@@ -33,7 +33,7 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 | `NODE_ENV` | `production` |
 | `HOST` / `PORT` | `0.0.0.0` / `3000` |
 | `TRUST_PROXY` | `true` (behind CranL's proxy and the web app) |
-| `DATABASE_URL` | set by CranL: connect `qup-db` to the app |
+| `DATABASE_URL` | set by CranL: connect the production database to the app (`qup-db-prod`; still `qup-db` today, see Current state) |
 | `STREAM_API_KEY`, `STREAM_WEBHOOK_SECRET` | from Stream's dashboard — set in CranL, never in the repo |
 | `PAYMENT_SUCCESS_URL`, `PAYMENT_FAILURE_URL` | `https://qupedu.com/payment/return` (both) |
 
@@ -67,23 +67,48 @@ once DNS resolves.
 3. Run one sandbox payment end to end before real money: the Stream adapter has only been tested
    against a local fake of Stream's documented API.
 
-## Current state (2026-10-08)
+## Current state (2026-10-20)
 
 | App | CranL address | Custom domain | State |
 | --- | --- | --- | --- |
 | qup-backend | `qup-backend-ladsbz.cranl.net` | `api.qupedu.com` | running; **cannot reach the database** |
 | qup-web | `qup-web-4kqgra.cranl.net` | `qupedu.com`, `www.qupedu.com` | running; forwards to qup-backend |
 
-Both have automatic rollback on. `qup-web` currently points `API_INTERNAL_URL` at the backend's
+| Database | Internal host | Role | State |
+| --- | --- | --- | --- |
+| qup-db | `qup-db-pws32w` | development + automated tests; `DATABASE_URL` of qup-backend today | running, migrated |
+| qup-db-prod | `qup-db-prod-t7vcqv` | production (real students) | running, **empty, not migrated** |
+
+Both apps have automatic rollback on. `qup-web` currently points `API_INTERNAL_URL` at the backend's
 `cranl.net` address; it can switch to `https://api.qupedu.com` once DNS and SSL are up.
 
-**Open problem — database connectivity.** `qup-backend` gets `qup-db`'s internal URL
-(`qup-db-pws32w:5432`) from CranL, but `/health/ready` reports the database down, immediately,
-even after a full redeploy — the behaviour of a host name that does not resolve. The app and the
-database appear to be on different servers inside `riyadh-1`, and the API offers no way to choose.
-Do **not** work around it with the database's external address: that endpoint has no TLS
+`qup-db-prod` is linked to qup-backend as `PROD_DATABASE_URL`, a test variable no code reads. It
+stays until CranL support answers the problem below, as live evidence for them. A third app named
+`QUP` (`qup-jlcftz.cranl.net`, no domain) has been stuck in "deploying" since 2026-10-08; it is an
+early attempt and serves nothing.
+
+**Open problem — database connectivity (reported to CranL support).** No app can resolve any
+database's internal host name: qup-backend logs `getaddrinfo ENOTFOUND qup-db-pws32w`, and
+`/health/ready` reports the database down. `DATABASE_URL` is correct. Checked on 2026-10-20 from
+inside the running containers:
+
+- qup-backend and qup-web resolve each other's names, `localhost` and `github.com`.
+- Neither resolves `qup-db-pws32w` nor `qup-db-prod-t7vcqv`.
+- `qup-db-prod` was created that day in riyadh-1, so the database's age is not the cause; linking it
+  to qup-backend through CranL and restarting the app did not help either.
+
+The earlier guess, that the app and the database sit on different servers, does not explain a
+brand-new database failing the same way: this is CranL's internal networking, and only CranL can fix
+it. Do **not** work around it with a database's external address: that endpoint has no TLS
 (`ssl = off`), so credentials and student data would cross the public network in clear text.
-Fix it by putting the app and its database on the same server (CranL dashboard or support).
+
+CranL's `run_command` currently returns no output, but its succeeded/failed status follows the
+command's exit code, so `getent hosts <internal host>` works as a yes/no check.
+
+Once CranL fixes it, in order, each step reviewed: confirm `qup-db-prod-t7vcqv` resolves from
+qup-backend; apply migrations to qup-db-prod (`pnpm db:migrate`, then `pnpm db:verify`); point
+`DATABASE_URL` at qup-db-prod and remove `PROD_DATABASE_URL`; check `/health/ready` returns 200;
+create the first administrator (§4).
 
 ## Rules
 
@@ -92,7 +117,8 @@ Fix it by putting the app and its database on the same server (CranL dashboard o
 - **Secrets live in CranL's environment settings**, never in the repository or an image.
 - The deployed app currently uses `qup-db`, the same database the automated tests run against
   (decided 2026-10-07). Tests only create and delete rows under reserved test identifiers, but a
-  separate database for real students is required before public launch.
+  separate database for real students is required before public launch: that is `qup-db-prod`
+  (created 2026-10-20), not used until the connectivity problem above is fixed.
 
 ## Why the Dockerfiles are at the repository root
 
