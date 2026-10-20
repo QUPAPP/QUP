@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin-forms";
 import { ErrorNotice } from "../status";
 import { TextField } from "../text-field";
+import { useSingleFlight } from "./use-single-flight";
 
 export function VersionCreateFormView({
   examId,
@@ -25,7 +26,9 @@ export function VersionCreateFormView({
     defaultValues: { versionCode: "", effectiveFrom: "" },
   });
   const create = useMutation({
-    mutationFn: (values: VersionCreateForm) => createTaxonomyVersion(examId, dropNulls(values)),
+    mutationFn: useSingleFlight((values: VersionCreateForm) =>
+      createTaxonomyVersion(examId, dropNulls(values)),
+    ),
     onSuccess: onCreated,
   });
   const errors = form.formState.errors;

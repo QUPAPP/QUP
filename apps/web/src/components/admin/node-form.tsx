@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   createDomain,
@@ -74,6 +75,8 @@ export function DomainFormView(
   );
   const errors = form.formState.errors;
   const field = { idPrefix: props.idPrefix };
+  // The panel opens below the node's actions; start typing in it right away.
+  useEffect(() => form.setFocus("name"), [form]);
 
   return (
     <form
@@ -148,6 +151,8 @@ export function SkillFormView(
   );
   const errors = form.formState.errors;
   const field = { idPrefix: props.idPrefix };
+  // The panel opens below the node's actions; start typing in it right away.
+  useEffect(() => form.setFocus("name"), [form]);
 
   return (
     <form
@@ -246,6 +251,8 @@ export function SubskillFormView(
   );
   const errors = form.formState.errors;
   const field = { idPrefix: props.idPrefix };
+  // The panel opens below the node's actions; start typing in it right away.
+  useEffect(() => form.setFocus("name"), [form]);
 
   return (
     <form

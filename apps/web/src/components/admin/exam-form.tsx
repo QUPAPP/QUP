@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin-forms";
 import { ErrorNotice } from "../status";
 import { TextField } from "../text-field";
+import { useSingleFlight } from "./use-single-flight";
 
 export function ExamCreateFormView({ onCreated }: { onCreated: (exam: AdminExam) => void }) {
   const form = useForm<ExamCreateFormInput, unknown, ExamCreateForm>({
@@ -22,7 +23,7 @@ export function ExamCreateFormView({ onCreated }: { onCreated: (exam: AdminExam)
     defaultValues: { code: "", slug: "", nameAr: "", nameEn: "", description: "" },
   });
   const create = useMutation({
-    mutationFn: (values: ExamCreateForm) => createExam(dropNulls(values)),
+    mutationFn: useSingleFlight((values: ExamCreateForm) => createExam(dropNulls(values))),
     onSuccess: onCreated,
   });
   const errors = form.formState.errors;
@@ -88,7 +89,7 @@ export function ExamEditFormView({
   });
   // Cleared optional fields are sent as null, which clears them on the server.
   const save = useMutation({
-    mutationFn: (values: ExamEditForm) => updateExam(exam.id, values),
+    mutationFn: useSingleFlight((values: ExamEditForm) => updateExam(exam.id, values)),
     onSuccess: onSaved,
   });
   const errors = form.formState.errors;

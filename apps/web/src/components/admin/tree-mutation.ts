@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { isApiError } from "@/lib/api";
+import { useSingleFlight } from "./use-single-flight";
 
 /**
  * A change to the taxonomy tree. Success hands back to the page, which
@@ -15,7 +16,7 @@ export function useTreeMutation<T>(
   { onDone, onStale }: { onDone: () => void; onStale: () => void },
 ) {
   return useMutation({
-    mutationFn,
+    mutationFn: useSingleFlight(mutationFn),
     onSuccess: onDone,
     onError: (error) => {
       if (isApiError(error, "TAXONOMY_VERSION_NOT_DRAFT")) onStale();

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   archiveNode,
   type DomainNode,
@@ -38,6 +38,17 @@ interface TreeContext extends TreeCallbacks {
  */
 export function TaxonomyTreeView({ tree, editable, onChanged, onStale }: TreeContext) {
   const [adding, setAdding] = useState(false);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  useEffect(() => {
+    if (adding || !returnFocus.current) return;
+    returnFocus.current = false;
+    addButton.current?.focus();
+  }, [adding]);
+  const stopAdding = () => {
+    returnFocus.current = true;
+    setAdding(false);
+  };
   const context = { tree, editable, onChanged, onStale };
 
   return (
@@ -52,7 +63,12 @@ export function TaxonomyTreeView({ tree, editable, onChanged, onStale }: TreeCon
         </ul>
       )}
       {editable && !adding ? (
-        <button type="button" className="btn btn--small" onClick={() => setAdding(true)}>
+        <button
+          ref={addButton}
+          type="button"
+          className="btn btn--small"
+          onClick={() => setAdding(true)}
+        >
           <Icon name="plus" /> إضافة مجال
         </button>
       ) : null}
@@ -62,22 +78,46 @@ export function TaxonomyTreeView({ tree, editable, onChanged, onStale }: TreeCon
           versionId={tree.version.id}
           idPrefix="new-domain"
           onDone={() => {
-            setAdding(false);
+            stopAdding();
             onChanged();
           }}
           onStale={onStale}
-          onCancel={() => setAdding(false)}
+          onCancel={stopAdding}
         />
       ) : null}
     </div>
   );
 }
 
-type Panel = "edit" | "add-child" | "prerequisites" | null;
+type Panel = "edit" | "add-child" | "prerequisites";
+
+/**
+ * Which inline panel a node has open. Closing it — cancel or save — puts
+ * focus back on the button that opened it, so keyboard users keep their place.
+ */
+function usePanel<P extends string>() {
+  const [panel, setPanel] = useState<P | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const returnFocus = useRef(false);
+  useEffect(() => {
+    if (panel !== null || !returnFocus.current) return;
+    returnFocus.current = false;
+    opener.current?.focus();
+  }, [panel]);
+  const close = () => {
+    returnFocus.current = true;
+    setPanel(null);
+  };
+  const toggle = (next: P) => {
+    if (panel === next) return close();
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPanel(next);
+  };
+  return { panel, toggle, close };
+}
 
 function DomainItem({ domain, ...context }: TreeContext & { domain: DomainNode }) {
-  const [panel, setPanel] = useState<Panel>(null);
-  const close = () => setPanel(null);
+  const { panel, toggle, close } = usePanel<Panel>();
   const done = () => {
     close();
     context.onChanged();
@@ -93,21 +133,17 @@ function DomainItem({ domain, ...context }: TreeContext & { domain: DomainNode }
       actions={
         canEdit ? (
           <>
-            <PanelToggle
-              label="تعديل"
-              active={panel === "edit"}
-              onToggle={() => setPanel(panel === "edit" ? null : "edit")}
-            />
+            <PanelToggle label="تعديل" active={panel === "edit"} onToggle={() => toggle("edit")} />
             <PanelToggle
               label="إضافة مهارة"
               active={panel === "add-child"}
-              onToggle={() => setPanel(panel === "add-child" ? null : "add-child")}
+              onToggle={() => toggle("add-child")}
             />
           </>
         ) : null
       }
       panel={
-        panel === "edit" ? (
+        !canEdit ? null : panel === "edit" ? (
           <DomainFormView
             mode="edit"
             node={domain}
@@ -138,8 +174,7 @@ function DomainItem({ domain, ...context }: TreeContext & { domain: DomainNode }
 }
 
 function SkillItem({ skill, ...context }: TreeContext & { skill: SkillNode }) {
-  const [panel, setPanel] = useState<Panel>(null);
-  const close = () => setPanel(null);
+  const { panel, toggle, close } = usePanel<Panel>();
   const done = () => {
     close();
     context.onChanged();
@@ -169,26 +204,22 @@ function SkillItem({ skill, ...context }: TreeContext & { skill: SkillNode }) {
       actions={
         canEdit ? (
           <>
-            <PanelToggle
-              label="تعديل"
-              active={panel === "edit"}
-              onToggle={() => setPanel(panel === "edit" ? null : "edit")}
-            />
+            <PanelToggle label="تعديل" active={panel === "edit"} onToggle={() => toggle("edit")} />
             <PanelToggle
               label="إضافة مهارة فرعية"
               active={panel === "add-child"}
-              onToggle={() => setPanel(panel === "add-child" ? null : "add-child")}
+              onToggle={() => toggle("add-child")}
             />
             <PanelToggle
               label="المتطلبات السابقة"
               active={panel === "prerequisites"}
-              onToggle={() => setPanel(panel === "prerequisites" ? null : "prerequisites")}
+              onToggle={() => toggle("prerequisites")}
             />
           </>
         ) : null
       }
       panel={
-        panel === "edit" ? (
+        !canEdit ? null : panel === "edit" ? (
           <SkillFormView
             mode="edit"
             node={skill}
@@ -229,7 +260,8 @@ function SkillItem({ skill, ...context }: TreeContext & { skill: SkillNode }) {
 }
 
 function SubskillItem({ subskill, ...context }: TreeContext & { subskill: SubskillNode }) {
-  const [editing, setEditing] = useState(false);
+  const { panel, toggle, close } = usePanel<"edit">();
+  const editing = panel === "edit";
   const canEdit = context.editable && subskill.status !== "ARCHIVED";
 
   return (
@@ -240,21 +272,21 @@ function SubskillItem({ subskill, ...context }: TreeContext & { subskill: Subski
       meta={[`حد الإتقان ${thresholdText(subskill.masteryThreshold)}`, `الوزن ${subskill.weight}`]}
       actions={
         canEdit ? (
-          <PanelToggle label="تعديل" active={editing} onToggle={() => setEditing(!editing)} />
+          <PanelToggle label="تعديل" active={editing} onToggle={() => toggle("edit")} />
         ) : null
       }
       panel={
-        editing ? (
+        canEdit && editing ? (
           <SubskillFormView
             mode="edit"
             node={subskill}
             idPrefix={`${subskill.id}-edit`}
             onDone={() => {
-              setEditing(false);
+              close();
               context.onChanged();
             }}
             onStale={context.onStale}
-            onCancel={() => setEditing(false)}
+            onCancel={close}
           />
         ) : null
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   addPrerequisite,
@@ -60,6 +61,9 @@ export function PrerequisitePanel({
     (prerequisiteSkillId: string) => removePrerequisite(skill.id, prerequisiteSkillId),
     { onDone, onStale },
   );
+  useEffect(() => {
+    if (candidates.length > 0) form.setFocus("prerequisiteSkillId");
+  }, [form, candidates.length]);
   const selectId = `${idPrefix}-prerequisite`;
   const selectError = form.formState.errors.prerequisiteSkillId?.message;
 

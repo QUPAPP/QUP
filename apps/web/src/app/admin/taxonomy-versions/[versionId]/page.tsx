@@ -31,16 +31,21 @@ function VersionAdmin({ userId, versionId }: { userId: string; versionId: string
   const examId = tree.data?.version.examId;
   const exam = exams.data?.items.find((item) => item.id === examId);
 
-  const refresh = () => {
+  const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: treeKey });
     if (examId) {
       void queryClient.invalidateQueries({ queryKey: ["admin-versions", userId, examId] });
     }
   };
   const publish = useTreeMutation(() => publishTaxonomyVersion(versionId), {
-    onDone: refresh,
-    onStale: refresh,
+    onDone: invalidate,
+    onStale: invalidate,
   });
+  // A change to the tree answers an earlier "cannot publish yet".
+  const refresh = () => {
+    publish.reset();
+    invalidate();
+  };
 
   if (tree.isPending) {
     return (

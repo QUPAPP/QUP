@@ -7,6 +7,7 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { ExamEditFormView } from "@/components/admin/exam-form";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { useSingleFlight } from "@/components/admin/use-single-flight";
 import { VersionCreateFormView } from "@/components/admin/version-form";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
@@ -99,7 +100,7 @@ function ExamDetails({ userId, exam }: { userId: string; exam: AdminExam }) {
     queryFn: () => listTaxonomyVersions(exam.id),
   });
   const changeStatus = useMutation({
-    mutationFn: (status: ExamStatus) => updateExam(exam.id, { status }),
+    mutationFn: useSingleFlight((status: ExamStatus) => updateExam(exam.id, { status })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: examsKey }),
   });
 

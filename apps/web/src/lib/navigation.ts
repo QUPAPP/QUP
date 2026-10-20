@@ -11,5 +11,7 @@ export function isAdminPath(path: string): boolean {
 
 export function isActivePath(path: string, href: string): boolean {
   if (href === "/dashboard") return path === href || path.startsWith("/assessments/");
+  // A taxonomy version is reached from its exam; it belongs to the same item.
+  if (href === "/admin/exams" && path.startsWith("/admin/taxonomy-versions/")) return true;
   return path === href || path.startsWith(`${href}/`);
 }

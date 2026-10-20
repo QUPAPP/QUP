@@ -42,4 +42,8 @@ describe("admin navigation", () => {
   it("keeps the admin panel out of the student workspace", () => {
     expect(isWorkspacePath("/admin")).toBe(false);
   });
+  it("keeps a taxonomy version under the exams and taxonomy item", () => {
+    expect(isActivePath("/admin/taxonomy-versions/version-id", "/admin/exams")).toBe(true);
+    expect(isActivePath("/admin/taxonomy-versions/version-id", "/dashboard")).toBe(false);
+  });
 });
