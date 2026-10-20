@@ -23,6 +23,10 @@ const ONE_MEBIBYTE = 1_048_576;
 /** 90 days. Longer-lived sessions widen the window for a stolen cookie. */
 const MAX_SESSION_TTL_HOURS = 2_160;
 const ONE_DAY_IN_MINUTES = 1_440;
+/** Below this an AI call cannot answer at all; above it an author gives up waiting. */
+const MIN_AI_TIMEOUT_MS = 100;
+const MAX_AI_TIMEOUT_MS = 120_000;
+const MAX_AI_ATTEMPTS = 5;
 
 /** Empty strings in a .env file mean "not set". */
 const optionalSecret = z
@@ -72,6 +76,8 @@ const envSchema = z.object({
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(300),
   /** Per-IP budget per minute for credential endpoints (login, register). */
   AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(10),
+  /** Per-IP budget per minute for AI assistance calls, which cost money once a real provider runs. */
+  AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(20),
 
   /**
    * Stream (streampay.sa). Leave both unset to run without online payment:
@@ -88,6 +94,22 @@ const envSchema = z.object({
 
   /** Private directory for uploaded import files (V1 storage adapter). Relative to the working directory. */
   IMPORT_STORAGE_DIR: z.string().min(1).default("var/imports"),
+
+  /**
+   * AI assistance for authors (AI_INTEGRATION.md). `fake` is the deterministic
+   * test provider; real providers wait for OPEN_QUESTIONS.md #17. Defaults to
+   * `fake` outside production and `disabled` in production.
+   */
+  AI_PROVIDER: z.enum(["fake", "disabled"]).optional(),
+  /** Per attempt; the attempt is aborted when it runs out. */
+  AI_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(MIN_AI_TIMEOUT_MS)
+    .max(MAX_AI_TIMEOUT_MS)
+    .default(15_000),
+  /** Attempts for output that is not valid JSON, breaks the schema or fails its check. */
+  AI_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(MAX_AI_ATTEMPTS).default(2),
 });
 
 /** Checks that span several variables. Messages name variables, never values. */
@@ -99,6 +121,10 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   // The API key travels on every request to this URL: plain HTTP is for local fakes only.
   if (env.NODE_ENV === "production" && !env.STREAM_API_BASE_URL.startsWith("https://")) {
     problems.push("STREAM_API_BASE_URL: must use https in production");
+  }
+  // Canned suggestions would reach real authors as if a model wrote them.
+  if (env.NODE_ENV === "production" && env.AI_PROVIDER === "fake") {
+    problems.push("AI_PROVIDER: the fake provider is for development and tests only");
   }
   return problems;
 }
@@ -136,6 +162,7 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
     rateLimit: {
       perMinute: env.RATE_LIMIT_PER_MINUTE,
       authPerMinute: env.AUTH_RATE_LIMIT_PER_MINUTE,
+      aiPerMinute: env.AI_RATE_LIMIT_PER_MINUTE,
     },
     payments: {
       stream:
@@ -152,6 +179,15 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
     },
     imports: {
       storageDir: env.IMPORT_STORAGE_DIR,
+    },
+    ai: {
+      /** null: AI is off and its routes answer AI_UNAVAILABLE. */
+      provider:
+        (env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "disabled" : "fake")) === "fake"
+          ? ("fake" as const)
+          : null,
+      timeoutMs: env.AI_TIMEOUT_MS,
+      maxAttempts: env.AI_MAX_ATTEMPTS,
     },
   } as const;
 }

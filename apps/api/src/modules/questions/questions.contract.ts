@@ -3,6 +3,7 @@ import type {
   DraftContent,
   MappingRole,
   QuestionType,
+  QuestionVersionStatus,
   RichContent,
 } from "./domain/question-content.js";
 
@@ -62,10 +63,21 @@ export interface QuestionReader {
 
 export const QUESTION_READER = Symbol("QUESTION_READER");
 
+/** A version as plain text with its answer key, for AI assistance to its author (C3). */
+export interface AssistedVersion {
+  id: string;
+  status: QuestionVersionStatus;
+  taxonomyVersionId: string;
+  /** Text and math sources in order; no markup. */
+  stem: string;
+  options: { key: string; text: string; isCorrect: boolean }[];
+}
+
 /**
  * Writing questions from outside the editor (content import, A3): the same
  * content rules and the same draft path an author goes through, so imported
  * content enters review like any other draft and is never published by itself.
+ * Also the author's view of one version for AI assistance (C3).
  */
 export interface QuestionAuthor {
   /** What review would refuse in this complete question (answer key, mappings, structure). */
@@ -77,9 +89,15 @@ export interface QuestionAuthor {
   ): Promise<{ questionId: string; versionId: string }>;
   /** Stem text of every version of the exam's questions that are not archived (duplicate checks). */
   stemTextsInExam(examId: string): Promise<{ questionId: string; text: string }[]>;
+  /** The version in any status, or null when it does not exist. Includes the answer key: server only. */
+  assistedVersion(versionId: string): Promise<AssistedVersion | null>;
 }
 
 export const QUESTION_AUTHOR = Symbol("QUESTION_AUTHOR");
 
-export type { DraftContent, RichContent } from "./domain/question-content.js";
+export type {
+  DraftContent,
+  QuestionVersionStatus,
+  RichContent,
+} from "./domain/question-content.js";
 export { DEFAULT_ATTRIBUTION_WEIGHT } from "./domain/question-content.js";

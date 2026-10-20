@@ -67,4 +67,33 @@ describe("configuration", () => {
         .apiDocs.enabled,
     ).toBe(true);
   });
+
+  it("uses the test AI provider outside production and none in production", () => {
+    expect(loadConfig({ DATABASE_URL: VALID_URL }).ai).toEqual({
+      provider: "fake",
+      timeoutMs: 15_000,
+      maxAttempts: 2,
+    });
+    expect(loadConfig({ DATABASE_URL: VALID_URL }).rateLimit.aiPerMinute).toBe(20);
+    expect(loadConfig({ DATABASE_URL: VALID_URL, NODE_ENV: "production" }).ai.provider).toBeNull();
+    expect(loadConfig({ DATABASE_URL: VALID_URL, AI_PROVIDER: "disabled" }).ai.provider).toBeNull();
+  });
+
+  it("refuses the test AI provider in production (OPEN_QUESTIONS #17)", () => {
+    const error = loadExpectingFailure({
+      DATABASE_URL: VALID_URL,
+      NODE_ENV: "production",
+      AI_PROVIDER: "fake",
+    });
+    expect(error.problems).toEqual([expect.stringContaining("AI_PROVIDER")]);
+  });
+
+  it("bounds the AI timeout and attempts", () => {
+    expect(
+      loadExpectingFailure({ DATABASE_URL: VALID_URL, AI_MAX_ATTEMPTS: "0" }).problems,
+    ).toEqual([expect.stringContaining("AI_MAX_ATTEMPTS")]);
+    expect(loadExpectingFailure({ DATABASE_URL: VALID_URL, AI_TIMEOUT_MS: "5" }).problems).toEqual([
+      expect.stringContaining("AI_TIMEOUT_MS"),
+    ]);
+  });
 });

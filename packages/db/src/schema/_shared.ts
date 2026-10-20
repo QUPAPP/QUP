@@ -210,3 +210,15 @@ export const settingValueTypeEnum = pgEnum("setting_value_type", [
   "BOOLEAN",
   "JSON",
 ]);
+
+/* -------------------------------------------------------------------------- */
+/* AI                                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** How one AI run ended (AI_INTEGRATION.md "Fallback"); mirrors @qup/ai-gateway. */
+export const aiRunStatusEnum = pgEnum("ai_run_status", [
+  "SUCCEEDED",
+  "INVALID_OUTPUT",
+  "TIMED_OUT",
+  "FAILED",
+]);

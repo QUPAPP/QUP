@@ -58,6 +58,7 @@ export async function deleteE2eUsers(): Promise<void> {
       SELECT id::text FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)})`;
   await e2eSql`DELETE FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)}`;
   await e2eSql`DELETE FROM learning_events WHERE student_id IN ${e2eSql(ids)}`;
+  await e2eSql`DELETE FROM ai_runs WHERE requested_by IN ${e2eSql(ids)}`;
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;
     await tx`DELETE FROM audit_logs WHERE resource_type = 'user' AND resource_id IN ${tx(ids)}`;
@@ -179,6 +180,9 @@ export async function purgeE2eCatalog(): Promise<void> {
         await tx`
           DELETE FROM question_skill_mappings WHERE question_version_id IN ${tx(questionVersionIds)}`;
         await tx`DELETE FROM audit_logs WHERE resource_id IN ${tx([...questionVersionIds, ...questionIds])}`;
+        await tx`
+          DELETE FROM ai_runs
+          WHERE subject_type = 'question_version' AND subject_id IN ${tx(questionVersionIds)}`;
         await tx`DELETE FROM question_versions WHERE id IN ${tx(questionVersionIds)}`;
         await tx`DELETE FROM questions WHERE id IN ${tx(questionIds)}`;
       }

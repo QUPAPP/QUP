@@ -79,12 +79,15 @@ only**, and its output always lands in a DRAFT that a person reviews.
     `{ draft: { explanation } }`.
   - `GET /admin/ai/runs?limit&offset` (`ai.manage`) → recent runs and 24-hour counts by status.
 - Errors:
-  - `503 AI_UNAVAILABLE` when disabled;
-  - `502 AI_OUTPUT_INVALID` after the attempts are spent;
-  - `504 AI_TIMEOUT`;
-  - `404 QUESTION_VERSION_NOT_FOUND`.
-  Each refused or failed run is still recorded.
-- Rate limit: 20 AI calls per minute per IP on these routes, for cost control.
+  - `503 AI_UNAVAILABLE` when disabled or the provider failed;
+  - `503 AI_OUTPUT_INVALID` after the attempts are spent;
+  - `503 AI_TIMEOUT`;
+  - `404 QUESTION_VERSION_NOT_FOUND`, `409 AI_REQUIRES_DRAFT`, `422 AI_NO_SKILLS`.
+
+  The domain has no gateway-error kind, so all three AI failures share the UNAVAILABLE kind and
+  differ by code (a ruling made during implementation). Each run that reached the provider is
+  recorded, whatever its outcome.
+- Rate limit: 20 AI calls per minute per IP, one budget shared by both routes, for cost control.
 - Nothing is applied by the server. A suggestion is advice; the author applies it in the editor and
   saves, then the version goes through review as before.
 

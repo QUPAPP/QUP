@@ -618,6 +618,39 @@ into `learning_events` (payload schema `1`, ids only): `assessment.session.creat
 `assessment.attempt.recorded`, `assessment.session.completed`, `mastery.reassessment.recorded`,
 `import.drafts.created`.
 
+## AI Assistance
+
+Implemented in C3 (AI_INTEGRATION.md; assumptions in OPEN_QUESTIONS.md #19a). Advisory only: the
+server never writes a suggestion into a question. The author applies it in the editor and saves,
+and the version goes through review as usual.
+
+```text
+GET  /admin/ai/status                                        questions.create
+POST /admin/question-versions/:id/ai/metadata-suggestion     questions.create
+POST /admin/question-versions/:id/ai/explanation-draft       questions.create
+GET  /admin/ai/runs?limit&offset                             ai.manage
+```
+
+- `status`: `{ enabled, provider: "fake" | null, tasks: ["suggest_question_metadata",
+  "draft_explanation"] | [] }`.
+- `metadata-suggestion` reads the version's **saved** content: `{ suggestion: { skillId | null,
+  subskillId | null, nodeName, difficulty: 0.25 | 0.5 | 0.75, rationale } }`. The node is always an
+  active node of the version's taxonomy.
+- `explanation-draft`: `{ draft: { explanation } }`. The model must restate the saved answer key, so
+  a draft that explains a different answer is never returned.
+- `runs`: newest first, `{ items: [{ id, task, promptVersion, schemaVersion, provider, model,
+  status, attempts, latencyMs, inputTokens, outputTokens, errorCode, requestedBy: { id, email,
+  displayName } | null, subjectType, subjectId, createdAt }], last24h: { SUCCEEDED, INVALID_OUTPUT,
+  TIMED_OUT, FAILED }, page }`. Outputs and prompts are never listed.
+- Errors:
+  - `404 QUESTION_VERSION_NOT_FOUND`; `409 AI_REQUIRES_DRAFT`; `422 AI_NO_SKILLS`.
+  - `503 AI_UNAVAILABLE` when AI is off or the provider failed.
+  - `503 AI_OUTPUT_INVALID` when every attempt broke the schema or the grounding check.
+  - `503 AI_TIMEOUT`.
+
+  Every run that reached the provider is recorded in `ai_runs`, whatever its outcome.
+- Rate limit: `AI_RATE_LIMIT_PER_MINUTE` (20) per IP across both POST routes, then `429`.
+
 ## Internal Application Services
 
 داخل monolith لا تستخدم HTTP-to-self.

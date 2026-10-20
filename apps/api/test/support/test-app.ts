@@ -53,19 +53,28 @@ export interface TestApp {
 }
 
 export async function buildTestApp(
-  options: { databaseHealth?: DatabaseHealth; controllers?: Type[]; config?: AppConfig } = {},
+  options: {
+    databaseHealth?: DatabaseHealth;
+    controllers?: Type[];
+    config?: AppConfig;
+    /** Providers replaced by test doubles, e.g. a scripted AI provider. */
+    overrides?: { provide: string | symbol | Type; useValue: unknown }[];
+  } = {},
 ): Promise<TestApp> {
   const config = options.config ?? testConfig();
   const logs = new LogCapture();
   const healthy: DatabaseHealth = { ping: async () => {} };
 
-  const moduleRef = await Test.createTestingModule({
+  let builder = Test.createTestingModule({
     imports: [AppModule.forRoot(config, { logDestination: logs })],
     controllers: options.controllers ?? [],
   })
     .overrideProvider(DATABASE_HEALTH)
-    .useValue(options.databaseHealth ?? healthy)
-    .compile();
+    .useValue(options.databaseHealth ?? healthy);
+  for (const { provide, useValue } of options.overrides ?? []) {
+    builder = builder.overrideProvider(provide).useValue(useValue);
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(createAdapter(config), {
     bufferLogs: true,

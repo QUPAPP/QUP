@@ -8,6 +8,7 @@
 
 export * from "./_shared.js";
 export * from "./adaptive.js";
+export * from "./ai.js";
 export * from "./assessment.js";
 export * from "./billing.js";
 export * from "./identity.js";
