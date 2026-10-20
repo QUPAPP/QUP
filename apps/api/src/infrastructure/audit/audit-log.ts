@@ -27,6 +27,7 @@ export const AuditAction = {
   EntitlementRevoked: "entitlement.revoke",
   PaymentSettled: "payment.settle",
   PaymentRefunded: "payment.refund",
+  SettingUpdated: "settings.update",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

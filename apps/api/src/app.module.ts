@@ -16,6 +16,7 @@ import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { QuestionsModule } from "./modules/questions/questions.module.js";
 import { PermissionsGuard } from "./modules/rbac/require-permissions.js";
+import { SettingsModule } from "./modules/settings/settings.module.js";
 
 export interface AppModuleOptions {
   /** Log sink override, used by tests to capture output. Defaults to stdout. */
@@ -38,6 +39,7 @@ export class AppModule {
         QuestionsModule,
         BillingModule,
         HealthModule,
+        SettingsModule,
       ],
       // Global guards run in this order. Rate limiting comes first so that
       // rejected credentials still consume budget; authentication precedes

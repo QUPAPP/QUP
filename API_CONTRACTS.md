@@ -167,6 +167,27 @@ Permission `questions.create`: authors choose a taxonomy and map skills without
   [{ id, code, name, subskills: [{ id, code, name }] }] }] }`: ACTIVE nodes only, in display
   order. Unknown version: `404 TAXONOMY_VERSION_NOT_FOUND`.
 
+## Settings
+
+```text
+GET /admin/settings
+GET /admin/settings/:key/versions
+PUT /admin/settings/:key
+```
+
+Permission `settings.manage` (ADMIN only, migration 0011). Typed, versioned settings stored in
+`system_settings`: a save adds the next version, nothing is overwritten, and version 0 is the code
+default.
+- Items are `{ key, description, valueType, version, value, updatedAt, updatedBy }`; `versions` is
+  newest first and ends with version 0 (`updatedAt: null`).
+- `PUT` takes `{ expectedVersion, value }`. A stale `expectedVersion` is
+  `409 SETTING_VERSION_CONFLICT`; a value breaking the key's rules is `422 SETTING_VALUE_INVALID`
+  with `details`; an unknown key is `404 SETTING_NOT_FOUND`. Each save is audited
+  (`settings.update`).
+- V1 key `assessment.preliminaryResult.levels`: the five levels `NEEDS_FOUNDATION`, `BEGINNER`,
+  `INTERMEDIATE`, `GOOD`, `ADVANCED` in that order, each `{ level, fromPercentage }` with an integer
+  0–100, the first 0, strictly increasing (OPEN_QUESTIONS.md #10b/#10c).
+
 ## Imports
 
 ```text
