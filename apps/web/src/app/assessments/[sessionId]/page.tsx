@@ -8,15 +8,10 @@ import { useEffect } from "react";
 import { AssessmentQuestions } from "@/components/assessment-questions";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getSession, startSession } from "@/lib/api";
-import {
-  COMPLETION_LABELS,
-  completionHref,
-  DIAGNOSTIC_TITLES,
-  isDiagnostic,
-} from "@/lib/diagnostics";
+import { COMPLETION_LABELS, completionHref, isRunnable, SESSION_TITLES } from "@/lib/diagnostics";
 import { useRequireUser } from "@/lib/session";
 
-/** Resumes a mini or full diagnostic at its next unanswered item. */
+/** Resumes a diagnostic or a training session at its next unanswered item. */
 export default function AssessmentPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -25,7 +20,7 @@ export default function AssessmentPage() {
     queryKey: ["resume-session", user?.id, sessionId],
     queryFn: async () => {
       const stored = await getSession(sessionId);
-      return stored.status === "CREATED" && isDiagnostic(stored.type)
+      return stored.status === "CREATED" && isRunnable(stored.type)
         ? startSession(sessionId)
         : stored;
     },
@@ -34,7 +29,7 @@ export default function AssessmentPage() {
   });
 
   const data = session.data;
-  const type = data && isDiagnostic(data.type) ? data.type : null;
+  const type = data && isRunnable(data.type) ? data.type : null;
   const finishedHref =
     data && type && data.status === "COMPLETED"
       ? completionHref({ id: data.id, examId: data.examId, type })
@@ -46,7 +41,7 @@ export default function AssessmentPage() {
 
   return (
     <main id="main-content" className="page page--focused stack stack--loose">
-      <h1>{type ? DIAGNOSTIC_TITLES[type] : "التشخيص"}</h1>
+      <h1>{type ? SESSION_TITLES[type] : "جلستك"}</h1>
       <p className="muted small">
         خذ وقتك في القراءة. كل إجابة تؤكدها تُحفظ، ويمكنك العودة لإكمال جلستك لاحقًا.
       </p>
@@ -60,6 +55,7 @@ export default function AssessmentPage() {
             href: completionHref({ id: data.id, examId: data.examId, type }),
             label: COMPLETION_LABELS[type],
           }}
+          endLabel={type === "ADAPTIVE_TRAINING" ? "إنهاء التدريب" : undefined}
         />
       ) : data && !finishedHref ? (
         <p className="notice">هذه الجلسة غير متاحة للاستكمال.</p>

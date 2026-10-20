@@ -7,22 +7,28 @@ import { useEffect, useMemo, useState } from "react";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
 import {
+  type AnswerReview,
   type CurrentItem,
+  completeSession,
   getCurrentItem,
   type SubmitResult,
   skipItem,
   submitAnswer,
 } from "@/lib/api";
+import { correctOptions } from "@/lib/diagnostics";
 
 const PERCENT = 100;
 
 export function AssessmentQuestions({
   sessionId,
   completion,
+  endLabel,
 }: {
   sessionId: string;
   /** Where the student goes once every item is finalized, and the button that says so. */
   completion: { href: string; label: string };
+  /** Training: the student may stop at any time with a button saying this. */
+  endLabel?: string;
 }) {
   const completedHref = completion.href;
   const router = useRouter();
@@ -32,7 +38,7 @@ export function AssessmentQuestions({
 
   const item = current.data?.item ?? null;
   useEffect(() => {
-    // Nothing left to answer: the diagnostic is complete.
+    // Nothing left to answer: the session is complete.
     if (current.data && current.data.item === null) {
       router.replace(completedHref);
     }
@@ -43,17 +49,50 @@ export function AssessmentQuestions({
   if (!item) return <Loading label="جارٍ حساب نتيجتك…" />;
 
   return (
-    <Question
-      // A new question starts from a clean slate: no selection, no feedback.
-      key={item.id}
-      sessionId={sessionId}
-      item={item}
-      progress={current.data.progress}
-      completedLabel={completion.label}
-      onNext={(completed) =>
-        completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
-      }
-    />
+    <>
+      <Question
+        // A new question starts from a clean slate: no selection, no feedback.
+        key={item.id}
+        sessionId={sessionId}
+        item={item}
+        progress={current.data.progress}
+        completedLabel={completion.label}
+        onNext={(completed) =>
+          completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
+        }
+      />
+      {endLabel ? <EndSession sessionId={sessionId} label={endLabel} href={completedHref} /> : null}
+    </>
+  );
+}
+
+/** Training: stop now. Answers already given keep their evidence; an unanswered one gives none. */
+function EndSession({
+  sessionId,
+  label,
+  href,
+}: {
+  sessionId: string;
+  label: string;
+  href: string;
+}) {
+  const router = useRouter();
+  const end = useMutation({
+    mutationFn: () => completeSession(sessionId),
+    onSuccess: () => router.replace(href),
+  });
+  return (
+    <div className="question-end">
+      {end.isError ? <ErrorNotice error={end.error} /> : null}
+      <button
+        type="button"
+        className="btn btn--ghost btn--small"
+        disabled={end.isPending}
+        onClick={() => end.mutate()}
+      >
+        {end.isPending ? "جارٍ الإنهاء…" : label}
+      </button>
+    </div>
   );
 }
 
@@ -96,12 +135,12 @@ function Question({ sessionId, item, progress, completedLabel, onNext }: Questio
           <p className="small muted" id="question-heading">
             السؤال <strong>{position}</strong> من {progress.total}
           </p>
-          <span>خطوة نحو فهم مستواك</span>
+          <span>{item.target ? `تدريب على: ${item.target.skillName}` : "خطوة نحو فهم مستواك"}</span>
         </div>
         <div
           className="progress"
           role="progressbar"
-          aria-label="التقدم في التشخيص"
+          aria-label="التقدم في الجلسة"
           aria-valuemin={0}
           aria-valuemax={progress.total}
           aria-valuenow={progress.answered}
@@ -139,6 +178,7 @@ function Question({ sessionId, item, progress, completedLabel, onNext }: Questio
 
       {submit.isError ? <ErrorNotice error={submit.error} /> : null}
       {outcome ? <Feedback isCorrect={outcome.result.isCorrect} /> : null}
+      {outcome?.review ? <Review options={item.question.options} review={outcome.review} /> : null}
 
       <div className="question-footer">
         {outcome ? (
@@ -187,5 +227,47 @@ function Feedback({ isCorrect }: { isCorrect: boolean | null }) {
     <p className={`notice ${isCorrect ? "notice--success" : "notice--error"}`} role="status">
       {isCorrect ? "إجابة صحيحة" : "إجابة غير صحيحة"}
     </p>
+  );
+}
+
+/**
+ * Training only, after the answer is stored (ADAPTIVE_ENGINE.md §20
+ * remediation): the correct option and the explanation. Diagnostics never
+ * receive a review from the API.
+ */
+function Review({
+  options,
+  review,
+}: {
+  options: NonNullable<CurrentItem["item"]>["question"]["options"];
+  review: AnswerReview;
+}) {
+  const correct = correctOptions(options, review.correctOptionKeys);
+  return (
+    <section className="review stack" aria-label="مراجعة السؤال">
+      <p className="small">
+        <strong>{correct.length > 1 ? "الإجابات الصحيحة" : "الإجابة الصحيحة"}</strong>
+      </p>
+      <ul className="list">
+        {correct.map((option) => (
+          <li key={option.key} className="list__item list__item--strength">
+            <span>
+              <RichContent content={option.content} />
+            </span>
+            <span className="option-key" dir="ltr">
+              {option.key}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {review.explanation ? (
+        <div className="stack">
+          <p className="small">
+            <strong>الشرح</strong>
+          </p>
+          <RichContent content={review.explanation} />
+        </div>
+      ) : null}
+    </section>
   );
 }

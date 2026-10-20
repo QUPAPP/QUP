@@ -103,6 +103,14 @@ function Profile({ profile }: { profile: SkillProfile }) {
         </EmptyState>
       ) : null}
 
+      {summary.assessed > 0 ? (
+        <p>
+          <Link href={`/exams/${profile.exam.id}/training`} className="btn">
+            {profile.gaps.length > 0 ? "تدرّب على فجواتك" : "ابدأ التدريب"} <Icon name="arrow" />
+          </Link>
+        </p>
+      ) : null}
+
       {profile.gaps.length > 0 ? (
         <section className="card stack" aria-labelledby="gaps-heading">
           <h2 id="gaps-heading">الفجوات حسب الأولوية</h2>

@@ -136,6 +136,8 @@ export interface CurrentItem {
   item: {
     id: string;
     ordinal: number;
+    /** Training: the skill this question was chosen for. */
+    target?: { skillName: string };
     question: {
       questionType: "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "TRUE_FALSE";
       stem: RichContent;
@@ -149,6 +151,13 @@ export interface SubmitResult {
   result: { isCorrect: boolean | null };
   progress: { answered: number; total: number };
   next: { type: "QUESTION" | "COMPLETED" };
+  /** Training only, after the answer is stored. */
+  review?: AnswerReview;
+}
+
+export interface AnswerReview {
+  correctOptionKeys: string[];
+  explanation: RichContent | null;
 }
 
 interface Labelled {
@@ -263,6 +272,13 @@ export const startMiniDiagnostic = (examId: string) =>
 
 export const startFullDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/full-diagnostic`, { method: "POST" });
+
+export const startTraining = (examId: string) =>
+  api<AssessmentSession>(`/exams/${examId}/assessments/training`, { method: "POST" });
+
+/** Ends a training session early; a diagnostic only once every item is answered. */
+export const completeSession = (sessionId: string) =>
+  api<AssessmentSession>(`/assessments/${sessionId}/complete`, { method: "POST" });
 
 export const getSession = (sessionId: string) =>
   api<AssessmentSession>(`/assessments/${sessionId}`);
