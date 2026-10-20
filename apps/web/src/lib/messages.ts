@@ -68,6 +68,18 @@ const BY_CODE: Record<string, string> = {
   BLUEPRINT_WEIGHTS_EMPTY: "يلزم وزن أكبر من صفر لمجال واحد على الأقل.",
   BLUEPRINT_TAXONOMY_NOT_PUBLISHED:
     "نُشرت نسخة تصنيف أحدث بعد كتابة هذا النموذج. أنشئ نموذجًا جديدًا مرتبطًا بالنسخة المنشورة.",
+  // Admin: imports.
+  IMPORT_FILE_TYPE_UNSUPPORTED: "نوع الملف غير مدعوم. ارفع ملف CSV أو TSV أو JSON أو Excel (xlsx).",
+  IMPORT_FILE_TOO_LARGE: "الملف أكبر من 2 ميجابايت. قسّمه إلى ملفات أصغر.",
+  IMPORT_FILE_INVALID:
+    "تعذّرت قراءة الملف: تأكد أنه بالصيغة الصحيحة وبترميز UTF-8، وأن صفوفه لا تتجاوز الحدود.",
+  IMPORT_NOT_FOUND: "لم نجد هذا الملف.",
+  IMPORT_ITEM_NOT_FOUND: "لم نجد هذا الصف.",
+  IMPORT_MAPPING_INVALID:
+    "ربط الأعمدة لا يناسب الملف: اختر نص السؤال والإجابة الصحيحة والمهارة وخيارين على الأقل.",
+  IMPORT_ALREADY_IMPORTED: "أُنشئت مسودات من هذا الملف، فلا يُعاد فحصه. ارفع نسخة جديدة منه.",
+  IMPORT_NOT_PROCESSED: "اربط الأعمدة وافحص الصفوف أولًا.",
+  IMPORT_ITEM_NOT_RESOLVABLE: "لا يمكن تنفيذ هذا الإجراء على الصف في حالته الحالية.",
   // Admin: settings.
   SETTING_NOT_FOUND: "لم نجد هذا الإعداد.",
   SETTING_VALUE_INVALID:

@@ -2343,3 +2343,16 @@
     font-size: 0.95rem;
   }
 }
+
+/* Question import rows (A3). */
+@layer components {
+  :where(.import-row) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  :where(.import-row__errors) {
+    margin: 0.25rem 0 0;
+    padding-inline-start: 1.1rem;
+    color: var(--color-danger);
+  }
+}

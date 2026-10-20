@@ -46,10 +46,14 @@ describe("permissions", () => {
     expect(adminNavItems(admin).map((item) => item.href)).toEqual([
       "/admin/exams",
       "/admin/questions",
+      "/admin/imports",
       "/admin/settings",
     ]);
     // Taxonomy management stays admin-only (OPEN_QUESTIONS.md #16a).
-    expect(adminNavItems(contentManager).map((item) => item.href)).toEqual(["/admin/questions"]);
+    expect(adminNavItems(contentManager).map((item) => item.href)).toEqual([
+      "/admin/questions",
+      "/admin/imports",
+    ]);
     expect(adminNavItems(null)).toEqual([]);
   });
 

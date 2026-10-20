@@ -45,6 +45,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     permission: ADMIN_PERMISSIONS.questionsCreate,
   },
   {
+    href: "/admin/imports",
+    title: "استيراد الأسئلة",
+    icon: "plus",
+    permission: ADMIN_PERMISSIONS.questionsCreate,
+  },
+  {
     href: "/admin/settings",
     title: "الإعدادات",
     icon: "compass",
