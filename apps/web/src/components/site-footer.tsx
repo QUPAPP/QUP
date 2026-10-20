@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isWorkspacePath } from "@/lib/navigation";
+import { isAdminPath, isWorkspacePath } from "@/lib/navigation";
 import { Brand } from "./brand";
 
 export function SiteFooter() {
   const path = usePathname();
-  if (isWorkspacePath(path) || path === "/login" || path === "/register") return null;
+  if (isWorkspacePath(path) || isAdminPath(path) || path === "/login" || path === "/register")
+    return null;
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">

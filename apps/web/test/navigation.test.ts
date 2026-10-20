@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isActivePath, isWorkspacePath } from "../src/lib/navigation";
+import { isActivePath, isAdminPath, isWorkspacePath } from "../src/lib/navigation";
 
 describe("student navigation", () => {
   it.each([
@@ -26,5 +26,20 @@ describe("student navigation", () => {
   it("uses complete path boundaries for the active item", () => {
     expect(isActivePath("/exams/exam-id/diagnostic", "/exams")).toBe(true);
     expect(isActivePath("/exams-other", "/exams")).toBe(false);
+  });
+});
+
+describe("admin navigation", () => {
+  it.each(["/admin", "/admin/exams", "/admin/exams/exam-id"])(
+    "treats %s as an admin path",
+    (path) => {
+      expect(isAdminPath(path)).toBe(true);
+    },
+  );
+  it("uses a complete path boundary", () => {
+    expect(isAdminPath("/administrator")).toBe(false);
+  });
+  it("keeps the admin panel out of the student workspace", () => {
+    expect(isWorkspacePath("/admin")).toBe(false);
   });
 });

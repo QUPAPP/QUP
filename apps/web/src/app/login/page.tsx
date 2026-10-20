@@ -11,7 +11,7 @@ import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { login } from "@/lib/api";
 import { type LoginForm, loginForm } from "@/lib/auth-forms";
-import { ME_QUERY_KEY } from "@/lib/session";
+import { startSession } from "@/lib/session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,9 +23,8 @@ export default function LoginPage() {
 
   const signIn = useMutation({
     mutationFn: login,
-    onSuccess: ({ user }) => {
-      queryClient.clear();
-      queryClient.setQueryData(ME_QUERY_KEY, user);
+    onSuccess: async () => {
+      await startSession(queryClient);
       router.replace("/dashboard");
     },
   });

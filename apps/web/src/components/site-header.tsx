@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isWorkspacePath } from "@/lib/navigation";
+import { isAdminPath, isWorkspacePath } from "@/lib/navigation";
 import { useCurrentUser } from "@/lib/session";
 import { Brand } from "./brand";
 import { Icon } from "./icon";
@@ -10,7 +10,7 @@ import { Icon } from "./icon";
 export function SiteHeader() {
   const { data: user } = useCurrentUser();
   const path = usePathname();
-  if (isWorkspacePath(path)) return null;
+  if (isWorkspacePath(path) || isAdminPath(path)) return null;
   return (
     <header className="site-header">
       <div className="site-header__inner">

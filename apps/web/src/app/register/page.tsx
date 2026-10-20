@@ -11,7 +11,7 @@ import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { register as registerAccount } from "@/lib/api";
 import { type RegisterForm, type RegisterFormInput, registerForm } from "@/lib/auth-forms";
-import { ME_QUERY_KEY } from "@/lib/session";
+import { startSession } from "@/lib/session";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,9 +30,8 @@ export default function RegisterPage() {
         ...(values.phone ? { phone: values.phone } : {}),
         ...(values.displayName ? { displayName: values.displayName } : {}),
       }),
-    onSuccess: ({ user }) => {
-      queryClient.clear();
-      queryClient.setQueryData(ME_QUERY_KEY, user);
+    onSuccess: async () => {
+      await startSession(queryClient);
       router.replace("/exams");
     },
   });

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { isActivePath, isWorkspacePath } from "@/lib/navigation";
-import { useCurrentUser } from "@/lib/session";
+import { hasAdminAccess } from "@/lib/permissions";
+import { useMe } from "@/lib/session";
 import { Brand } from "./brand";
 import { Icon, type IconName } from "./icon";
 import { SignOutButton } from "./sign-out-button";
@@ -18,7 +19,8 @@ const links: { href: string; title: string; icon: IconName }[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const { data: user } = useCurrentUser();
+  const { data: me } = useMe();
+  const user = me?.user;
   if (!isWorkspacePath(path)) return children;
   const current = links.find((link) => isActivePath(path, link.href));
   return (
@@ -39,6 +41,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Icon name="chevron" className="nav-chevron" />
             </Link>
           ))}
+          {hasAdminAccess(me) ? (
+            <Link href="/admin/exams" className="sidebar-link">
+              <Icon name="lock" />
+              <span>لوحة الإدارة</span>
+              <Icon name="chevron" className="nav-chevron" />
+            </Link>
+          ) : null}
         </nav>
         <div className="sidebar-note">
           <Icon name="compass" />
@@ -79,6 +88,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               {link.title}
             </Link>
           ))}
+          {hasAdminAccess(me) ? (
+            <Link href="/admin/exams">
+              <Icon name="lock" />
+              الإدارة
+            </Link>
+          ) : null}
         </nav>
         <div className="workspace-content">{children}</div>
         <footer className="workspace-footer">
