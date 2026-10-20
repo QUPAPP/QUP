@@ -18,6 +18,8 @@ export interface Session {
   startedAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
+  /** Level-boundary setting version this session is scored with; null = the code default. */
+  resultConfigVersion: number | null;
 }
 
 export interface SessionProgress {
@@ -131,6 +133,7 @@ export interface AssessmentStore {
     examId: string;
     type: SessionType;
     scoringVersion: string;
+    resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
   }): Promise<{ session: Session; created: boolean }>;
   /** CREATED → IN_PROGRESS; no-op when already in progress. */

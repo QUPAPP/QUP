@@ -13,6 +13,11 @@ import {
   type QuestionReader,
 } from "../../questions/questions.contract.js";
 import {
+  PRELIMINARY_LEVELS_KEY,
+  SETTINGS_READER,
+  type SettingsReader,
+} from "../../settings/settings.contract.js";
+import {
   AssessmentItemNotFound,
   AssessmentNotActive,
   AssessmentNotCompleted,
@@ -88,6 +93,7 @@ export class AssessmentsService {
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(QUESTION_READER) private readonly questions: QuestionReader,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
+    @Inject(SETTINGS_READER) private readonly settings: SettingsReader,
     @InjectPinoLogger(AssessmentsService.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -180,11 +186,14 @@ export class AssessmentsService {
       );
     }
 
+    // The result is scored with the boundaries in effect now, even if an admin changes them later.
+    const levels = await this.settings.current(PRELIMINARY_LEVELS_KEY);
     return this.store.createSession({
       studentId,
       examId,
       type: "MINI_DIAGNOSTIC",
       scoringVersion: SCORING_VERSION,
+      resultConfigVersion: levels.version === 0 ? null : levels.version,
       items: plan.map((p) => ({ questionVersionId: p.questionVersionId })),
     });
   }
@@ -330,7 +339,14 @@ export class AssessmentsService {
       return { skillId: skill.id, outcome: outcomeOf(item) };
     });
 
-    const summary = summarizePreliminaryResult(measured, PRELIMINARY_RESULT_DEFAULTS);
+    const levels = await this.settings.atVersion(
+      PRELIMINARY_LEVELS_KEY,
+      session.resultConfigVersion,
+    );
+    const summary = summarizePreliminaryResult(measured, {
+      ...PRELIMINARY_RESULT_DEFAULTS,
+      levels,
+    });
     const named = <R>(entry: { skillId: string; rating: R }) => {
       const skillName = skillNames.get(entry.skillId);
       if (skillName === undefined) throw new Error(`Skill ${entry.skillId} was not measured.`);

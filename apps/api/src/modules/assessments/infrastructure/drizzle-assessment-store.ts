@@ -40,6 +40,7 @@ const sessionColumns = {
   startedAt: assessmentSessions.startedAt,
   completedAt: assessmentSessions.completedAt,
   createdAt: assessmentSessions.createdAt,
+  resultConfigVersion: assessmentSessions.resultConfigVersion,
 };
 
 const attemptColumns = {
@@ -197,6 +198,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     examId: string;
     type: SessionType;
     scoringVersion: string;
+    resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
   }): Promise<{ session: Session; created: boolean }> {
     try {
@@ -208,6 +210,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             examId: input.examId,
             type: input.type,
             scoringVersion: input.scoringVersion,
+            resultConfigVersion: input.resultConfigVersion,
           })
           .returning(sessionColumns);
         if (!created) throw new Error("Session insert returned no row.");

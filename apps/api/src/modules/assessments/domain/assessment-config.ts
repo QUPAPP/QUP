@@ -3,6 +3,7 @@
  * the scoring version it ran under.
  */
 
+import { DEFAULT_PRELIMINARY_LEVELS } from "../../settings/settings.contract.js";
 import type { PreliminaryResultConfig } from "./preliminary-result.js";
 
 export const SCORING_VERSION = "scoring-v1";
@@ -26,13 +27,8 @@ export const MINI_DIAGNOSTIC_DEFAULTS = Object.freeze({
  * later without touching the logic.
  */
 export const PRELIMINARY_RESULT_DEFAULTS: PreliminaryResultConfig = Object.freeze({
-  levels: Object.freeze([
-    { level: "NEEDS_FOUNDATION", fromPercentage: 0 },
-    { level: "BEGINNER", fromPercentage: 40 },
-    { level: "INTERMEDIATE", fromPercentage: 55 },
-    { level: "GOOD", fromPercentage: 70 },
-    { level: "ADVANCED", fromPercentage: 85 },
-  ] as const),
+  // The boundaries are an admin setting (settings module, C1); this is its version-0 default.
+  levels: DEFAULT_PRELIMINARY_LEVELS,
   skillRatings: Object.freeze({ veryGoodFromAccuracy: 0.85, goodFromAccuracy: 0.7 }),
   maxStrengths: 2,
   maxWeaknesses: 3,

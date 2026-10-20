@@ -634,6 +634,49 @@ describe("the preliminary result", () => {
     for (const skillId of exam.skillIds) expect(response.payload).not.toContain(skillId);
   });
 
+  it("keeps a finished session's level when the boundaries change later", async () => {
+    const KEY = "assessment.preliminaryResult.levels";
+    const exam = await liveExam(1, { skillsPerDomain: 4 });
+    const threeOfEight = (ordinal: number) =>
+      ordinal <= 3 ? "CORRECT" : ordinal <= 7 ? "WRONG" : ("SKIP" as const);
+    const levelOf = async (token: string, sessionId: string) =>
+      (await call(token, "GET", `/assessments/${sessionId}/result`)).json<{
+        level: { code: string };
+      }>().level.code;
+
+    const first = await startedSession(studentA, exam.examId);
+    await finish(studentA, first, threeOfEight); // 38%
+    const before = await levelOf(studentA, first);
+
+    // An admin lowers BEGINNER to 30%: 38% is now BEGINNER for new sessions.
+    const { version: startVersion } = await one(
+      e2eSql<{ version: number }[]>`
+        SELECT coalesce(max(version), 0)::int AS version FROM system_settings WHERE key = ${KEY}`,
+    );
+    const lowered = [0, 30, 55, 70, 85].map((fromPercentage, index) => ({
+      level: ["NEEDS_FOUNDATION", "BEGINNER", "INTERMEDIATE", "GOOD", "ADVANCED"][index],
+      fromPercentage,
+    }));
+    await e2eSql`
+      INSERT INTO system_settings (key, value_type, value, version, description)
+      VALUES (${KEY}, 'JSON', ${e2eSql.json(lowered)}, ${startVersion + 1}, 'e2e')`;
+    try {
+      expect(before).toBe("NEEDS_FOUNDATION");
+      expect(await levelOf(studentA, first)).toBe(before);
+
+      const second = await startedSession(studentB, exam.examId);
+      const { result_config_version } = await one(
+        e2eSql<{ result_config_version: number | null }[]>`
+          SELECT result_config_version FROM assessment_sessions WHERE id = ${second}`,
+      );
+      expect(result_config_version).toBe(startVersion + 1);
+      await finish(studentB, second, threeOfEight);
+      expect(await levelOf(studentB, second)).toBe("BEGINNER");
+    } finally {
+      await e2eSql`DELETE FROM system_settings WHERE key = ${KEY} AND version > ${startVersion}`;
+    }
+  });
+
   it("reports a question mapped to a subskill under its parent skill", async () => {
     const exam = await liveExam(2, { viaSubskills: true });
     const sessionId = await startedSession(studentA, exam.examId);

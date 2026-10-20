@@ -7,7 +7,10 @@
 import type { SettingKey, SettingValue } from "./domain/setting-definitions.js";
 
 export type { PreliminaryLevelsValue, SettingKey } from "./domain/setting-definitions.js";
-export { PRELIMINARY_LEVELS_KEY } from "./domain/setting-definitions.js";
+export {
+  DEFAULT_PRELIMINARY_LEVELS,
+  PRELIMINARY_LEVELS_KEY,
+} from "./domain/setting-definitions.js";
 
 export interface SettingsReader {
   /** The setting in effect now; version 0 means the code default. */

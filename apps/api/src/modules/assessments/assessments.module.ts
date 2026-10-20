@@ -4,6 +4,7 @@ import { BillingModule } from "../billing/billing.module.js";
 import { CatalogModule } from "../catalog/catalog.module.js";
 import { MasteryModule } from "../mastery/mastery.module.js";
 import { QuestionsModule } from "../questions/questions.module.js";
+import { SettingsModule } from "../settings/settings.module.js";
 import { AssessmentsService } from "./application/assessments.service.js";
 import { ASSESSMENT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
@@ -15,7 +16,7 @@ import { AssessmentsController } from "./presentation/assessments.controller.js"
  * writes mastery through the mastery module's writer, in its own transaction.
  */
 @Module({
-  imports: [CatalogModule, QuestionsModule, MasteryModule, BillingModule],
+  imports: [CatalogModule, QuestionsModule, MasteryModule, BillingModule, SettingsModule],
   controllers: [AssessmentsController],
   providers: [AssessmentsService, { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore }],
 })
