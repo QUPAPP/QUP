@@ -51,6 +51,12 @@ const BY_CODE: Record<string, string> = {
   QUESTION_ARCHIVED: "هذا السؤال مؤرشف، فلا يمكن تعديله أو نشره.",
   QUESTION_CONTENT_INVALID: "السؤال لا يستوفي شروط هذا الإجراء بعد:",
   TAXONOMY_NOT_PUBLISHED: "لا يُنشر السؤال قبل نشر نسخة التصنيف المرتبط بها.",
+  // Admin: settings.
+  SETTING_NOT_FOUND: "لم نجد هذا الإعداد.",
+  SETTING_VALUE_INVALID:
+    "القيم لا تستوفي شروط هذا الإعداد: يبدأ أدنى مستوى من 0، وتزيد الحدود من مستوى إلى الذي يليه.",
+  SETTING_VERSION_CONFLICT:
+    "حفظ شخص آخر نسخة أحدث من هذا الإعداد قبل لحظات. حدّثنا القيم المعروضة؛ راجعها ثم احفظ من جديد.",
 };
 
 const FALLBACK = "حدث خطأ غير متوقع. حاول مرة أخرى.";

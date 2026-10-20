@@ -14,7 +14,12 @@ const account = (permissions: string[]): Me => ({
   permissions,
 });
 
-const admin = account(["taxonomy.manage", "questions.create", "questions.publish"]);
+const admin = account([
+  "taxonomy.manage",
+  "questions.create",
+  "questions.publish",
+  "settings.manage",
+]);
 const student = account([]);
 const contentManager = account(["questions.create", "questions.review"]);
 
@@ -41,6 +46,7 @@ describe("permissions", () => {
     expect(adminNavItems(admin).map((item) => item.href)).toEqual([
       "/admin/exams",
       "/admin/questions",
+      "/admin/settings",
     ]);
     // Taxonomy management stays admin-only (OPEN_QUESTIONS.md #16a).
     expect(adminNavItems(contentManager).map((item) => item.href)).toEqual(["/admin/questions"]);

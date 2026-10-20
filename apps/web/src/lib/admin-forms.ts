@@ -47,7 +47,7 @@ const ARABIC_INDIC_ZERO = 0x0660;
 const EXTENDED_ARABIC_INDIC_ZERO = 0x06f0;
 
 /** Admins type in an Arabic interface: ٨٥٫٥ and ۸۵٫۵ both mean 85.5. */
-function normalizeDigits(raw: string): string {
+export function normalizeDigits(raw: string): string {
   return raw
     .trim()
     .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - ARABIC_INDIC_ZERO))

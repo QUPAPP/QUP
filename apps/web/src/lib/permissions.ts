@@ -12,6 +12,7 @@ export const ADMIN_PERMISSIONS = {
   questionsCreate: "questions.create",
   questionsReview: "questions.review",
   questionsPublish: "questions.publish",
+  settingsManage: "settings.manage",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -41,6 +42,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     title: "بنك الأسئلة",
     icon: "grid",
     permission: ADMIN_PERMISSIONS.questionsCreate,
+  },
+  {
+    href: "/admin/settings",
+    title: "الإعدادات",
+    icon: "compass",
+    permission: ADMIN_PERMISSIONS.settingsManage,
   },
 ];
 
