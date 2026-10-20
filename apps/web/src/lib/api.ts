@@ -189,6 +189,47 @@ export interface ExamAccess {
   activeUntil: string | null;
 }
 
+export type MasteryState =
+  | "UNASSESSED"
+  | "UNCERTAIN"
+  | "GAP"
+  | "DEVELOPING"
+  | "READY_FOR_REASSESSMENT"
+  | "MASTERED";
+
+export interface ProfileNode {
+  id: string;
+  name: string;
+  state: MasteryState;
+  /** Null until measured: the API never reports the prior as a level. */
+  mastery: number | null;
+  coverage: number;
+  evidenceCount: number;
+}
+
+export interface SkillProfile {
+  exam: { id: string; nameAr: string };
+  summary: {
+    skills: number;
+    assessed: number;
+    gaps: number;
+    readyForReassessment: number;
+    mastered: number;
+  };
+  domains: {
+    id: string;
+    name: string;
+    skills: (ProfileNode & { gapSeverity: number | null; subskills: ProfileNode[] })[];
+  }[];
+  gaps: {
+    skillId: string;
+    skillName: string;
+    domainName: string;
+    state: MasteryState;
+    severity: number;
+  }[];
+}
+
 /* --------------------------------- calls ---------------------------------- */
 
 export const getMe = () => api<Me>("/auth/me");
@@ -261,3 +302,6 @@ export const getPayment = (paymentId: string) => api<Payment>(`/payments/${payme
 export const getExamAccess = (examId: string) => api<ExamAccess>(`/exams/${examId}/my-access`);
 
 export const revokeOtherSessions = () => api<void>("/auth/sessions/revoke", { method: "POST" });
+
+export const getSkillProfile = (examId: string) =>
+  api<SkillProfile>(`/exams/${examId}/skill-profile`);

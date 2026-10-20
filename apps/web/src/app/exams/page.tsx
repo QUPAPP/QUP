@@ -68,6 +68,9 @@ export default function ExamsPage() {
                   ابدأ التشخيص <Icon name="arrow" />
                 </Link>
               </div>
+              <Link href={`/exams/${exam.id}/profile`} className="text-link">
+                ملف مهاراتي <Icon name="chevron" />
+              </Link>
             </div>
           </li>
         ))}

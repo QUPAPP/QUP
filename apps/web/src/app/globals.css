@@ -2203,3 +2203,98 @@
     padding: 0;
   }
 }
+
+/* Student skill profile (B1). */
+@layer components {
+  :where(.profile-summary) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    gap: 0.75rem;
+  }
+  :where(.profile-summary li) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-white);
+  }
+  :where(.profile-summary strong) {
+    font-size: 1.4rem;
+  }
+  :where(.profile-skills, .profile-subskills) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  :where(.profile-subskills) {
+    margin-top: 0.6rem;
+    padding-inline-start: 1.25rem;
+    border-inline-start: 2px solid var(--color-border);
+  }
+  :where(.profile-node) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  :where(.profile-node__head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+    overflow-wrap: anywhere;
+  }
+  :where(.profile-node__bar) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  :where(.profile-bar) {
+    flex: 1;
+    max-width: 16rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+  :where(.profile-bar span) {
+    display: block;
+    width: calc(var(--share, 0) * 100%);
+    height: 100%;
+    background: var(--color-blue);
+    border-radius: inherit;
+  }
+  :where(.mastery-badge) {
+    display: inline-flex;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+  :where(.mastery-badge--gap) {
+    background: var(--color-danger-surface);
+    color: var(--color-danger);
+  }
+  :where(.mastery-badge--developing, .mastery-badge--uncertain) {
+    background: var(--color-warning-surface);
+    color: var(--color-text);
+  }
+  :where(.mastery-badge--ready_for_reassessment) {
+    background: var(--color-blue-surface);
+    color: var(--color-blue);
+  }
+  :where(.mastery-badge--mastered) {
+    background: var(--color-success-surface);
+    color: var(--color-success);
+  }
+}
