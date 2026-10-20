@@ -116,6 +116,35 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     );
   }
 
+  async activityOf(studentId: string) {
+    const [exams, open, completed] = await Promise.all([
+      this.db
+        .selectDistinct({ examId: assessmentSessions.examId })
+        .from(assessmentSessions)
+        .where(eq(assessmentSessions.studentId, studentId)),
+      this.db
+        .select(sessionColumns)
+        .from(assessmentSessions)
+        .where(
+          and(
+            eq(assessmentSessions.studentId, studentId),
+            inArray(assessmentSessions.status, ["CREATED", "IN_PROGRESS"]),
+          ),
+        )
+        .orderBy(desc(assessmentSessions.createdAt)),
+      this.db
+        .selectDistinct({ examId: assessmentSessions.examId, type: assessmentSessions.type })
+        .from(assessmentSessions)
+        .where(
+          and(
+            eq(assessmentSessions.studentId, studentId),
+            eq(assessmentSessions.status, "COMPLETED"),
+          ),
+        ),
+    ]);
+    return { examIds: new Set(exams.map((row) => row.examId)), open, completed };
+  }
+
   async findSession(sessionId: string): Promise<Session | null> {
     const [row] = await this.db
       .select(sessionColumns)

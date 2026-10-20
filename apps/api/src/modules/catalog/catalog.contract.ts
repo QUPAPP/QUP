@@ -83,6 +83,8 @@ export interface CatalogLookup {
   authoringTaxonomies(): Promise<AuthoringExam[]>;
   /** The version's active domains, skills and subskills, or null when it does not exist. */
   activeOutline(taxonomyVersionId: string): Promise<TaxonomyOutline | null>;
+  /** Exams students can take right now (ACTIVE), by code. */
+  activeExams(): Promise<{ id: string; code: string; nameAr: string }[]>;
   /** Names for historical sessions, including exams no longer on sale. */
   examNames(examIds: readonly string[]): Promise<Map<string, string>>;
   /** The exam's status, or null when it does not exist. */

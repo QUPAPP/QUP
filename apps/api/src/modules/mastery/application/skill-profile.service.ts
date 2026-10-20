@@ -18,11 +18,12 @@ import {
   type StoredNodeState,
 } from "../infrastructure/drizzle-mastery-reader.js";
 import { DrizzleReassessmentStore } from "../infrastructure/drizzle-reassessment-store.js";
-import type {
-  SkillStanding,
-  SkillStandingReader,
-  StandingNode,
-  StandingSkill,
+import {
+  type SkillStanding,
+  type SkillStandingReader,
+  type StandingNode,
+  type StandingSkill,
+  standingSummary,
 } from "../mastery.contract.js";
 
 /** The same config the writer computes with (mastery-writer.ts). */
@@ -152,22 +153,21 @@ export class SkillProfileService implements SkillStandingReader {
       }),
     }));
 
-    const allSkills = domains.flatMap((domain) => domain.skills);
-    const count = (state: MasteryState) =>
-      allSkills.filter((skill) => skill.state === state).length;
     const examName = (await this.catalog.examNames([examId])).get(examId) ?? "";
     return {
       exam: { id: examId, nameAr: examName },
-      summary: {
-        skills: allSkills.length,
-        assessed: allSkills.length - count("UNASSESSED"),
-        gaps: gaps.length,
-        readyForReassessment: count("READY_FOR_REASSESSMENT"),
-        mastered: count("MASTERED"),
-      },
+      summary: standingSummary(standing.domains.flatMap((domain) => domain.skills)),
       domains,
       gaps: rankGaps(gaps).map(({ order: _order, ...gap }) => gap),
     };
+  }
+
+  recentChanges(
+    studentId: string,
+    nodes: { skillIds: readonly string[]; subskillIds: readonly string[] },
+    since: Date,
+  ) {
+    return this.reader.recentChanges(studentId, nodes, since);
   }
 
   async standing(studentId: string, examId: string): Promise<SkillStanding | null> {

@@ -30,6 +30,14 @@ export const FULL_DIAGNOSTIC_DEFAULTS = Object.freeze({
   targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,
 });
 
+/** OPEN_QUESTIONS.md #12f (assumed): what the student dashboard shows per exam. */
+export const DASHBOARD_DEFAULTS = Object.freeze({
+  improvementWindowDays: 7,
+  strengths: 2,
+  gaps: 3,
+  improvements: 3,
+});
+
 /** OPEN_QUESTIONS.md #12d (assumed): a training session is 10 questions, chosen one at a time. */
 export const TRAINING_DEFAULTS = Object.freeze({ questionCount: 10 });
 

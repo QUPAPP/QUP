@@ -437,13 +437,35 @@ one at a time; every other session route applies (`/assessments/:id`, `start`, `
 ## Mastery/Dashboard
 
 ```text
-GET /me/exams/:examId/skill-profile
-GET /me/exams/:examId/gaps
-GET /me/exams/:examId/progress-history
-GET /me/exams/:examId/recommendation
+GET /me/dashboard                                   (implemented, B5)
 ```
 
-لا تعرض alpha/beta للطالب.
+The skill profile is `GET /exams/:examId/skill-profile` (above); gaps, recommendation and recent
+progress are served together by the dashboard. لا تعرض alpha/beta للطالب.
+
+`GET /me/dashboard` — one card per ACTIVE exam the student has a session in or access to, by code:
+
+```json
+{ "exams": [{
+  "exam": { "id": "…", "nameAr": "القدرات العامة" },
+  "hasAccess": true,
+  "nextStep": { "type": "REASSESS", "skillId": "…", "skillName": "…" },
+  "standing": {
+    "summary": { "skills": 6, "assessed": 4, "gaps": 2, "readyForReassessment": 1, "mastered": 1 },
+    "strengths": [{ "skillName": "…", "state": "MASTERED", "mastery": 0.91 }],
+    "gaps": [{ "skillName": "…", "severity": 0.35 }],
+    "improvements": [{ "nodeName": "…", "before": 0.42, "after": 0.58 }]
+  }
+}] }
+```
+
+- `nextStep.type`, first match (OPEN_QUESTIONS.md #12f): `RESUME_SESSION { sessionId, sessionType }`
+  for any unfinished session → without access `START_MINI_DIAGNOSTIC` / `SUBSCRIBE` →
+  `START_FULL_DIAGNOSTIC` → `REASSESS { skillId, skillName }` → `TRAIN { skillName | null }` →
+  `ALL_MASTERED`.
+- `standing` is `null` without access (PRD §7). Strengths: up to 2 measured non-gap skills, mastered
+  first; gaps: up to 3 by severity; improvements: up to 3 nodes whose mastery rose most over the last
+  7 days (first `before`, last `after` of their evidence).
 
 ## Reassessment
 

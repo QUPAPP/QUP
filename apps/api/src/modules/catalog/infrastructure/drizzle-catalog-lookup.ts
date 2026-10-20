@@ -229,6 +229,14 @@ export class DrizzleCatalogLookup implements CatalogLookup {
     return new Map(rows.map((row) => [row.id, row.name]));
   }
 
+  activeExams() {
+    return this.db
+      .select({ id: exams.id, code: exams.code, nameAr: exams.nameAr })
+      .from(exams)
+      .where(eq(exams.status, "ACTIVE"))
+      .orderBy(asc(exams.code));
+  }
+
   async examStatus(examId: string) {
     const [row] = await this.db
       .select({ status: exams.status })

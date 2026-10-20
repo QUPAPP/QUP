@@ -8,11 +8,13 @@ import { QuestionsModule } from "../questions/questions.module.js";
 import { SettingsModule } from "../settings/settings.module.js";
 import { AssessmentsService } from "./application/assessments.service.js";
 import { BlueprintsService } from "./application/blueprints.service.js";
+import { StudentDashboardService } from "./application/student-dashboard.service.js";
 import { ASSESSMENT_STORE, BLUEPRINT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
 import { DrizzleBlueprintStore } from "./infrastructure/drizzle-blueprint-store.js";
 import { AdminBlueprintsController } from "./presentation/admin-blueprints.controller.js";
 import { AssessmentsController } from "./presentation/assessments.controller.js";
+import { MeController } from "./presentation/me.controller.js";
 
 /**
  * Assessment sessions, items and attempts (DOMAIN_MODEL.md §2 "Assessment").
@@ -28,10 +30,11 @@ import { AssessmentsController } from "./presentation/assessments.controller.js"
     SettingsModule,
     AdaptiveModule,
   ],
-  controllers: [AssessmentsController, AdminBlueprintsController],
+  controllers: [AssessmentsController, AdminBlueprintsController, MeController],
   providers: [
     AssessmentsService,
     BlueprintsService,
+    StudentDashboardService,
     { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore },
     { provide: BLUEPRINT_STORE, useClass: DrizzleBlueprintStore },
   ],

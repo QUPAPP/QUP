@@ -39,6 +39,29 @@ export interface SkillStanding {
 export interface SkillStandingReader {
   /** Null when the exam has no published taxonomy. */
   standing(studentId: string, examId: string): Promise<SkillStanding | null>;
+  /**
+   * How the student's mastery moved on these nodes since `since`: per node with
+   * evidence, its mastery before the first and after the last of it.
+   */
+  recentChanges(
+    studentId: string,
+    nodes: { skillIds: readonly string[]; subskillIds: readonly string[] },
+    since: Date,
+  ): Promise<
+    { skillId: string | null; subskillId: string | null; before: number; after: number }[]
+  >;
+}
+
+/** Counts the profile and the dashboard both show (PRD §6). */
+export function standingSummary(skills: readonly StandingNode[]) {
+  const count = (state: MasteryState) => skills.filter((skill) => skill.state === state).length;
+  return {
+    skills: skills.length,
+    assessed: skills.length - count("UNASSESSED"),
+    gaps: skills.filter((skill) => skill.gapSeverity !== null).length,
+    readyForReassessment: count("READY_FOR_REASSESSMENT"),
+    mastered: count("MASTERED"),
+  };
 }
 
 export const SKILL_STANDING_READER = Symbol("SKILL_STANDING_READER");

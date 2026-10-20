@@ -124,6 +124,15 @@ export interface AssessmentStore {
     query: SessionHistoryQuery,
   ): Promise<{ items: SessionHistoryEntry[]; hasMore: boolean }>;
   findSession(sessionId: string): Promise<Session | null>;
+  /**
+   * What the student has done, across exams: the exams they have any session
+   * in, their unfinished sessions, and which session types they completed where.
+   */
+  activityOf(studentId: string): Promise<{
+    examIds: Set<string>;
+    open: Session[];
+    completed: { examId: string; type: SessionType }[];
+  }>;
   /** Newest first. */
   sessionsFor(studentId: string, examId: string, type: SessionType): Promise<Session[]>;
   /** Items in order, each with its attempt if finalized. */
