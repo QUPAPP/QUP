@@ -22,6 +22,22 @@ const BY_CODE: Record<string, string> = {
   PAYMENTS_NOT_CONFIGURED: "الدفع الإلكتروني غير متاح حاليًا. حاول لاحقًا.",
   PAYMENT_PROVIDER_UNAVAILABLE: "تعذّر الاتصال بخدمة الدفع. لم يُخصم منك شيء؛ حاول مرة أخرى.",
   SERVICE_UNAVAILABLE: "الخدمة غير متاحة مؤقتًا. حاول بعد قليل.",
+  FORBIDDEN: "ليس لديك صلاحية لهذا الإجراء.",
+  // Admin: exams and taxonomy.
+  EXAM_NOT_FOUND: "لم نجد هذا الاختبار.",
+  EXAM_IDENTIFIER_TAKEN: "رمز الاختبار أو رابطه مستخدم من قبل. اختر غيره.",
+  INVALID_EXAM_TRANSITION: "لا يمكن نقل الاختبار إلى هذه الحالة من حالته الحالية.",
+  EXAM_HAS_NO_PUBLISHED_TAXONOMY: "لا يمكن تفعيل الاختبار قبل نشر نسخة من تصنيفه.",
+  TAXONOMY_VERSION_NOT_FOUND: "لم نجد نسخة التصنيف هذه.",
+  TAXONOMY_VERSION_CODE_TAKEN: "رمز النسخة مستخدم من قبل لهذا الاختبار.",
+  TAXONOMY_VERSION_NOT_DRAFT:
+    "هذه النسخة لم تعد مسودة، فلا يمكن تعديلها. أي تغيير يكون في نسخة جديدة.",
+  TAXONOMY_NODE_NOT_FOUND: "لم نجد هذا العنصر في التصنيف. ربما حُذف أو تغيّر.",
+  TAXONOMY_CODE_TAKEN: "هذا الرمز مستخدم من قبل تحت نفس العنصر. اختر رمزًا آخر.",
+  PREREQUISITE_CYCLE: "لا يمكن إضافة هذا المتطلب: سيجعل المهارات تعتمد على بعضها في حلقة.",
+  PREREQUISITE_OUTSIDE_VERSION: "المتطلب يجب أن يكون مهارة من نفس نسخة التصنيف.",
+  TAXONOMY_INCOMPLETE: "لا يمكن النشر: يلزم مجال نشط واحد على الأقل، وفي كل مجال مهارة نشطة.",
+  TAXONOMY_PUBLISH_CONFLICT: "نُشرت نسخة أخرى في نفس الوقت. حدّث الصفحة وحاول مرة أخرى.",
 };
 
 const FALLBACK = "حدث خطأ غير متوقع. حاول مرة أخرى.";
