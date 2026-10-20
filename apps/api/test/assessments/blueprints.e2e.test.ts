@@ -221,6 +221,21 @@ describe("blueprint management", () => {
     ]);
   });
 
+  it("leaves exactly one active blueprint when two drafts are activated at once", async () => {
+    const other = await seedExam();
+    const drafts = await Promise.all(
+      [1, 2, 3].map(async () => (await create(other.id)).json<BlueprintBody>().id),
+    );
+    const responses = await Promise.all(
+      drafts.map((id) => call(admin, "POST", `/admin/blueprints/${id}/activate`)),
+    );
+    expect(responses.map((r) => r.statusCode)).toEqual([200, 200, 200]);
+    const [row] = await e2eSql<{ active: number }[]>`
+      SELECT count(*)::int AS active FROM assessment_blueprints
+      WHERE exam_id = ${other.id} AND status = 'ACTIVE'`;
+    expect(row?.active).toBe(1);
+  });
+
   it("keeps an active or archived blueprint read-only", async () => {
     const { id } = (await create(exam.id)).json<BlueprintBody>();
     await call(admin, "POST", `/admin/blueprints/${id}/activate`);
