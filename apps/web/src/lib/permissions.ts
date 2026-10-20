@@ -14,6 +14,7 @@ export const ADMIN_PERMISSIONS = {
   questionsPublish: "questions.publish",
   settingsManage: "settings.manage",
   blueprintsManage: "blueprints.manage",
+  auditView: "audit.view",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -55,6 +56,24 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     title: "الإعدادات",
     icon: "compass",
     permission: ADMIN_PERMISSIONS.settingsManage,
+  },
+  {
+    href: "/admin/analytics",
+    title: "المؤشرات",
+    icon: "chart",
+    permission: ADMIN_PERMISSIONS.auditView,
+  },
+  {
+    href: "/admin/audit",
+    title: "سجل التدقيق",
+    icon: "eye",
+    permission: ADMIN_PERMISSIONS.auditView,
+  },
+  {
+    href: "/admin/adaptive-decisions",
+    title: "قرارات التدريب",
+    icon: "compass",
+    permission: ADMIN_PERMISSIONS.auditView,
   },
 ];
 

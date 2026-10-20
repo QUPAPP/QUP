@@ -2356,3 +2356,53 @@
     color: var(--color-danger);
   }
 }
+
+/* Admin metrics, audit log and decisions (C2). */
+@layer components {
+  :where(.segmented) {
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+  :where(.audit-filter) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    align-items: end;
+    gap: 0.75rem;
+  }
+  :where(.audit-entry) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+    min-width: 0;
+  }
+  :where(.audit-entry__head) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    overflow-wrap: anywhere;
+  }
+  :where(.audit-entry__metadata) {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 0.4rem 0 0;
+    padding: 0.6rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-small);
+    font-size: 0.75rem;
+  }
+  :where(.audit-entry__reasons) {
+    margin: 0;
+    padding-inline-start: 1.1rem;
+  }
+}
+
+@layer components {
+  :where(fieldset.segmented) {
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
