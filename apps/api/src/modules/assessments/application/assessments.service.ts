@@ -1,9 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { REASSESSMENT_CONFIG_V1 } from "@qup/adaptive-engine";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
-
 import { ADAPTIVE_SELECTOR, type AdaptiveSelector } from "../../adaptive/adaptive.contract.js";
 import { EXAM_ACCESS, type ExamAccess } from "../../billing/billing.contract.js";
 import { CATALOG_LOOKUP, type CatalogLookup } from "../../catalog/catalog.contract.js";
+import {
+  REASSESSMENT_RECORDER,
+  type ReassessmentOutcome,
+  type ReassessmentRecorder,
+  SKILL_STANDING_READER,
+  type SkillStandingReader,
+} from "../../mastery/mastery.contract.js";
 import type { RichContent } from "../../questions/domain/question-content.js";
 import {
   type StudentQuestionView,
@@ -32,6 +39,11 @@ import {
   MiniDiagnosticAlreadyCompleted,
   NoQuestionsAvailable,
   NothingToTrain,
+  ReassessmentInProgress,
+  ReassessmentNotEnoughQuestions,
+  ReassessmentRequiresAccess,
+  SkillNotFound,
+  SkillNotReadyForReassessment,
   TrainingRequiresAccess,
 } from "../domain/assessment.errors.js";
 import {
@@ -148,6 +160,8 @@ export class AssessmentsService {
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     @Inject(SETTINGS_READER) private readonly settings: SettingsReader,
     @Inject(ADAPTIVE_SELECTOR) private readonly adaptive: AdaptiveSelector,
+    @Inject(SKILL_STANDING_READER) private readonly standings: SkillStandingReader,
+    @Inject(REASSESSMENT_RECORDER) private readonly reassessments: ReassessmentRecorder,
     @InjectPinoLogger(AssessmentsService.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -428,6 +442,8 @@ export class AssessmentsService {
 
     if (result.kind === "RECORDED" && result.completed) {
       this.logger.info({ sessionId, examId: session.examId }, "Assessment completed");
+      // Graded right away; reading the result records it too, should this step be lost.
+      if (session.type === "SKILL_REASSESSMENT") await this.gradeReassessment(session);
     }
     const review = await this.reviewOf(session, itemId, question);
     return {
@@ -446,6 +462,100 @@ export class AssessmentsService {
     if (session.status !== "IN_PROGRESS") throw new AssessmentNotActive(session.status);
     // Training may stop at any time; a planned diagnostic only when every item is finalized.
     return this.store.complete(sessionId, { endingEarly: session.plannedItemCount !== null });
+  }
+
+  /**
+   * Starts — or resumes — a skill reassessment (ADAPTIVE_ENGINE.md §12–§13,
+   * WORKFLOWS.md §5): five questions on a READY_FOR_REASSESSMENT skill,
+   * planned up front, unseen ones first. A pass makes the skill MASTERED.
+   */
+  async startReassessment(
+    studentId: string,
+    examId: string,
+    skillId: string,
+  ): Promise<{ session: Session; created: boolean }> {
+    await this.assertExamActive(examId);
+    if (!(await this.access.hasExamAccess(studentId, examId))) {
+      throw new ReassessmentRequiresAccess();
+    }
+    const skill = (await this.standings.standing(studentId, examId))?.domains
+      .flatMap((domain) => domain.skills)
+      .find((candidate) => candidate.id === skillId);
+    if (!skill) throw new SkillNotFound();
+
+    const open = (await this.store.sessionsFor(studentId, examId, "SKILL_REASSESSMENT")).find(
+      (s) => s.status === "CREATED" || s.status === "IN_PROGRESS",
+    );
+    if (open?.targetSkillId === skillId) return { session: open, created: false };
+    if (open) throw new ReassessmentInProgress(open.id);
+    if (skill.state !== "READY_FOR_REASSESSMENT") {
+      throw new SkillNotReadyForReassessment(
+        skill.state,
+        skill.reassessment?.remainingAttempts ?? null,
+      );
+    }
+
+    const size = REASSESSMENT_CONFIG_V1.questionCount;
+    const questionVersionIds = await this.adaptive.planReassessment({
+      studentId,
+      examId,
+      skillId,
+      askedQuestionIds: await this.askedQuestionIds(studentId, examId),
+      size,
+    });
+    if (questionVersionIds.length < size) throw new ReassessmentNotEnoughQuestions();
+    return this.store.createSession({
+      studentId,
+      examId,
+      type: "SKILL_REASSESSMENT",
+      blueprintId: null,
+      targetSkillId: skillId,
+      scoringVersion: SCORING_VERSION,
+      resultConfigVersion: null,
+      items: questionVersionIds.map((questionVersionId) => ({ questionVersionId })),
+    });
+  }
+
+  /** The outcome of a finished reassessment, recording it if that has not happened yet. */
+  async reassessmentResult(
+    studentId: string,
+    sessionId: string,
+  ): Promise<{
+    outcome: ReassessmentOutcome;
+    skillName: string;
+    remainingAttempts: number | null;
+  }> {
+    const session = await this.owned(studentId, sessionId);
+    if (session.type !== "SKILL_REASSESSMENT") throw new AssessmentNotFound();
+    if (session.status !== "COMPLETED") throw new AssessmentNotCompleted();
+    const outcome =
+      (await this.reassessments.outcomeOf(sessionId)) ?? (await this.gradeReassessment(session));
+    const names = await this.catalog.reportingSkills({
+      skillIds: [outcome.skillId],
+      subskillIds: [],
+    });
+    const skill = (await this.standings.standing(studentId, session.examId))?.domains
+      .flatMap((domain) => domain.skills)
+      .find((candidate) => candidate.id === outcome.skillId);
+    return {
+      outcome,
+      skillName: names.skills.get(outcome.skillId)?.name ?? "",
+      remainingAttempts: outcome.passed ? null : (skill?.reassessment?.remainingAttempts ?? null),
+    };
+  }
+
+  /** Skipped and unanswered items are not correct (OPEN_QUESTIONS.md #12e). */
+  private async gradeReassessment(session: Session): Promise<ReassessmentOutcome> {
+    if (!session.targetSkillId) throw new Error(`Reassessment ${session.id} has no target skill.`);
+    const items = await this.store.items(session.id);
+    return this.reassessments.record({
+      studentId: session.studentId,
+      examId: session.examId,
+      skillId: session.targetSkillId,
+      sessionId: session.id,
+      correct: items.filter((i) => i.attempt?.isCorrect === true).length,
+      total: items.length,
+    });
   }
 
   /**

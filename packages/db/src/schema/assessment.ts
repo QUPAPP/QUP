@@ -147,6 +147,8 @@ export const assessmentSessions = pgTable(
      * ends when all of them are finalized.
      */
     plannedItemCount: integer("planned_item_count"),
+    /** The skill a SKILL_REASSESSMENT checks (B4); null for every other type. */
+    targetSkillId: uuid("target_skill_id").references(() => skills.id, { onDelete: "restrict" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

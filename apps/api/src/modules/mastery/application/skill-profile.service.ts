@@ -2,9 +2,11 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   aggregateSkill,
   gapSeverity,
+  holdRemaining,
   initialNodeMastery,
   MASTERY_CONFIG_V1,
   type MasteryState,
+  REASSESSMENT_CONFIG_V1,
   rankGaps,
 } from "@qup/adaptive-engine";
 
@@ -15,6 +17,7 @@ import {
   DrizzleMasteryReader,
   type StoredNodeState,
 } from "../infrastructure/drizzle-mastery-reader.js";
+import { DrizzleReassessmentStore } from "../infrastructure/drizzle-reassessment-store.js";
 import type {
   SkillStanding,
   SkillStandingReader,
@@ -49,6 +52,8 @@ export interface SkillProfile {
       id: string;
       name: string;
       gapSeverity: number | null;
+      /** Set while a failed reassessment holds the skill. */
+      reassessment: { remainingAttempts: number } | null;
       subskills: (ProfileNode & { id: string; name: string })[];
     })[];
   }[];
@@ -104,6 +109,7 @@ export class SkillProfileService implements SkillStandingReader {
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     private readonly reader: DrizzleMasteryReader,
+    private readonly reassessments: DrizzleReassessmentStore,
   ) {}
 
   async profile(studentId: string, examId: string): Promise<SkillProfile> {
@@ -136,6 +142,7 @@ export class SkillProfileService implements SkillStandingReader {
           name: skill.name,
           ...view(skill),
           gapSeverity: skill.gapSeverity,
+          reassessment: skill.reassessment,
           subskills: skill.subskills.map((subskill) => ({
             id: subskill.id,
             name: subskill.name,
@@ -167,13 +174,16 @@ export class SkillProfileService implements SkillStandingReader {
     const taxonomy = await this.catalog.profileTaxonomy(examId);
     if (!taxonomy) return null;
 
-    const states = await this.reader.statesFor(studentId, examId);
+    const [states, outcomes] = await Promise.all([
+      this.reader.statesFor(studentId, examId),
+      this.reassessments.latest(studentId, examId),
+    ]);
     const bySkill = new Map(states.filter((s) => s.skillId).map((s) => [s.skillId, s]));
     const bySubskill = new Map(states.filter((s) => s.subskillId).map((s) => [s.subskillId, s]));
     const unmeasured = initialNodeMastery(CONFIG);
     const stateOf = (stored: StoredNodeState | undefined) => stored ?? unmeasured;
 
-    return {
+    const standing: SkillStanding = {
       domains: taxonomy.domains.map((domain) => ({
         id: domain.id,
         name: domain.name,
@@ -203,9 +213,44 @@ export class SkillProfileService implements SkillStandingReader {
             subskills: subskills.map(({ subskill, node: child }) =>
               standingNode(subskill.id, subskill.name, child, subskill.masteryThreshold),
             ),
+            reassessment: null,
           };
         }),
       })),
     };
+    await this.applyHolds(studentId, standing, outcomes);
+    return standing;
+  }
+
+  /**
+   * §13 / WORKFLOWS.md §5: after a failed reassessment the skill reads
+   * DEVELOPING, not READY_FOR_REASSESSMENT, until enough new answers carry
+   * evidence to it. A pass or a MASTERED skill is never held.
+   */
+  private async applyHolds(
+    studentId: string,
+    standing: SkillStanding,
+    outcomes: Map<string, { passed: boolean; at: Date }>,
+  ): Promise<void> {
+    const failed = standing.domains
+      .flatMap((domain) => domain.skills)
+      .filter((skill) => outcomes.get(skill.id)?.passed === false && skill.state !== "MASTERED");
+    await Promise.all(
+      failed.map(async (skill) => {
+        const since = outcomes.get(skill.id)?.at;
+        if (!since) return;
+        const attemptsSince = await this.reassessments.attemptsSince(
+          studentId,
+          skill.subskills.length > 0
+            ? { skillIds: [], subskillIds: skill.subskills.map((sub) => sub.id) }
+            : { skillIds: [skill.id], subskillIds: [] },
+          since,
+        );
+        const remaining = holdRemaining({ failed: true, attemptsSince }, REASSESSMENT_CONFIG_V1);
+        if (remaining === null) return;
+        skill.reassessment = { remainingAttempts: remaining };
+        if (skill.state === "READY_FOR_REASSESSMENT") skill.state = "DEVELOPING";
+      }),
+    );
   }
 }

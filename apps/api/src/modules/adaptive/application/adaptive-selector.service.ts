@@ -128,6 +128,45 @@ export class AdaptiveSelectorService implements AdaptiveSelector {
     };
   }
 
+  async planReassessment(input: {
+    studentId: string;
+    examId: string;
+    skillId: string;
+    askedQuestionIds: ReadonlySet<string>;
+    size: number;
+  }): Promise<string[]> {
+    const [standing, published] = await Promise.all([
+      this.standing.standing(input.studentId, input.examId),
+      this.catalog.publishedTaxonomy(input.examId),
+    ]);
+    const skill = standing?.domains
+      .flatMap((domain) => domain.skills)
+      .find((candidate) => candidate.id === input.skillId);
+    if (!skill || !published) return [];
+
+    const subskillIds = new Set(skill.subskills.map((sub) => sub.id));
+    const onSkill = (await this.questions.publishedCandidates(published.taxonomyVersionId)).filter(
+      (c) =>
+        c.primarySkillId === skill.id ||
+        (c.primarySubskillId !== null && subskillIds.has(c.primarySubskillId)),
+    );
+    const target = targetDifficulty(skill.mastery, [], CONFIG).value;
+    const nearest = (a: QuestionCandidate, b: QuestionCandidate) =>
+      Math.abs(a.difficulty - target) - Math.abs(b.difficulty - target) ||
+      a.questionVersionId.localeCompare(b.questionVersionId);
+    const unseen = onSkill.filter((c) => !input.askedQuestionIds.has(c.questionId)).sort(nearest);
+    const seen = onSkill.filter((c) => input.askedQuestionIds.has(c.questionId)).sort(nearest);
+    // One version per logical question.
+    const chosen = new Map<string, string>();
+    for (const candidate of [...unseen, ...seen]) {
+      if (chosen.size >= input.size) break;
+      if (!chosen.has(candidate.questionId)) {
+        chosen.set(candidate.questionId, candidate.questionVersionId);
+      }
+    }
+    return [...chosen.values()];
+  }
+
   recordDecision(executor: DbExecutor, decision: AdaptiveDecision): Promise<string> {
     return this.decisions.record(executor, decision);
   }

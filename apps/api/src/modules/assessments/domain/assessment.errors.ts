@@ -230,3 +230,59 @@ export class NothingToTrain extends DomainError {
     super("There is nothing left to train in this exam right now.");
   }
 }
+
+/* -------------------------------------------------------------- reassessment */
+
+/** PRD §7: reassessment comes with the exam's package. */
+export class ReassessmentRequiresAccess extends DomainError {
+  readonly code = "REASSESSMENT_REQUIRES_ACCESS";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("Skill reassessment is part of this exam's package.");
+  }
+}
+
+/** The skill is not one of the exam's published, active skills. */
+export class SkillNotFound extends DomainError {
+  readonly code = "SKILL_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The skill is not part of this exam.");
+  }
+}
+
+/** ADAPTIVE_ENGINE.md §12–§13: only a READY_FOR_REASSESSMENT skill is reassessed. */
+export class SkillNotReadyForReassessment extends DomainError {
+  readonly code = "SKILL_NOT_READY_FOR_REASSESSMENT";
+  readonly kind = "CONFLICT";
+  /** Where the skill stands, and how many answers a failed reassessment still asks for. */
+  override readonly details: { state: string; remainingAttempts: number | null };
+
+  constructor(state: string, remainingAttempts: number | null) {
+    super(`The skill is ${state}, not ready for reassessment.`);
+    this.details = { state, remainingAttempts };
+  }
+}
+
+export class ReassessmentNotEnoughQuestions extends DomainError {
+  readonly code = "REASSESSMENT_NOT_ENOUGH_QUESTIONS";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("The skill has too few published questions for a reassessment.");
+  }
+}
+
+/** One open reassessment per exam: finish it before starting another skill's. */
+export class ReassessmentInProgress extends DomainError {
+  readonly code = "REASSESSMENT_IN_PROGRESS";
+  readonly kind = "CONFLICT";
+  override readonly details: { sessionId: string };
+
+  constructor(sessionId: string) {
+    super("Another skill's reassessment is still open.");
+    this.details = { sessionId };
+  }
+}

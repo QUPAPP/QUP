@@ -37,6 +37,18 @@ export interface AdaptiveSelector {
   decide(context: TrainingContext): Promise<AdaptiveDecision | null>;
   /** Stores the decision in the caller's transaction, beside the item it chose; returns its id. */
   recordDecision(executor: DbExecutor, decision: AdaptiveDecision): Promise<string>;
+  /**
+   * The questions of a skill reassessment (ADAPTIVE_ENGINE.md §13: "fresh
+   * when possible"): questions on the skill or its subskills, unseen first,
+   * nearest the student's level; seen ones only to fill. At most `size`.
+   */
+  planReassessment(input: {
+    studentId: string;
+    examId: string;
+    skillId: string;
+    askedQuestionIds: ReadonlySet<string>;
+    size: number;
+  }): Promise<string[]>;
   /** The target skill of each decision, with its name. */
   targetsOf(
     decisionIds: readonly string[],

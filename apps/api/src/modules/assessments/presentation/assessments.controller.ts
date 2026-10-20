@@ -99,6 +99,45 @@ export class AssessmentsController {
     return { ...toSessionView(session), resumed: !created };
   }
 
+  @Post("exams/:examId/skills/:skillId/reassessment")
+  @ApiOperation({
+    summary: "Start a skill reassessment, or resume the open one (201 new, 200 resumed).",
+  })
+  async startReassessment(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+    @Param("skillId", uuid) skillId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, created } = await this.assessments.startReassessment(
+      principal.userId,
+      examId,
+      skillId,
+    );
+    reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return { ...toSessionView(session), resumed: !created };
+  }
+
+  @Get("assessments/:sessionId/reassessment-result")
+  @ApiOperation({ summary: "A finished skill reassessment: passed or not, and what comes next." })
+  async reassessmentResult(
+    @CurrentPrincipal() principal: Principal,
+    @Param("sessionId", uuid) sessionId: string,
+  ) {
+    const { outcome, skillName, remainingAttempts } = await this.assessments.reassessmentResult(
+      principal.userId,
+      sessionId,
+    );
+    return {
+      skill: { id: outcome.skillId, name: skillName },
+      passed: outcome.passed,
+      correct: outcome.correct,
+      total: outcome.total,
+      requiredCorrect: outcome.requiredCorrect,
+      remainingAttempts,
+    };
+  }
+
   @Post("exams/:examId/assessments/training")
   @ApiOperation({
     summary: "Start paid adaptive training, or resume the open session (201 new, 200 resumed).",

@@ -94,6 +94,7 @@ export async function purgeE2eCatalog(): Promise<void> {
       await tx<{ id: string }[]>`SELECT id FROM assessment_sessions WHERE exam_id IN ${tx(examIds)}`
     ).map((r) => r.id);
     if (sessionIds.length > 0) {
+      await tx`DELETE FROM skill_reassessments WHERE session_id IN ${tx(sessionIds)}`;
       const itemIds = (
         await tx<
           { id: string }[]

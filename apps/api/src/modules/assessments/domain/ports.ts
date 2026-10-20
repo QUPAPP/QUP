@@ -26,6 +26,8 @@ export interface Session {
   resultConfigVersion: number | null;
   /** Items a session chosen one at a time ends at (training); null = all planned up front. */
   plannedItemCount: number | null;
+  /** The skill a SKILL_REASSESSMENT checks; null for every other type. */
+  targetSkillId: string | null;
 }
 
 export interface SessionProgress {
@@ -144,6 +146,8 @@ export interface AssessmentStore {
     blueprintId: string | null;
     /** Set when items are chosen one at a time instead of planned (training). */
     plannedItemCount?: number;
+    /** Set for a skill reassessment. */
+    targetSkillId?: string;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];

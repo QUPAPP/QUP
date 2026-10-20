@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -12,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { createdAt, masteryStateEnum, primaryKeyId, updatedAt } from "./_shared.js";
-import { questionAttempts } from "./assessment.js";
+import { assessmentSessions, questionAttempts } from "./assessment.js";
 import { users } from "./identity.js";
 import { exams, skills, subskills } from "./taxonomy.js";
 
@@ -155,6 +156,52 @@ export const masteryEvents = pgTable(
     check(
       "mastery_events_difficulty_range",
       sql`${table.difficulty} >= 0 AND ${table.difficulty} <= 1`,
+    ),
+  ],
+);
+
+/**
+ * Skill reassessment outcomes (ADAPTIVE_ENGINE.md §13, B4). One row per
+ * reassessment session — the unique session makes recording idempotent. A
+ * pass is what turns a skill MASTERED; the latest failure holds it until new
+ * evidence arrives (OPEN_QUESTIONS.md #12e).
+ */
+export const skillReassessments = pgTable(
+  "skill_reassessments",
+  {
+    id: primaryKeyId(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    examId: uuid("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "restrict" }),
+    skillId: uuid("skill_id")
+      .notNull()
+      .references(() => skills.id, { onDelete: "restrict" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => assessmentSessions.id, { onDelete: "restrict" }),
+    passed: boolean("passed").notNull(),
+    correct: integer("correct").notNull(),
+    total: integer("total").notNull(),
+    requiredCorrect: integer("required_correct").notNull(),
+    /** The skill's mastery once the reassessment's own evidence was applied. */
+    masteryAfter: numeric("mastery_after", { precision: 6, scale: 5 }),
+    configVersion: text("config_version").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("skill_reassessments_session_unique").on(table.sessionId),
+    index("skill_reassessments_student_skill_idx").on(
+      table.studentId,
+      table.examId,
+      table.skillId,
+      table.createdAt,
+    ),
+    check(
+      "skill_reassessments_counts",
+      sql`${table.total} >= 1 AND ${table.correct} >= 0 AND ${table.correct} <= ${table.total}`,
     ),
   ],
 );

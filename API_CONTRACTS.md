@@ -177,7 +177,7 @@ The signed-in student's own profile (no route takes a student id). Exam not acti
 `404 EXAM_NOT_AVAILABLE`; no access to the exam: `403 SKILL_PROFILE_REQUIRES_ACCESS` (PRD §7: the
 full skill map is paid).
 - `domains[].skills[]`: `{ id, name, state, mastery, coverage, evidenceCount, gapSeverity,
-  subskills[] }` for every active skill of the published taxonomy, in display order. `mastery` is
+  reassessment: { remainingAttempts } | null, subskills[] }` for every active skill of the published taxonomy, in display order. `mastery` is
   `null` until the node has evidence — the prior is never shown as a level.
 - A skill with subskills is computed from them (ADAPTIVE_ENGINE.md §14; confidence, coverage and
   state per OPEN_QUESTIONS.md #12c).
@@ -448,12 +448,35 @@ GET /me/exams/:examId/recommendation
 ## Reassessment
 
 ```text
-GET  /me/exams/:examId/reassessment-eligibility
-POST /me/skills/:skillId/reassessment
-POST /me/exams/:examId/full-reassessment
+POST /exams/:examId/skills/:skillId/reassessment     201 new · 200 resumed (implemented, B4)
+GET  /assessments/:sessionId/reassessment-result     (implemented, B4)
+POST /me/exams/:examId/full-reassessment             (planned: full re-diagnostic, PRD §8)
 ```
 
-Server determines eligibility.
+Server determines eligibility: the skill profile's `state: "READY_FOR_REASSESSMENT"` is the
+eligibility (no separate endpoint). ADAPTIVE_ENGINE.md §12–§13; assumptions in OPEN_QUESTIONS.md #12e.
+
+- Start: paid (`403 REASSESSMENT_REQUIRES_ACCESS`); the skill must be in the exam's published
+  taxonomy (`404 SKILL_NOT_FOUND`; inactive exam `404 EXAM_NOT_AVAILABLE`) and READY_FOR_REASSESSMENT
+  (`409 SKILL_NOT_READY_FOR_REASSESSMENT`, `details: { state, remainingAttempts | null }`). Five
+  questions on the skill or its subskills, unseen first, nearest the student's level; fewer than five
+  in the bank → `422 REASSESSMENT_NOT_ENOUGH_QUESTIONS`. One open reassessment per exam: another
+  skill's open one → `409 REASSESSMENT_IN_PROGRESS`, `details: { sessionId }`.
+- The session is `type: "SKILL_REASSESSMENT"`; the usual session routes apply. Answers get right /
+  wrong only (no review) and add evidence as usual.
+- Result (`422 ASSESSMENT_NOT_COMPLETED` before the end; another student's session `404`):
+
+```json
+{ "skill": { "id": "…", "name": "التناظر اللفظي" }, "passed": true, "correct": 5, "total": 5,
+  "requiredCorrect": 4, "remainingAttempts": null }
+```
+
+- Pass = at least `requiredCorrect` (4/5) correct **and** the skill still READY after the
+  reassessment's own evidence. A pass makes the skill MASTERED (every subskill, when it has them);
+  evidence never undoes it. A failure holds the skill: the profile reads `DEVELOPING` with
+  `reassessment: { remainingAttempts }` until five answers with evidence (skips do not count) reach
+  it — training targets it meanwhile. Recorded once per session (`skill_reassessments`, migration
+  0014).
 
 ## Billing
 

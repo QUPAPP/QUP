@@ -42,6 +42,7 @@ const sessionColumns = {
   createdAt: assessmentSessions.createdAt,
   resultConfigVersion: assessmentSessions.resultConfigVersion,
   plannedItemCount: assessmentSessions.plannedItemCount,
+  targetSkillId: assessmentSessions.targetSkillId,
 };
 
 const attemptColumns = {
@@ -203,6 +204,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     type: SessionType;
     blueprintId: string | null;
     plannedItemCount?: number;
+    targetSkillId?: string;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
@@ -217,6 +219,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             type: input.type,
             blueprintId: input.blueprintId,
             plannedItemCount: input.plannedItemCount ?? null,
+            targetSkillId: input.targetSkillId ?? null,
             scoringVersion: input.scoringVersion,
             resultConfigVersion: input.resultConfigVersion,
           })
@@ -229,7 +232,8 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             sessionId: created.id,
             questionVersionId: item.questionVersionId,
             ordinal: index + 1,
-            selectedBy: "BLUEPRINT" as const,
+            // A reassessment's questions come from the engine's ranking, not a blueprint.
+            selectedBy: input.targetSkillId ? ("FIXED" as const) : ("BLUEPRINT" as const),
           })),
         );
         return created;
