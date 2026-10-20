@@ -1,8 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 
+import { ADAPTIVE_SELECTOR, type AdaptiveSelector } from "../../adaptive/adaptive.contract.js";
 import { EXAM_ACCESS, type ExamAccess } from "../../billing/billing.contract.js";
 import { CATALOG_LOOKUP, type CatalogLookup } from "../../catalog/catalog.contract.js";
+import type { RichContent } from "../../questions/domain/question-content.js";
 import {
   type StudentQuestionView,
   toStudentQuestionView,
@@ -29,12 +31,15 @@ import {
   InvalidAnswer,
   MiniDiagnosticAlreadyCompleted,
   NoQuestionsAvailable,
+  NothingToTrain,
+  TrainingRequiresAccess,
 } from "../domain/assessment.errors.js";
 import {
   FULL_DIAGNOSTIC_DEFAULTS,
   MINI_DIAGNOSTIC_DEFAULTS,
   PRELIMINARY_RESULT_DEFAULTS,
   SCORING_VERSION,
+  TRAINING_DEFAULTS,
 } from "../domain/assessment-config.js";
 import {
   type Blueprint,
@@ -98,6 +103,13 @@ export interface SubmitResult {
   progress: SessionProgress;
   completed: boolean;
   replayed: boolean;
+  /** Training only, once the attempt is stored: the remediation step (ADAPTIVE_ENGINE.md §20). */
+  review?: AnswerReview;
+}
+
+export interface AnswerReview {
+  correctOptionKeys: string[];
+  explanation: RichContent | null;
 }
 
 /** The preliminary result with skills named instead of identified. */
@@ -111,7 +123,13 @@ export interface PreliminaryResultReport {
 }
 
 export interface CurrentItem {
-  item: { id: string; ordinal: number; question: StudentQuestionView } | null;
+  item: {
+    id: string;
+    ordinal: number;
+    question: StudentQuestionView;
+    /** Training: the skill the adaptive decision chose this question for. */
+    target?: { skillName: string };
+  } | null;
   progress: SessionProgress;
 }
 
@@ -129,6 +147,7 @@ export class AssessmentsService {
     @Inject(QUESTION_READER) private readonly questions: QuestionReader,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     @Inject(SETTINGS_READER) private readonly settings: SettingsReader,
+    @Inject(ADAPTIVE_SELECTOR) private readonly adaptive: AdaptiveSelector,
     @InjectPinoLogger(AssessmentsService.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -329,6 +348,7 @@ export class AssessmentsService {
   /** The next unanswered item, redacted for the student (no answer key). */
   async currentItem(studentId: string, sessionId: string): Promise<CurrentItem> {
     const session = await this.owned(studentId, sessionId);
+    if (session.plannedItemCount !== null) return this.trainingItem(session);
     const items = await this.store.items(sessionId);
     const progress = {
       total: items.length,
@@ -366,12 +386,14 @@ export class AssessmentsService {
         throw new IdempotencyKeyReused();
       }
       const progress = await this.store.progress(sessionId);
+      const review = await this.reviewOf(session, itemId);
       return {
         attemptId: earlier.id,
         isCorrect: earlier.isCorrect,
         progress,
         completed: progress.finalized === progress.total,
         replayed: true,
+        ...(review ? { review } : {}),
       };
     }
 
@@ -407,12 +429,14 @@ export class AssessmentsService {
     if (result.kind === "RECORDED" && result.completed) {
       this.logger.info({ sessionId, examId: session.examId }, "Assessment completed");
     }
+    const review = await this.reviewOf(session, itemId, question);
     return {
       attemptId: result.attempt.id,
       isCorrect: result.attempt.isCorrect,
       progress: result.progress,
       completed: result.completed,
       replayed: result.kind === "REPLAYED",
+      ...(review ? { review } : {}),
     };
   }
 
@@ -420,7 +444,139 @@ export class AssessmentsService {
     const session = await this.owned(studentId, sessionId);
     if (session.status === "COMPLETED") return session;
     if (session.status !== "IN_PROGRESS") throw new AssessmentNotActive(session.status);
-    return this.store.complete(sessionId);
+    // Training may stop at any time; a planned diagnostic only when every item is finalized.
+    return this.store.complete(sessionId, { endingEarly: session.plannedItemCount !== null });
+  }
+
+  /**
+   * Starts — or resumes — adaptive training (PRD §6, ADAPTIVE_ENGINE.md
+   * §15–§20). Paid; refused up front when nothing in the exam is left to train.
+   */
+  async startTraining(
+    studentId: string,
+    examId: string,
+  ): Promise<{ session: Session; created: boolean }> {
+    await this.assertExamActive(examId);
+    if (!(await this.access.hasExamAccess(studentId, examId))) {
+      throw new TrainingRequiresAccess();
+    }
+    const open = (await this.store.sessionsFor(studentId, examId, "ADAPTIVE_TRAINING")).find(
+      (s) => s.status === "CREATED" || s.status === "IN_PROGRESS",
+    );
+    if (open) return { session: open, created: false };
+
+    const anything = await this.adaptive.decide({
+      studentId,
+      examId,
+      current: null,
+      askedQuestionIds: await this.askedQuestionIds(studentId, examId),
+    });
+    if (!anything) throw new NothingToTrain();
+    return this.store.createSession({
+      studentId,
+      examId,
+      type: "ADAPTIVE_TRAINING",
+      blueprintId: null,
+      plannedItemCount: TRAINING_DEFAULTS.questionCount,
+      scoringVersion: SCORING_VERSION,
+      resultConfigVersion: null,
+      items: [],
+    });
+  }
+
+  /**
+   * The pending training item, or the next one chosen now (WORKFLOWS.md §4).
+   * When nothing is left to train, the session ends here.
+   */
+  private async trainingItem(session: Session): Promise<CurrentItem> {
+    let items = await this.store.items(session.id);
+    let pending = items.find((i) => i.attempt === null);
+    const finalized = () => items.filter((i) => i.attempt !== null).length;
+    const planned = session.plannedItemCount ?? 0;
+
+    if (!pending && session.status === "IN_PROGRESS" && finalized() < planned) {
+      const decision = await this.adaptive.decide({
+        studentId: session.studentId,
+        examId: session.examId,
+        current: await this.currentTarget(items),
+        askedQuestionIds: await this.askedQuestionIds(session.studentId, session.examId),
+      });
+      if (!decision) {
+        this.logger.info({ sessionId: session.id }, "Training ended: nothing left to train");
+        await this.store.complete(session.id, { endingEarly: true });
+        return { item: null, progress: { total: planned, finalized: finalized() } };
+      }
+      // A concurrent request may have appended first; either way the pending item is read back.
+      await this.store.appendAdaptiveItem({
+        sessionId: session.id,
+        questionVersionId: decision.selectedQuestionVersionId,
+        recordDecision: (executor) => this.adaptive.recordDecision(executor, decision),
+      });
+      items = await this.store.items(session.id);
+      pending = items.find((i) => i.attempt === null);
+    }
+
+    const progress = { total: planned, finalized: finalized() };
+    if (!pending) return { item: null, progress };
+    if (session.status !== "IN_PROGRESS") throw new AssessmentNotActive(session.status);
+
+    const question = await this.question(pending.questionVersionId);
+    const targets = await this.adaptive.targetsOf(
+      pending.adaptiveDecisionId ? [pending.adaptiveDecisionId] : [],
+    );
+    const target = targets.get(pending.adaptiveDecisionId ?? "");
+    await this.store.markPresented(pending.id);
+    return {
+      item: {
+        id: pending.id,
+        ordinal: pending.ordinal,
+        question: toStudentQuestionView(toPresentable(question)),
+        ...(target ? { target: { skillName: target.skillName } } : {}),
+      },
+      progress,
+    };
+  }
+
+  /** The latest item's target, with the answers given on it in this session (skips excluded). */
+  private async currentTarget(
+    items: readonly SessionItem[],
+  ): Promise<{ skillId: string; recentResults: boolean[] } | null> {
+    const decisionIds = items.flatMap((i) => (i.adaptiveDecisionId ? [i.adaptiveDecisionId] : []));
+    const targets = await this.adaptive.targetsOf(decisionIds);
+    const skillOf = (item: SessionItem) => targets.get(item.adaptiveDecisionId ?? "")?.skillId;
+    const last = items.at(-1);
+    const skillId = last ? skillOf(last) : undefined;
+    if (!skillId) return null;
+    return {
+      skillId,
+      recentResults: items
+        .filter((i) => skillOf(i) === skillId && i.attempt?.resultType === "ANSWERED")
+        .map((i) => i.attempt?.isCorrect === true),
+    };
+  }
+
+  private async askedQuestionIds(studentId: string, examId: string): Promise<Set<string>> {
+    const versionIds = await this.store.askedQuestionVersionIds(studentId, examId);
+    return new Set((await this.questions.questionIdsOf(versionIds)).values());
+  }
+
+  /** The correct keys and explanation, after the attempt is stored and only in training. */
+  private async reviewOf(
+    session: Session,
+    itemId: string,
+    known?: DeliverableQuestion,
+  ): Promise<AnswerReview | undefined> {
+    if (session.type !== "ADAPTIVE_TRAINING") return undefined;
+    let question = known;
+    if (!question) {
+      const item = (await this.store.items(session.id)).find((i) => i.id === itemId);
+      if (!item) return undefined;
+      question = await this.question(item.questionVersionId);
+    }
+    return {
+      correctOptionKeys: question.options.filter((o) => o.isCorrect).map((o) => o.key),
+      explanation: question.explanation,
+    };
   }
 
   /**

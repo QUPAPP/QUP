@@ -208,3 +208,25 @@ export class FullDiagnosticAlreadyCompleted extends DomainError {
     this.details = { sessionId };
   }
 }
+
+/* ------------------------------------------------------------------ training */
+
+/** PRD §7: training comes with the exam's package. */
+export class TrainingRequiresAccess extends DomainError {
+  readonly code = "TRAINING_REQUIRES_ACCESS";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("Adaptive training is part of this exam's package.");
+  }
+}
+
+/** No skill is trainable with a question left (OPEN_QUESTIONS.md #12d). */
+export class NothingToTrain extends DomainError {
+  readonly code = "NOTHING_TO_TRAIN";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("There is nothing left to train in this exam right now.");
+  }
+}

@@ -55,6 +55,8 @@ export async function deleteE2eUsers(): Promise<void> {
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;
     await tx`DELETE FROM audit_logs WHERE resource_type = 'user' AND resource_id IN ${tx(ids)}`;
+    // Training decisions name the student; items pointing at them go with their exams.
+    await tx`DELETE FROM adaptive_decisions WHERE student_id IN ${tx(ids)}`;
   });
   await e2eSql`DELETE FROM users WHERE id IN ${e2eSql(ids)}`;
 }
@@ -98,6 +100,14 @@ export async function purgeE2eCatalog(): Promise<void> {
         >`SELECT id FROM assessment_items WHERE session_id IN ${tx(sessionIds)}`
       ).map((r) => r.id);
       if (itemIds.length > 0) {
+        const decisionIds = (
+          await tx<{ id: string }[]>`
+            SELECT adaptive_decision_id AS id FROM assessment_items
+            WHERE id IN ${tx(itemIds)} AND adaptive_decision_id IS NOT NULL`
+        ).map((r) => r.id);
+        if (decisionIds.length > 0) {
+          await tx`DELETE FROM adaptive_decisions WHERE id IN ${tx(decisionIds)}`;
+        }
         const attemptIds = (
           await tx<{ id: string }[]>`
             SELECT id FROM question_attempts WHERE assessment_item_id IN ${tx(itemIds)}`

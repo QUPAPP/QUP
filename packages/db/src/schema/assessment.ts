@@ -141,6 +141,12 @@ export const assessmentSessions = pgTable(
      * NULL = the code default (every session before settings existed).
      */
     resultConfigVersion: integer("result_config_version"),
+    /**
+     * Items the session ends at when they are chosen one at a time (adaptive
+     * training, B3). NULL = the session's items were planned up front and it
+     * ends when all of them are finalized.
+     */
+    plannedItemCount: integer("planned_item_count"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -152,6 +158,10 @@ export const assessmentSessions = pgTable(
       table.studentId,
       table.examId,
       table.type,
+    ),
+    check(
+      "assessment_sessions_planned_item_count_positive",
+      sql`${table.plannedItemCount} IS NULL OR ${table.plannedItemCount} >= 1`,
     ),
     // One unfinished session per student, exam and type: a double-clicked
     // "start" resumes the open session instead of creating a second one.

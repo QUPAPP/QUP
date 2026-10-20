@@ -20,6 +20,8 @@ export interface LiveExamOptions {
   skillsPerDomain?: number;
   /** Map each question to a subskill of its skill instead of the skill itself. */
   viaSubskills?: boolean;
+  /** Runs before the version is published, while its tree may still change (e.g. prerequisites). */
+  beforePublish?: (exam: { domainIds: string[]; skillIds: string[] }) => Promise<void>;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface LiveExamOptions {
  */
 export async function liveExam(
   questionsPerSkill: number,
-  { skillsPerDomain = 1, viaSubskills = false }: LiveExamOptions = {},
+  { skillsPerDomain = 1, viaSubskills = false, beforePublish }: LiveExamOptions = {},
 ): Promise<LiveExam> {
   const exam = await one(e2eSql<{ id: string }[]>`
     INSERT INTO exams (code, slug, name_ar, status)
@@ -64,6 +66,7 @@ export async function liveExam(
       }
     }
   }
+  await beforePublish?.({ domainIds, skillIds });
   await e2eSql`UPDATE taxonomy_versions SET status = 'PUBLISHED' WHERE id = ${version.id}`;
 
   for (const skillId of skillIds) {

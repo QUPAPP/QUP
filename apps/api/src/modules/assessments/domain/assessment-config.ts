@@ -30,6 +30,9 @@ export const FULL_DIAGNOSTIC_DEFAULTS = Object.freeze({
   targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,
 });
 
+/** OPEN_QUESTIONS.md #12d (assumed): a training session is 10 questions, chosen one at a time. */
+export const TRAINING_DEFAULTS = Object.freeze({ questionCount: 10 });
+
 /**
  * OPEN_QUESTIONS.md #10b (decided 2026-10-04): the level comes from the
  * performance percentage; at most 2 strengths and 3 weaknesses are shown.

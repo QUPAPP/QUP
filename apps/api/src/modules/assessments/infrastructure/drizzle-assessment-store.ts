@@ -41,6 +41,7 @@ const sessionColumns = {
   completedAt: assessmentSessions.completedAt,
   createdAt: assessmentSessions.createdAt,
   resultConfigVersion: assessmentSessions.resultConfigVersion,
+  plannedItemCount: assessmentSessions.plannedItemCount,
 };
 
 const attemptColumns = {
@@ -103,7 +104,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
           items: sessions.map((session) => ({
             session,
             progress: {
-              total: progress.get(session.id)?.total ?? 0,
+              total: session.plannedItemCount ?? progress.get(session.id)?.total ?? 0,
               finalized: progress.get(session.id)?.finalized ?? 0,
             },
           })),
@@ -143,6 +144,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
         ordinal: assessmentItems.ordinal,
         questionVersionId: assessmentItems.questionVersionId,
         presentedAt: assessmentItems.presentedAt,
+        adaptiveDecisionId: assessmentItems.adaptiveDecisionId,
         attemptId: questionAttempts.id,
         resultType: questionAttempts.resultType,
         isCorrect: questionAttempts.isCorrect,
@@ -156,6 +158,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
       ordinal: r.ordinal,
       questionVersionId: r.questionVersionId,
       presentedAt: r.presentedAt,
+      adaptiveDecisionId: r.adaptiveDecisionId,
       attempt:
         r.attemptId && r.resultType
           ? { id: r.attemptId, resultType: r.resultType, isCorrect: r.isCorrect }
@@ -199,6 +202,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     examId: string;
     type: SessionType;
     blueprintId: string | null;
+    plannedItemCount?: number;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
@@ -212,11 +216,14 @@ export class DrizzleAssessmentStore implements AssessmentStore {
             examId: input.examId,
             type: input.type,
             blueprintId: input.blueprintId,
+            plannedItemCount: input.plannedItemCount ?? null,
             scoringVersion: input.scoringVersion,
             resultConfigVersion: input.resultConfigVersion,
           })
           .returning(sessionColumns);
         if (!created) throw new Error("Session insert returned no row.");
+        // A training session starts empty: its items are chosen as it goes.
+        if (input.items.length === 0) return created;
         await tx.insert(assessmentItems).values(
           input.items.map((item, index) => ({
             sessionId: created.id,
@@ -374,9 +381,11 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     }
   }
 
-  async complete(sessionId: string): Promise<Session> {
+  async complete(sessionId: string, options?: { endingEarly: boolean }): Promise<Session> {
     const progress = await this.progress(sessionId);
-    if (progress.finalized < progress.total) throw new AssessmentIncomplete();
+    if (!options?.endingEarly && progress.finalized < progress.total) {
+      throw new AssessmentIncomplete();
+    }
     await this.db
       .update(assessmentSessions)
       .set({ status: "COMPLETED", completedAt: sql`now()` })
@@ -386,6 +395,42 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     const session = await this.findSession(sessionId);
     if (!session) throw new AssessmentNotFound();
     return session;
+  }
+
+  appendAdaptiveItem(input: {
+    sessionId: string;
+    questionVersionId: string;
+    recordDecision: (executor: DbExecutor) => Promise<string>;
+  }): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      // The same lock as the answer path: appends and answers of one session never interleave.
+      const [session] = await tx
+        .select({
+          status: assessmentSessions.status,
+          planned: assessmentSessions.plannedItemCount,
+        })
+        .from(assessmentSessions)
+        .where(eq(assessmentSessions.id, input.sessionId))
+        .for("update");
+      if (session?.status !== "IN_PROGRESS" || session.planned === null) return false;
+      const [counts] = await tx
+        .select({ items: count(assessmentItems.id), finalized: count(questionAttempts.id) })
+        .from(assessmentItems)
+        .leftJoin(questionAttempts, eq(questionAttempts.assessmentItemId, assessmentItems.id))
+        .where(eq(assessmentItems.sessionId, input.sessionId));
+      const items = counts?.items ?? 0;
+      if (items > (counts?.finalized ?? 0) || items >= session.planned) return false;
+
+      const decisionId = await input.recordDecision(tx);
+      await tx.insert(assessmentItems).values({
+        sessionId: input.sessionId,
+        questionVersionId: input.questionVersionId,
+        ordinal: items + 1,
+        selectedBy: "ADAPTIVE",
+        adaptiveDecisionId: decisionId,
+      });
+      return true;
+    });
   }
 
   /** §9 repeat factor: when this student last answered any version of the same question. */
@@ -408,11 +453,16 @@ export class DrizzleAssessmentStore implements AssessmentStore {
   }
 }
 
+/** A training session's total is its planned count; a planned session's, its items. */
 async function progressOf(executor: DbExecutor, sessionId: string): Promise<SessionProgress> {
+  const [session] = await executor
+    .select({ planned: assessmentSessions.plannedItemCount })
+    .from(assessmentSessions)
+    .where(eq(assessmentSessions.id, sessionId));
   const [row] = await executor
     .select({ total: count(assessmentItems.id), finalized: count(questionAttempts.id) })
     .from(assessmentItems)
     .leftJoin(questionAttempts, eq(questionAttempts.assessmentItemId, assessmentItems.id))
     .where(eq(assessmentItems.sessionId, sessionId));
-  return { total: row?.total ?? 0, finalized: row?.finalized ?? 0 };
+  return { total: session?.planned ?? row?.total ?? 0, finalized: row?.finalized ?? 0 };
 }

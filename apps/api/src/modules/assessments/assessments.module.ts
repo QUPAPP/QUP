@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AdaptiveModule } from "../adaptive/adaptive.module.js";
 import { BillingModule } from "../billing/billing.module.js";
 import { CatalogModule } from "../catalog/catalog.module.js";
 import { MasteryModule } from "../mastery/mastery.module.js";
@@ -19,7 +20,14 @@ import { AssessmentsController } from "./presentation/assessments.controller.js"
  * writes mastery through the mastery module's writer, in its own transaction.
  */
 @Module({
-  imports: [CatalogModule, QuestionsModule, MasteryModule, BillingModule, SettingsModule],
+  imports: [
+    CatalogModule,
+    QuestionsModule,
+    MasteryModule,
+    BillingModule,
+    SettingsModule,
+    AdaptiveModule,
+  ],
   controllers: [AssessmentsController, AdminBlueprintsController],
   providers: [
     AssessmentsService,

@@ -1,4 +1,5 @@
 import type { ActorContext } from "../../../common/actor.js";
+import type { DbExecutor } from "../../../infrastructure/database/executor.js";
 import type { Blueprint, DiagnosticBlueprintType } from "./blueprint.js";
 
 export type SessionType =
@@ -23,6 +24,8 @@ export interface Session {
   createdAt: Date;
   /** Level-boundary setting version this session is scored with; null = the code default. */
   resultConfigVersion: number | null;
+  /** Items a session chosen one at a time ends at (training); null = all planned up front. */
+  plannedItemCount: number | null;
 }
 
 export interface SessionProgress {
@@ -48,6 +51,8 @@ export interface SessionItem {
   ordinal: number;
   questionVersionId: string;
   presentedAt: Date | null;
+  /** The adaptive decision that chose the item (training); null for planned items. */
+  adaptiveDecisionId: string | null;
   attempt: {
     id: string;
     resultType: "ANSWERED" | "SKIPPED" | "TIMEOUT";
@@ -137,6 +142,8 @@ export interface AssessmentStore {
     type: SessionType;
     /** The blueprint the items were planned from; null when the defaults applied. */
     blueprintId: string | null;
+    /** Set when items are chosen one at a time instead of planned (training). */
+    plannedItemCount?: number;
     scoringVersion: string;
     resultConfigVersion: number | null;
     items: readonly PlannedSessionItem[];
@@ -146,8 +153,23 @@ export interface AssessmentStore {
   markPresented(itemId: string): Promise<void>;
   findAttemptByIdempotencyKey(key: string): Promise<StoredAttempt | null>;
   recordAttempt(command: RecordAttemptCommand): Promise<RecordAttemptResult>;
-  /** IN_PROGRESS → COMPLETED when every item is finalized. */
-  complete(sessionId: string): Promise<Session>;
+  /**
+   * IN_PROGRESS → COMPLETED when every item is finalized — or at once when
+   * `endingEarly` (training): a presented but unanswered item keeps no attempt.
+   */
+  complete(sessionId: string, options?: { endingEarly: boolean }): Promise<Session>;
+  /**
+   * Appends the next item of a session whose items are chosen one at a time,
+   * with the decision that chose it, in one transaction under the session
+   * lock. Nothing is written — and false returned — when the session is not
+   * in progress, already has an unanswered item, or has reached its planned
+   * count: a concurrent request got there first.
+   */
+  appendAdaptiveItem(input: {
+    sessionId: string;
+    questionVersionId: string;
+    recordDecision: (executor: DbExecutor) => Promise<string>;
+  }): Promise<boolean>;
 }
 
 export const ASSESSMENT_STORE = Symbol("ASSESSMENT_STORE");

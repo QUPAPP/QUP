@@ -409,16 +409,30 @@ session is completed.
 
 ## Adaptive
 
+Implemented as assessment sessions (the primitives are reused, as planned):
+
 ```text
-POST /exams/:examId/adaptive-sessions
-GET  /adaptive-sessions/:id
-GET  /adaptive-sessions/:id/current-item
-POST /adaptive-sessions/:id/items/:itemId/answer
-POST /adaptive-sessions/:id/pause
-POST /adaptive-sessions/:id/resume
+POST /exams/:examId/assessments/training     201 new · 200 resumed (open session returned)
 ```
 
-يمكن داخليًا إعادة استخدام assessment primitives.
+A training session is `type: "ADAPTIVE_TRAINING"` with 10 questions (OPEN_QUESTIONS.md #12d), chosen
+one at a time; every other session route applies (`/assessments/:id`, `start`, `current-item`,
+`answer`, `skip`, `complete`).
+
+- Paid: `403 TRAINING_REQUIRES_ACCESS`. Nothing trainable with questions left: `422 NOTHING_TO_TRAIN`.
+  Inactive exam: `404 EXAM_NOT_AVAILABLE`. One open training session per exam; any number over time.
+- `current-item` returns the unanswered item, or chooses the next one (ADAPTIVE_ENGINE.md §15–§20:
+  target skill by gap priority, difficulty near the student's mastery, best-scored unseen question,
+  weighted pick among the top 3) and adds `item.target: { skillName }`. Each choice is stored as an
+  `adaptive_decisions` row (target, mastery/confidence snapshot, target difficulty, scored
+  candidates, reason codes, `engine_version` `adaptive-v1.0`, `config_version`
+  `selection-config-v1.0`) in the same transaction as its item. Concurrent calls create one item.
+  When nothing is left to train the session completes and `item` is `null`.
+- `answer` / `skip` on a training item add, after the attempt is stored:
+  `review: { correctOptionKeys: string[], explanation: RichContent | null }`. Diagnostics never do.
+- `progress.total` is 10 from the start; the session completes on the 10th finalized item.
+  `complete` ends it early: an unanswered item keeps no attempt and gives no evidence.
+- Questions already given to the student in the exam are never chosen again.
 
 ## Mastery/Dashboard
 

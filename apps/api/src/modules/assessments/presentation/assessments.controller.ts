@@ -51,6 +51,8 @@ function toSubmitView(result: SubmitResult) {
     result: { isCorrect: result.isCorrect },
     progress: { answered: result.progress.finalized, total: result.progress.total },
     next: { type: result.completed ? "COMPLETED" : "QUESTION" },
+    // Training only, after the attempt is stored (ADAPTIVE_ENGINE.md §20).
+    ...(result.review ? { review: result.review } : {}),
   };
 }
 
@@ -93,6 +95,20 @@ export class AssessmentsController {
       principal.userId,
       examId,
     );
+    reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return { ...toSessionView(session), resumed: !created };
+  }
+
+  @Post("exams/:examId/assessments/training")
+  @ApiOperation({
+    summary: "Start paid adaptive training, or resume the open session (201 new, 200 resumed).",
+  })
+  async startTraining(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, created } = await this.assessments.startTraining(principal.userId, examId);
     reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return { ...toSessionView(session), resumed: !created };
   }

@@ -92,6 +92,13 @@
       "when": 1792531575052,
       "tag": "0012_blueprints_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792533014226,
+      "tag": "0013_training_sessions",
+      "breakpoints": true
     }
   ]
 }
