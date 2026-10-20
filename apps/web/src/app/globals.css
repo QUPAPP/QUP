@@ -2067,3 +2067,72 @@
     margin: 0;
   }
 }
+
+/* Admin: question editor (A2). */
+@layer components {
+  :where(.question-editor h3) {
+    margin: 0;
+    font-size: var(--text-body);
+  }
+  :where(.blocks-field, .question-editor fieldset) {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  :where(.blocks-field__list, .options-field, .mappings-field) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  :where(.block-row) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  :where(.block-row textarea) {
+    resize: vertical;
+    min-height: 3.5rem;
+    overflow-wrap: anywhere;
+  }
+  :where(.option-card) {
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    min-width: 0;
+  }
+  :where(.option-card__key) {
+    max-width: 9rem;
+  }
+  :where(.mapping-row) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.75rem;
+    align-items: end;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+  }
+  :where(.checkbox) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  :where(.checkbox input) {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+  :where(.problem-list) {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.25rem;
+  }
+}
