@@ -1926,6 +1926,14 @@
     background: var(--color-success-surface);
     color: var(--color-success);
   }
+  :where(.status-badge--under_review) {
+    background: var(--color-blue-surface);
+    color: var(--color-blue);
+  }
+  :where(.status-badge--approved) {
+    background: var(--color-success-surface);
+    color: var(--color-success);
+  }
   :where(.status-badge--archived) {
     background: var(--color-surface);
     color: var(--color-text-muted);

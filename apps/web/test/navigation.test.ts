@@ -42,6 +42,11 @@ describe("admin navigation", () => {
   it("keeps the admin panel out of the student workspace", () => {
     expect(isWorkspacePath("/admin")).toBe(false);
   });
+  it("keeps a question version under the question bank item", () => {
+    expect(isActivePath("/admin/question-versions/version-id", "/admin/questions")).toBe(true);
+    expect(isActivePath("/admin/questions/new", "/admin/questions")).toBe(true);
+    expect(isActivePath("/admin/question-versions/version-id", "/admin/exams")).toBe(false);
+  });
   it("keeps a taxonomy version under the exams and taxonomy item", () => {
     expect(isActivePath("/admin/taxonomy-versions/version-id", "/admin/exams")).toBe(true);
     expect(isActivePath("/admin/taxonomy-versions/version-id", "/dashboard")).toBe(false);
