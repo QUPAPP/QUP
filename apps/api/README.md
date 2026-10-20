@@ -148,6 +148,15 @@ one sandbox payment end to end before real money.
 (`entitlementSnapshot`). The application clock can differ by seconds — enough to tell a student who
 just paid that they have no access.
 
+## AI assistance
+
+`modules/ai` runs the tasks of `@qup/ai-gateway` (versioned prompts and schemas, retries, timeouts,
+grounding checks) on a draft's saved content, for its author. See
+[API_CONTRACTS.md](../../API_CONTRACTS.md) "AI Assistance". Advice only: nothing is written into
+a question. Every run is recorded in `ai_runs` without the prompt. The provider is injected as
+`AI_PROVIDER` (`ai/ai.contract.ts`): the fake provider, or null when `AI_PROVIDER=disabled`, which
+is the production default. Tests replace it through `buildTestApp({ overrides })`.
+
 ## Tests
 
 ```bash

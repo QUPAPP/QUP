@@ -78,7 +78,7 @@ function AiRuns({ userId }: { userId: string }) {
                   </span>
                 </div>
                 <span className="small">
-                  {`${AI_STATUS_LABELS[run.status]}${run.errorCode ? ` · ${run.errorCode}` : ""} · ${run.latencyMs} م.ث · محاولات ${run.attempts}`}
+                  {`${AI_STATUS_LABELS[run.status]}${run.errorCode ? ` · ${run.errorCode}` : ""} · ${run.latencyMs} ملي ثانية · المحاولات ${run.attempts}`}
                 </span>
                 <span className="small muted">
                   {`${run.requestedBy ? (run.requestedBy.displayName ?? run.requestedBy.email ?? "حساب بلا اسم") : "حساب غير متاح"} · `}

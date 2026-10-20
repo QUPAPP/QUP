@@ -48,6 +48,10 @@ Adding it on CranL is a separate, explicit deployment step.
 the container disk is not durable: before relying on originals in production, mount persistent
 storage there or replace the storage adapter with object storage (OPEN_QUESTIONS.md #16g).
 
+**AI assistance** is off in production by default (`AI_PROVIDER` unset means `disabled`), and the
+editor works without it. Do not set `AI_PROVIDER=fake` there: the API refuses to start with it. A
+real provider needs OPEN_QUESTIONS.md #17 and its own adapter first.
+
 ### Environment — qup-web
 
 | Variable | Value |

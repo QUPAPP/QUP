@@ -36,6 +36,29 @@ structureImportedContent(input)
 
 Provider adapters can support OpenAI/Anthropic/Google/local/future providers without leaking SDKs into domain.
 
+## V1 (C3, 2026-10-21)
+
+- **Gateway:** `packages/ai-gateway`, framework-free and vendor-free:
+  - `AiProvider`, versioned `AiTask`s and `runAiTask`;
+  - Zod-validated JSON with a grounding check per task;
+  - bounded retries and an aborting per-attempt timeout;
+  - a run record.
+- **Provider:** only the deterministic `FakeAiProvider` exists. Real adapters wait for
+  OPEN_QUESTIONS.md #17. `AI_PROVIDER` is `fake` outside production and `disabled` in production by
+  default.
+- **Tasks:** `suggest_question_metadata` (`metadata-v1`) and `draft_explanation` (`explanation-v1`),
+  for authors on drafts only (`modules/ai`, API_CONTRACTS.md "AI Assistance"). Outputs are advice
+  the author applies in the editor; review is unchanged. Nothing reaches students (#18).
+- **Record:** `ai_runs` keeps task, prompt and schema versions, provider, model, status, attempts,
+  latency, tokens and error code. Output is kept for successes only, never the prompt.
+- **Not yet:**
+  - error classification;
+  - question generation;
+  - import structuring;
+  - an evaluation dataset.
+
+Assumptions: OPEN_QUESTIONS.md #19a.
+
 ## Structured Output
 
 Every AI output:

@@ -140,7 +140,7 @@ export function AiAssistPanel(props: AiAssistPanelProps) {
         </div>
       ) : null}
 
-      {applied ? (
+      {applied && unsaved ? (
         <p className="small" role="status">
           {applied === "suggestion"
             ? "طُبّق الاقتراح على النموذج. راجعه ثم احفظ."
