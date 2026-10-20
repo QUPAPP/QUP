@@ -1,5 +1,5 @@
 // @qup/adaptive-engine — the deterministic Mastery Engine V1 (ADAPTIVE_ENGINE.md).
-// Pure functions only: no I/O, no clock, no randomness, no framework.
+// Pure functions only: no I/O, no clock, no framework; randomness only when injected.
 export {
   type ApplyEvidenceInput,
   type ApplyEvidenceResult,
@@ -17,4 +17,22 @@ export {
   initialNodeMastery,
   masteryScore,
 } from "./scores.js";
+export {
+  ADAPTIVE_ENGINE_VERSION,
+  chooseTarget,
+  type DifficultyReason,
+  examWeightFactors,
+  gapPriority,
+  pickCandidate,
+  prerequisiteBoost,
+  rankCandidates,
+  type ScoredCandidate,
+  SELECTION_CONFIG_V1,
+  type SelectionCandidate,
+  type SelectionConfig,
+  type TargetChoice,
+  type TargetReason,
+  type TargetSkill,
+  targetDifficulty,
+} from "./selection.js";
 export type * from "./types.js";
