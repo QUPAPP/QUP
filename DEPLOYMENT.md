@@ -39,6 +39,10 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 
 `CORS_ALLOWED_ORIGINS` stays empty: the browser never calls the API cross-origin.
 
+`IMPORT_STORAGE_DIR` (default `var/imports`) is where question-import originals are kept. On CranL
+the container disk is not durable: before relying on originals in production, mount persistent
+storage there or replace the storage adapter with object storage (OPEN_QUESTIONS.md #16g).
+
 ### Environment — qup-web
 
 | Variable | Value |

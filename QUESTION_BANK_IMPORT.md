@@ -132,6 +132,20 @@ When AI is used:
 - published versions remain historically interpretable.
 - attempts reference exact version.
 
+## V1 Implementation (A3, 2026-10-21)
+
+- Structured only: CSV, TSV, JSON, XLSX (first sheet) — module `content-import`; routes in
+  API_CONTRACTS.md "Imports"; screens `/admin/imports`.
+- Column mapper with auto-suggest from Arabic and English headers; preview through a row report;
+  row-level validation with stable codes; duplicate layer 1 (normalized exact hash) against the
+  exam's bank and the file; human INCLUDE / SKIP; drafts only, through the bank's own validation.
+- Provenance: `source_type = IMPORT`, `source_reference` (source column or `file · row N`), creator,
+  and `import_items.resulting_question_version_id`.
+- Safety: limits above, extension + signature + UTF-8 checks, XLSX entry and inflate caps with only
+  the needed parts read, originals under random keys in private storage (OPEN_QUESTIONS.md #16g).
+- Not yet: DOCX/PDF/images and AI structuring, fuzzy/embedding duplicates, mapping templates,
+  in-place row corrections.
+
 ## Provenance
 
 Store:

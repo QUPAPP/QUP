@@ -15,7 +15,7 @@ const FILE_MODE = 0o600;
  * V1 storage for import originals: a private directory on the API host
  * (IMPORT_STORAGE_DIR). Keys are random UUIDs, so a filename can never steer
  * where bytes land. Object storage replaces this adapter in production
- * (OPEN_QUESTIONS.md #16d).
+ * (OPEN_QUESTIONS.md #16g).
  */
 @Injectable()
 export class LocalImportFileStorage implements ImportFileStorage {

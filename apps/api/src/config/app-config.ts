@@ -57,7 +57,7 @@ const envSchema = z.object({
   /**
    * Maximum JSON body size. File uploads belong in object storage; the one
    * exception is the structured-import upload (≤ 2 MiB), which has its own
-   * route limit until object storage exists (OPEN_QUESTIONS.md #16d).
+   * route limit until object storage exists (OPEN_QUESTIONS.md #16g).
    */
   BODY_LIMIT_BYTES: z.coerce.number().int().min(1).default(ONE_MEBIBYTE),
   /** Serve the generated OpenAPI document. Defaults to off in production. */

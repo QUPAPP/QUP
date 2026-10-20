@@ -1,7 +1,7 @@
 # A3 — Structured question import
 
 Date: 2026-10-21. Branch: `ahmeddev`. Executed on the user's request ("كمّل بالشريحة A3"). Rules the
-documents leave open are recorded in `OPEN_QUESTIONS.md` #16d.
+documents leave open are recorded in `OPEN_QUESTIONS.md` #16g.
 
 ## Why
 
@@ -115,7 +115,7 @@ POST /admin/imports/:id/create-drafts            → batch
 - `TAXONOMY_VERSION_NOT_FOUND` (404 / archived).
 
 The upload route has its own body limit (3 MiB for 2 MB of base64). This is a documented exception
-to "uploads go to object storage": there is no object storage yet (OPEN_QUESTIONS.md #16d). The
+to "uploads go to object storage": there is no object storage yet (OPEN_QUESTIONS.md #16g). The
 storage itself sits behind a port; the V1 adapter writes to a private local directory
 (`IMPORT_STORAGE_DIR`, default `./var/imports`, git-ignored).
 
