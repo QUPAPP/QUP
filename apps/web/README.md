@@ -45,6 +45,29 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/assessments/:sessionId` | Resume the exact mini diagnostic at its next unanswered item |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
+| `/admin/exams` | Admin: every exam with its status; create an exam |
+| `/admin/exams/:examId` | Admin: edit names, move the status forward, list and start taxonomy versions |
+| `/admin/taxonomy-versions/:versionId` | Admin: the taxonomy tree; edit it while DRAFT, then publish |
+
+### Admin panel
+
+`/admin/*` has its own frame (`AdminShell`) listing only the screens the account may use, from the
+`permissions` that `/auth/me` returns (`src/lib/permissions.ts`). The student workspace links to it
+only for accounts with an admin permission. Each page also checks its own permission through
+`AdminGate`: no session sends the visitor to `/login`; an account without the permission sees a
+no-permission state and no admin query runs. None of this is security — the API refuses every
+admin call it should.
+
+- Forms mirror the API's limits (`src/lib/admin-forms.ts`) only to spare a round trip. Mastery
+  thresholds are typed as percentages (one decimal) and sent as shares (three decimals); Arabic-
+  Indic digits are accepted.
+- Nothing is decided in the browser: whether a version can be published, whether a prerequisite
+  closes a cycle, which status an exam may move to — the API answers, the screen shows it in Arabic.
+- The tree is never patched locally. Every change refetches it; if another admin published the
+  version meanwhile, the stale change's `TAXONOMY_VERSION_NOT_DRAFT` refetches it too and the
+  screen turns read-only.
+- Confirmations (publish, activate, archive) are inline, focus the confirm button and say what will
+  happen. Submit and confirm buttons are disabled while their request is in flight.
 
 ## Rules this app keeps
 
@@ -85,4 +108,4 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 ## Not built yet
 
 Math rendering (formulas show as their source), the full diagnostic and training screens, the
-admin panel, and browser end-to-end tests.
+admin screens for questions, imports and users, and browser end-to-end tests.
