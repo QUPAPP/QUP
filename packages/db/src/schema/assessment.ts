@@ -63,6 +63,10 @@ export const assessmentBlueprints = pgTable(
   (table) => [
     uniqueIndex("assessment_blueprints_exam_code_unique").on(table.examId, table.code),
     index("assessment_blueprints_exam_type_status_idx").on(table.examId, table.type, table.status),
+    // One live recipe per exam and diagnostic type: activation archives the previous one.
+    uniqueIndex("assessment_blueprints_one_active")
+      .on(table.examId, table.type)
+      .where(sql`status = 'ACTIVE'`),
     check(
       "assessment_blueprints_question_bounds",
       sql`${table.minQuestions} >= 1 AND ${table.maxQuestions} >= ${table.minQuestions}`,

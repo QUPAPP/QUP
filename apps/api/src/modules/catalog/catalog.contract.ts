@@ -45,6 +45,7 @@ export interface TaxonomyOutline {
     id: string;
     code: string;
     name: string;
+    weight: number;
     skills: {
       id: string;
       code: string;

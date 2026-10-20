@@ -15,6 +15,7 @@ export const Permission = {
   AuditView: "audit.view",
   AiManage: "ai.manage",
   SettingsManage: "settings.manage",
+  BlueprintsManage: "blueprints.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];

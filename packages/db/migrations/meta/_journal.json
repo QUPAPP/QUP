@@ -85,6 +85,13 @@
       "when": 1792529999508,
       "tag": "0011_settings_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792531575052,
+      "tag": "0012_blueprints_permission",
+      "breakpoints": true
     }
   ]
 }

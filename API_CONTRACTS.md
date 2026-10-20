@@ -185,6 +185,44 @@ full skill map is paid).
   mastered), largest `severity = (threshold − mastery) / threshold` first.
 - `summary`: `{ skills, assessed, gaps, readyForReassessment, mastered }`.
 
+## Blueprints
+
+Diagnostic blueprints (B2): how many questions a mini or full diagnostic asks, and how they are
+weighted across domains. Permission `blueprints.manage`, ADMIN only (migration 0012).
+
+```text
+GET   /admin/exams/:examId/blueprints     { items: BlueprintSummary[] } every status, newest first
+POST  /admin/exams/:examId/blueprints     { type, code, name, questionCount } → 201 Blueprint (DRAFT)
+GET   /admin/blueprints/:id               Blueprint
+PATCH /admin/blueprints/:id               { name?, questionCount?, domainWeights?: [{ domainId, weight | null }] }
+POST  /admin/blueprints/:id/activate      DRAFT → ACTIVE, audited
+POST  /admin/blueprints/:id/archive       DRAFT | ACTIVE → ARCHIVED, audited
+```
+
+```json
+{
+  "id": "…", "examId": "…", "type": "FULL_DIAGNOSTIC", "code": "FULL-2026", "name": "التشخيص الكامل",
+  "questionCount": 40, "status": "DRAFT", "createdAt": "…", "updatedAt": "…",
+  "taxonomyVersion": { "id": "…", "versionCode": "2026.1", "status": "PUBLISHED" },
+  "domains": [{ "id": "…", "name": "لفظي", "taxonomyWeight": 1, "weight": null }]
+}
+```
+
+- `type`: `MINI_DIAGNOSTIC | FULL_DIAGNOSTIC`. `questionCount`: 1–200, the whole diagnosis (questions
+  the student already answered count towards it). `BlueprintSummary` has `taxonomyVersionId`
+  instead of `taxonomyVersion` and no `domains`.
+- A new blueprint is pinned to the exam's published taxonomy version
+  (`422 EXAM_HAS_NO_PUBLISHED_TAXONOMY`; unknown exam `404 EXAM_NOT_FOUND`); `code` is unique per exam
+  (`409 BLUEPRINT_CODE_TAKEN`).
+- `weight: null` uses the taxonomy's domain weight; `0` leaves the domain out. A domain outside the
+  pinned version is `422 BLUEPRINT_DOMAIN_UNKNOWN`; weights that leave no domain are
+  `422 BLUEPRINT_WEIGHTS_EMPTY`.
+- Only a DRAFT changes (`409 BLUEPRINT_NOT_EDITABLE`): sessions record the blueprint they were planned
+  from. Activation archives the exam's previous ACTIVE blueprint of the same type in the same
+  transaction (at most one ACTIVE per exam and type, enforced by an index); a draft whose version is
+  no longer the published one is `409 BLUEPRINT_TAXONOMY_NOT_PUBLISHED`. Activating an active or
+  archiving an archived blueprint returns it unchanged.
+
 ## Settings
 
 ```text

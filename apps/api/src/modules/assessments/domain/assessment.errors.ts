@@ -105,3 +105,81 @@ export class IdempotencyKeyReused extends DomainError {
     super("This Idempotency-Key was already used for a different request.");
   }
 }
+
+/* ---------------------------------------------------------------- blueprints */
+
+export class BlueprintNotFound extends DomainError {
+  readonly code = "BLUEPRINT_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The blueprint was not found.");
+  }
+}
+
+/** The exam a blueprint is created for does not exist. */
+export class BlueprintExamNotFound extends DomainError {
+  readonly code = "EXAM_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The exam was not found.");
+  }
+}
+
+/** A blueprint is pinned to the published taxonomy version; there must be one. */
+export class BlueprintNeedsPublishedTaxonomy extends DomainError {
+  readonly code = "EXAM_HAS_NO_PUBLISHED_TAXONOMY";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("Publish a taxonomy version for this exam before creating a blueprint.");
+  }
+}
+
+export class BlueprintCodeTaken extends DomainError {
+  readonly code = "BLUEPRINT_CODE_TAKEN";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("This exam already has a blueprint with that code.");
+  }
+}
+
+/** Sessions reference active and archived blueprints, so only a draft may change. */
+export class BlueprintNotEditable extends DomainError {
+  readonly code = "BLUEPRINT_NOT_EDITABLE";
+  readonly kind = "CONFLICT";
+
+  constructor(status: string) {
+    super(`The blueprint is ${status}; only a draft can change.`);
+  }
+}
+
+export class BlueprintDomainUnknown extends DomainError {
+  readonly code = "BLUEPRINT_DOMAIN_UNKNOWN";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("A weight names a domain that is not in the blueprint's taxonomy version.");
+  }
+}
+
+export class BlueprintWeightsEmpty extends DomainError {
+  readonly code = "BLUEPRINT_WEIGHTS_EMPTY";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("At least one domain needs a weight above zero.");
+  }
+}
+
+/** The taxonomy version was replaced after the draft was written; start a new draft. */
+export class BlueprintTaxonomyNotPublished extends DomainError {
+  readonly code = "BLUEPRINT_TAXONOMY_NOT_PUBLISHED";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("The blueprint's taxonomy version is no longer the published one.");
+  }
+}

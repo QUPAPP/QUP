@@ -28,6 +28,8 @@ export const AuditAction = {
   PaymentSettled: "payment.settle",
   PaymentRefunded: "payment.refund",
   SettingUpdated: "settings.update",
+  BlueprintActivated: "blueprint.activate",
+  BlueprintArchived: "blueprint.archive",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

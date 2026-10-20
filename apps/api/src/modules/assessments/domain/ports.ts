@@ -1,3 +1,6 @@
+import type { ActorContext } from "../../../common/actor.js";
+import type { Blueprint, DiagnosticBlueprintType } from "./blueprint.js";
+
 export type SessionType =
   | "MINI_DIAGNOSTIC"
   | "FULL_DIAGNOSTIC"
@@ -146,3 +149,40 @@ export interface AssessmentStore {
 }
 
 export const ASSESSMENT_STORE = Symbol("ASSESSMENT_STORE");
+
+export interface NewBlueprint {
+  examId: string;
+  taxonomyVersionId: string;
+  type: DiagnosticBlueprintType;
+  code: string;
+  name: string;
+  questionCount: number;
+}
+
+export interface BlueprintChanges {
+  name?: string;
+  questionCount?: number;
+  /** Per domain: a weight sets the override, null removes it. */
+  domainWeights?: ReadonlyMap<string, number | null>;
+}
+
+export interface BlueprintStore {
+  /** Every status, newest first. */
+  listForExam(examId: string): Promise<Blueprint[]>;
+  find(blueprintId: string): Promise<Blueprint | null>;
+  /** The exam's ACTIVE blueprint of this type, if any. */
+  active(examId: string, type: DiagnosticBlueprintType): Promise<Blueprint | null>;
+  /** Throws BlueprintCodeTaken when the exam already uses the code. */
+  create(input: NewBlueprint): Promise<Blueprint>;
+  /** Applies the changes only while the blueprint is a DRAFT; null when it no longer is. */
+  updateDraft(blueprintId: string, changes: BlueprintChanges): Promise<Blueprint | null>;
+  /**
+   * DRAFT → ACTIVE, archiving the exam's ACTIVE blueprint of the same type in
+   * the same transaction, audited. Null when the blueprint is no longer a draft.
+   */
+  activate(blueprintId: string, actor: ActorContext): Promise<Blueprint | null>;
+  /** DRAFT or ACTIVE → ARCHIVED, audited. */
+  archive(blueprintId: string, actor: ActorContext): Promise<Blueprint>;
+}
+
+export const BLUEPRINT_STORE = Symbol("BLUEPRINT_STORE");

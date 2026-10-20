@@ -148,7 +148,7 @@ export class DrizzleCatalogLookup implements CatalogLookup {
     if (!version) return null;
 
     const domainRows = await this.db
-      .select({ id: domains.id, code: domains.code, name: domains.name })
+      .select({ id: domains.id, code: domains.code, name: domains.name, weight: domains.weight })
       .from(domains)
       .where(and(eq(domains.taxonomyVersionId, version.id), eq(domains.status, "ACTIVE")))
       .orderBy(asc(domains.displayOrder), asc(domains.code));
@@ -185,6 +185,7 @@ export class DrizzleCatalogLookup implements CatalogLookup {
       version,
       domains: domainRows.map((d) => ({
         ...d,
+        weight: Number(d.weight),
         skills: skillRows
           .filter((s) => s.domainId === d.id)
           .map(({ id, code, name }) => ({

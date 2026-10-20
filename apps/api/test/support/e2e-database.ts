@@ -111,7 +111,15 @@ export async function purgeE2eCatalog(): Promise<void> {
       await tx`DELETE FROM assessment_sessions WHERE id IN ${tx(sessionIds)}`;
     }
     await tx`DELETE FROM student_mastery_states WHERE exam_id IN ${tx(examIds)}`;
-    await tx`DELETE FROM assessment_blueprints WHERE exam_id IN ${tx(examIds)}`;
+    const blueprintIds = (
+      await tx<{ id: string }[]>`
+        SELECT id FROM assessment_blueprints WHERE exam_id IN ${tx(examIds)}`
+    ).map((r) => r.id);
+    if (blueprintIds.length > 0) {
+      await tx`DELETE FROM audit_logs WHERE resource_id IN ${tx(blueprintIds)}`;
+      await tx`DELETE FROM blueprint_rules WHERE blueprint_id IN ${tx(blueprintIds)}`;
+      await tx`DELETE FROM assessment_blueprints WHERE id IN ${tx(blueprintIds)}`;
+    }
 
     // Billing: plans belong to the exam; payments and entitlements hang off them.
     const billingIds = (

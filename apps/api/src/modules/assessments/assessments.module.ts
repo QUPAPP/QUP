@@ -6,8 +6,11 @@ import { MasteryModule } from "../mastery/mastery.module.js";
 import { QuestionsModule } from "../questions/questions.module.js";
 import { SettingsModule } from "../settings/settings.module.js";
 import { AssessmentsService } from "./application/assessments.service.js";
-import { ASSESSMENT_STORE } from "./domain/ports.js";
+import { BlueprintsService } from "./application/blueprints.service.js";
+import { ASSESSMENT_STORE, BLUEPRINT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
+import { DrizzleBlueprintStore } from "./infrastructure/drizzle-blueprint-store.js";
+import { AdminBlueprintsController } from "./presentation/admin-blueprints.controller.js";
 import { AssessmentsController } from "./presentation/assessments.controller.js";
 
 /**
@@ -17,7 +20,12 @@ import { AssessmentsController } from "./presentation/assessments.controller.js"
  */
 @Module({
   imports: [CatalogModule, QuestionsModule, MasteryModule, BillingModule, SettingsModule],
-  controllers: [AssessmentsController],
-  providers: [AssessmentsService, { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore }],
+  controllers: [AssessmentsController, AdminBlueprintsController],
+  providers: [
+    AssessmentsService,
+    BlueprintsService,
+    { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore },
+    { provide: BLUEPRINT_STORE, useClass: DrizzleBlueprintStore },
+  ],
 })
 export class AssessmentsModule {}
