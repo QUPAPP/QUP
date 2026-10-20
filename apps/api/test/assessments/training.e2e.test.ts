@@ -279,6 +279,22 @@ describe("adaptive training", () => {
     expect(new Set(given).size).toBe(given.length);
   });
 
+  it("ends the session, rather than failing, when no question is left to ask", async () => {
+    const exam = await liveExam(1);
+    const student = await register("train-exhausted");
+    await grantAccess(student, exam.examId);
+    const sessionId = await started(student, exam);
+    for (let n = 0; n < exam.skillIds.length; n++) {
+      const item = await current(student, sessionId);
+      await answer(student, sessionId, item.item?.id ?? "", CORRECT);
+    }
+    const after = await call(student.token, "GET", `/assessments/${sessionId}/current-item`);
+    expect(after.statusCode).toBe(200);
+    expect(after.json<CurrentItem>().item).toBeNull();
+    const session = await call(student.token, "GET", `/assessments/${sessionId}`);
+    expect(session.json()).toMatchObject({ status: "COMPLETED", progress: { answered: 2 } });
+  });
+
   it("keeps diagnostics free of the answer review", async () => {
     const exam = await liveExam(2);
     const student = await register("train-diagnostic");
