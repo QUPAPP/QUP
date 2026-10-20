@@ -38,6 +38,19 @@ const BY_CODE: Record<string, string> = {
   PREREQUISITE_OUTSIDE_VERSION: "المتطلب يجب أن يكون مهارة من نفس نسخة التصنيف.",
   TAXONOMY_INCOMPLETE: "لا يمكن النشر: يلزم مجال نشط واحد على الأقل، وفي كل مجال مهارة نشطة.",
   TAXONOMY_PUBLISH_CONFLICT: "نُشرت نسخة أخرى في نفس الوقت. حدّث الصفحة وحاول مرة أخرى.",
+  // Admin: question bank.
+  QUESTION_NOT_FOUND: "لم نجد هذا السؤال.",
+  QUESTION_VERSION_NOT_FOUND: "لم نجد هذه النسخة من السؤال.",
+  QUESTION_CODE_TAKEN: "رمز السؤال مستخدم من قبل. اختر رمزًا آخر.",
+  INVALID_QUESTION_TRANSITION:
+    "لا يمكن تنفيذ هذا الإجراء على النسخة في حالتها الحالية. حدّثنا الصفحة لتعرض حالتها.",
+  QUESTION_VERSION_CHANGED:
+    "غيّر شخص آخر هذه النسخة قبل لحظات. حدّثنا الصفحة؛ راجعها ثم أعد المحاولة.",
+  QUESTION_VERSION_IN_PROGRESS:
+    "لهذا السؤال نسخة قيد العمل بالفعل. أكملها أو انتظر نشرها قبل بدء نسخة جديدة.",
+  QUESTION_ARCHIVED: "هذا السؤال مؤرشف، فلا يمكن تعديله أو نشره.",
+  QUESTION_CONTENT_INVALID: "السؤال لا يستوفي شروط هذا الإجراء بعد:",
+  TAXONOMY_NOT_PUBLISHED: "لا يُنشر السؤال قبل نشر نسخة التصنيف المرتبط بها.",
 };
 
 const FALLBACK = "حدث خطأ غير متوقع. حاول مرة أخرى.";
