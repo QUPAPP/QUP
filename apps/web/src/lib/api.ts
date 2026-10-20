@@ -22,7 +22,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   /** Required by the API on answer, skip and checkout; a retry must reuse it. */
   idempotencyKey?: string;
