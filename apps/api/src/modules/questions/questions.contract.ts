@@ -23,6 +23,8 @@ export interface DeliverableQuestion {
   questionId: string;
   questionType: QuestionType;
   stem: RichContent;
+  /** Shown only after the student's attempt is stored, and only where the session allows it. */
+  explanation: RichContent | null;
   difficulty: number;
   options: { key: string; content: RichContent; isCorrect: boolean; displayOrder: number }[];
   mappings: {

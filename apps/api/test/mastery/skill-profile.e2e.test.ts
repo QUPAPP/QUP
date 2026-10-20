@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
+import {
+  SKILL_STANDING_READER,
+  type SkillStandingReader,
+} from "../../src/modules/mastery/mastery.contract.js";
 import {
   deleteE2eUsers,
   E2E_DATABASE_URL,
@@ -103,6 +106,8 @@ beforeAll(async () => {
       INSERT INTO subskills (skill_id, code, name, weight) VALUES (${ids.s1}, ${code}, ${name}, ${weight}) RETURNING id`);
   ids.ss1 = (await subskill("SS1", "مترادفات", 2)).id;
   ids.ss2 = (await subskill("SS2", "أضداد", 1)).id;
+  await e2eSql`
+    INSERT INTO skill_prerequisites (skill_id, prerequisite_skill_id) VALUES (${ids.s2}, ${ids.s1})`;
   await e2eSql`UPDATE taxonomy_versions SET status = 'PUBLISHED' WHERE id = ${live.versionId}`;
 
   const other = await exam("ACTIVE");
@@ -247,5 +252,20 @@ describe("skill profile", () => {
       mastered: 0,
     });
     expect(response.payload).not.toContain(ids.otherSkill);
+  });
+
+  it("exposes the same standing to other modules, with what selection needs", async () => {
+    const reader = app.get<SkillStandingReader>(SKILL_STANDING_READER);
+    const standing = await reader.standing(studentA.id, examId);
+    const skills = standing?.domains[0]?.skills ?? [];
+    const s2 = skills.find((skill) => skill.id === ids.s2);
+    expect(s2?.prerequisiteSkillIds).toEqual([ids.s1]);
+    expect(s2?.confidence).toBeCloseTo(0.6, 5);
+    expect(s2?.gapSeverity).toBeCloseTo(0.52941, 4);
+    expect(skills.find((skill) => skill.id === ids.s1)?.subskills[0]?.gapSeverity).toBeCloseTo(
+      0.05882,
+      4,
+    );
+    expect(standing?.domains[0]?.weight).toBe(1);
   });
 });

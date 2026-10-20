@@ -131,6 +131,7 @@ export class DrizzleQuestionReader implements QuestionReader {
         questionId: v.questionId,
         questionType: v.questionType as QuestionType,
         stem: v.stemContent as RichContent,
+        explanation: (v.explanationContent as RichContent | null) ?? null,
         difficulty: Number(v.difficultyAuthorScore),
         options: options
           .filter((o) => o.questionVersionId === v.id)

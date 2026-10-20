@@ -15,6 +15,12 @@ import {
   DrizzleMasteryReader,
   type StoredNodeState,
 } from "../infrastructure/drizzle-mastery-reader.js";
+import type {
+  SkillStanding,
+  SkillStandingReader,
+  StandingNode,
+  StandingSkill,
+} from "../mastery.contract.js";
 
 /** The same config the writer computes with (mastery-writer.ts). */
 const CONFIG = MASTERY_CONFIG_V1;
@@ -55,25 +61,45 @@ export interface SkillProfile {
   }[];
 }
 
-const view = (node: {
-  state: MasteryState;
-  masteryScore: number;
-  coverageScore: number;
-  evidenceCount: number;
-}): ProfileNode => ({
+const view = (node: StandingNode): ProfileNode => ({
   state: node.state,
-  mastery: node.evidenceCount === 0 ? null : node.masteryScore,
-  coverage: node.coverageScore,
+  mastery: node.mastery,
+  coverage: node.coverage,
   evidenceCount: node.evidenceCount,
 });
+
+function standingNode(
+  id: string,
+  name: string,
+  node: {
+    state: MasteryState;
+    masteryScore: number;
+    confidenceScore: number;
+    coverageScore: number;
+    evidenceCount: number;
+  },
+  threshold: number | null,
+): StandingNode {
+  return {
+    id,
+    name,
+    state: node.state,
+    mastery: node.evidenceCount === 0 ? null : node.masteryScore,
+    confidence: node.confidenceScore,
+    coverage: node.coverageScore,
+    evidenceCount: node.evidenceCount,
+    gapSeverity: gapSeverity(node, threshold ?? CONFIG.states.defaultMasteryThreshold, CONFIG),
+  };
+}
 
 /**
  * A student's skill profile (PRD §6 "Skill Profile → Ranked Gaps"): every
  * skill of the exam's published taxonomy, read from the student's own states,
- * with the engine's gap and aggregation rules. Paid (PRD §7).
+ * with the engine's gap and aggregation rules. The profile is paid (PRD §7);
+ * the standing behind it is the mastery module's read contract.
  */
 @Injectable()
-export class SkillProfileService {
+export class SkillProfileService implements SkillStandingReader {
   constructor(
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
@@ -85,63 +111,35 @@ export class SkillProfileService {
     if (!(await this.access.hasExamAccess(studentId, examId))) {
       throw new SkillProfileRequiresAccess();
     }
-    const taxonomy = await this.catalog.profileTaxonomy(examId);
-    if (!taxonomy) throw new ProfileExamNotAvailable();
-
-    const states = await this.reader.statesFor(studentId, examId);
-    const bySkill = new Map(states.filter((s) => s.skillId).map((s) => [s.skillId, s]));
-    const bySubskill = new Map(states.filter((s) => s.subskillId).map((s) => [s.subskillId, s]));
-    const unmeasured = initialNodeMastery(CONFIG);
-    const stateOf = (stored: StoredNodeState | undefined) => stored ?? unmeasured;
+    const standing = await this.standing(studentId, examId);
+    if (!standing) throw new ProfileExamNotAvailable();
 
     let order = 0;
     const gaps: (SkillProfile["gaps"][number] & { order: number })[] = [];
-    const domains = taxonomy.domains.map((domain) => ({
+    const domains = standing.domains.map((domain) => ({
       id: domain.id,
       name: domain.name,
       skills: domain.skills.map((skill) => {
-        const settings = {
-          masteryThreshold: skill.masteryThreshold,
-          minCoverage: skill.minCoverage,
-        };
-        const subskills = skill.subskills.map((subskill) => ({
-          subskill,
-          node: stateOf(bySubskill.get(subskill.id)),
-        }));
-        // §14: a skill with subskills is defined by them.
-        const node =
-          subskills.length > 0
-            ? aggregateSkill(
-                subskills.map(({ subskill, node: child }) => ({
-                  node: child,
-                  weight: subskill.weight,
-                })),
-                settings,
-                CONFIG,
-              )
-            : stateOf(bySkill.get(skill.id));
-        const threshold = skill.masteryThreshold ?? CONFIG.states.defaultMasteryThreshold;
-        const severity = gapSeverity(node, threshold, CONFIG);
         const skillOrder = order++;
-        if (severity !== null) {
+        if (skill.gapSeverity !== null) {
           gaps.push({
             skillId: skill.id,
             skillName: skill.name,
             domainName: domain.name,
-            state: node.state,
-            severity,
+            state: skill.state,
+            severity: skill.gapSeverity,
             order: skillOrder,
           });
         }
         return {
           id: skill.id,
           name: skill.name,
-          ...view(node),
-          gapSeverity: severity,
-          subskills: subskills.map(({ subskill, node: child }) => ({
+          ...view(skill),
+          gapSeverity: skill.gapSeverity,
+          subskills: skill.subskills.map((subskill) => ({
             id: subskill.id,
             name: subskill.name,
-            ...view(child),
+            ...view(subskill),
           })),
         };
       }),
@@ -162,6 +160,52 @@ export class SkillProfileService {
       },
       domains,
       gaps: rankGaps(gaps).map(({ order: _order, ...gap }) => gap),
+    };
+  }
+
+  async standing(studentId: string, examId: string): Promise<SkillStanding | null> {
+    const taxonomy = await this.catalog.profileTaxonomy(examId);
+    if (!taxonomy) return null;
+
+    const states = await this.reader.statesFor(studentId, examId);
+    const bySkill = new Map(states.filter((s) => s.skillId).map((s) => [s.skillId, s]));
+    const bySubskill = new Map(states.filter((s) => s.subskillId).map((s) => [s.subskillId, s]));
+    const unmeasured = initialNodeMastery(CONFIG);
+    const stateOf = (stored: StoredNodeState | undefined) => stored ?? unmeasured;
+
+    return {
+      domains: taxonomy.domains.map((domain) => ({
+        id: domain.id,
+        name: domain.name,
+        weight: domain.weight,
+        skills: domain.skills.map((skill): StandingSkill => {
+          const subskills = skill.subskills.map((subskill) => ({
+            subskill,
+            node: stateOf(bySubskill.get(subskill.id)),
+          }));
+          // §14: a skill with subskills is defined by them.
+          const node =
+            subskills.length > 0
+              ? aggregateSkill(
+                  subskills.map(({ subskill, node: child }) => ({
+                    node: child,
+                    weight: subskill.weight,
+                  })),
+                  { masteryThreshold: skill.masteryThreshold, minCoverage: skill.minCoverage },
+                  CONFIG,
+                )
+              : stateOf(bySkill.get(skill.id));
+          return {
+            ...standingNode(skill.id, skill.name, node, skill.masteryThreshold),
+            weight: skill.weight,
+            priorityWeight: skill.priorityWeight,
+            prerequisiteSkillIds: skill.prerequisiteSkillIds,
+            subskills: subskills.map(({ subskill, node: child }) =>
+              standingNode(subskill.id, subskill.name, child, subskill.masteryThreshold),
+            ),
+          };
+        }),
+      })),
     };
   }
 }

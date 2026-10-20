@@ -14,7 +14,7 @@ import type {
   TaxonomyVersionStatus,
 } from "../catalog.contract.js";
 
-const { exams, taxonomyVersions, domains, skills, subskills } = tables;
+const { exams, taxonomyVersions, domains, skills, subskills, skillPrerequisites } = tables;
 
 const toThreshold = (value: string | null) => (value === null ? null : Number(value));
 
@@ -22,7 +22,7 @@ const toThreshold = (value: string | null) => (value === null ? null : Number(va
 export class DrizzleCatalogLookup implements CatalogLookup {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  /** Four queries whatever the tree size (PRD §16: no N+1). */
+  /** Five queries whatever the tree size (PRD §16: no N+1). */
   async profileTaxonomy(examId: string): Promise<ProfileTaxonomy | null> {
     const [version] = await this.db
       .select({ id: taxonomyVersions.id })
@@ -31,7 +31,7 @@ export class DrizzleCatalogLookup implements CatalogLookup {
     if (!version) return null;
 
     const domainRows = await this.db
-      .select({ id: domains.id, name: domains.name })
+      .select({ id: domains.id, name: domains.name, weight: domains.weight })
       .from(domains)
       .where(and(eq(domains.taxonomyVersionId, version.id), eq(domains.status, "ACTIVE")))
       .orderBy(asc(domains.displayOrder), asc(domains.code));
@@ -44,6 +44,7 @@ export class DrizzleCatalogLookup implements CatalogLookup {
             domainId: skills.domainId,
             name: skills.name,
             weight: skills.weight,
+            priorityWeight: skills.priorityWeight,
             masteryThreshold: skills.masteryThreshold,
             minCoverage: skills.minCoverage,
           })
@@ -66,19 +67,34 @@ export class DrizzleCatalogLookup implements CatalogLookup {
           .where(and(inArray(subskills.skillId, skillIds), eq(subskills.status, "ACTIVE")))
           .orderBy(asc(subskills.displayOrder), asc(subskills.code))
       : [];
+    const activeSkills = new Set(skillIds);
+    const prerequisiteRows = skillIds.length
+      ? await this.db
+          .select({
+            skillId: skillPrerequisites.skillId,
+            prerequisiteSkillId: skillPrerequisites.prerequisiteSkillId,
+          })
+          .from(skillPrerequisites)
+          .where(inArray(skillPrerequisites.skillId, skillIds))
+      : [];
 
     return {
       domains: domainRows.map((d) => ({
         id: d.id,
         name: d.name,
+        weight: Number(d.weight),
         skills: skillRows
           .filter((s) => s.domainId === d.id)
           .map((s) => ({
             id: s.id,
             name: s.name,
             weight: Number(s.weight),
+            priorityWeight: Number(s.priorityWeight),
             masteryThreshold: toThreshold(s.masteryThreshold),
             minCoverage: s.minCoverage,
+            prerequisiteSkillIds: prerequisiteRows
+              .filter((p) => p.skillId === s.id && activeSkills.has(p.prerequisiteSkillId))
+              .map((p) => p.prerequisiteSkillId),
             subskills: subskillRows
               .filter((ss) => ss.skillId === s.id)
               .map((ss) => ({

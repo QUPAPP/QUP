@@ -55,17 +55,22 @@ export interface TaxonomyOutline {
   }[];
 }
 
-/** The exam's published taxonomy as a student's skill profile presents it. */
+/** The exam's published taxonomy as the skill profile and adaptive training read it. */
 export interface ProfileTaxonomy {
   domains: {
     id: string;
     name: string;
+    weight: number;
     skills: {
       id: string;
       name: string;
       weight: number;
+      /** ADAPTIVE_ENGINE.md §16 skillPriorityWeight. */
+      priorityWeight: number;
       masteryThreshold: number | null;
       minCoverage: number;
+      /** Active skills of the same version this one builds on. */
+      prerequisiteSkillIds: string[];
       subskills: { id: string; name: string; weight: number; masteryThreshold: number | null }[];
     }[];
   }[];
