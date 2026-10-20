@@ -8,8 +8,10 @@ import { useEffect } from "react";
 import { AssessmentQuestions } from "@/components/assessment-questions";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getSession, startSession } from "@/lib/api";
+import { completionHref, DIAGNOSTIC_TITLES, isDiagnostic } from "@/lib/diagnostics";
 import { useRequireUser } from "@/lib/session";
 
+/** Resumes a mini or full diagnostic at its next unanswered item. */
 export default function AssessmentPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function AssessmentPage() {
     queryKey: ["resume-session", user?.id, sessionId],
     queryFn: async () => {
       const stored = await getSession(sessionId);
-      return stored.status === "CREATED" && stored.type === "MINI_DIAGNOSTIC"
+      return stored.status === "CREATED" && isDiagnostic(stored.type)
         ? startSession(sessionId)
         : stored;
     },
@@ -26,25 +28,32 @@ export default function AssessmentPage() {
     staleTime: 0,
   });
 
-  useEffect(() => {
-    if (session.data?.status === "COMPLETED" && session.data.type === "MINI_DIAGNOSTIC") {
-      router.replace(`/assessments/${sessionId}/result`);
-    }
-  }, [session.data, router, sessionId]);
+  const data = session.data;
+  const type = data && isDiagnostic(data.type) ? data.type : null;
+  const finishedHref =
+    data && type && data.status === "COMPLETED"
+      ? completionHref({ id: data.id, examId: data.examId, type })
+      : null;
 
-  const redirecting =
-    session.data?.status === "COMPLETED" && session.data.type === "MINI_DIAGNOSTIC";
+  useEffect(() => {
+    if (finishedHref) router.replace(finishedHref);
+  }, [finishedHref, router]);
+
   return (
     <main id="main-content" className="page page--focused stack stack--loose">
-      <h1>التشخيص المصغّر</h1>
+      <h1>{type ? DIAGNOSTIC_TITLES[type] : "التشخيص"}</h1>
       <p className="muted small">
         خذ وقتك في القراءة. كل إجابة تؤكدها تُحفظ، ويمكنك العودة لإكمال جلستك لاحقًا.
       </p>
-      {session.isPending || redirecting ? <Loading label="جارٍ استعادة جلستك…" /> : null}
+      {session.isPending || finishedHref ? <Loading label="جارٍ استعادة جلستك…" /> : null}
       {session.isError ? <ErrorNotice error={session.error} /> : null}
-      {session.data?.status === "IN_PROGRESS" && session.data.type === "MINI_DIAGNOSTIC" ? (
-        <AssessmentQuestions key={sessionId} sessionId={sessionId} />
-      ) : session.data && !redirecting ? (
+      {data && type && data.status === "IN_PROGRESS" ? (
+        <AssessmentQuestions
+          key={sessionId}
+          sessionId={sessionId}
+          completedHref={completionHref({ id: data.id, examId: data.examId, type })}
+        />
+      ) : data && !finishedHref ? (
         <p className="notice">هذه الجلسة غير متاحة للاستكمال.</p>
       ) : null}
       <p>

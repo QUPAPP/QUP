@@ -261,6 +261,9 @@ export const listAssessmentHistory = (filters: SessionHistoryFilters) => {
 export const startMiniDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/mini-diagnostic`, { method: "POST" });
 
+export const startFullDiagnostic = (examId: string) =>
+  api<AssessmentSession>(`/exams/${examId}/assessments/full-diagnostic`, { method: "POST" });
+
 export const getSession = (sessionId: string) =>
   api<AssessmentSession>(`/assessments/${sessionId}`);
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SessionHistoryEntry, SessionStatus, SessionType } from "@/lib/api";
+import { completionHref, isDiagnostic } from "@/lib/diagnostics";
 import { EmptyState } from "./empty-state";
 import { Icon } from "./icon";
 
@@ -81,13 +82,14 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
             </div>
           </div>
           <div className="history-action">
-            {session.type === "MINI_DIAGNOSTIC" ? (
+            {isDiagnostic(session.type) ? (
               session.status === "COMPLETED" ? (
                 <Link
                   className="btn btn--ghost btn--small"
-                  href={`/assessments/${session.id}/result`}
+                  href={completionHref({ ...session, type: session.type })}
                 >
-                  عرض النتيجة <Icon name="chevron" />
+                  {session.type === "FULL_DIAGNOSTIC" ? "ملف مهاراتي" : "عرض النتيجة"}{" "}
+                  <Icon name="chevron" />
                 </Link>
               ) : session.status === "CREATED" || session.status === "IN_PROGRESS" ? (
                 <Link className="btn btn--small" href={`/assessments/${session.id}`}>

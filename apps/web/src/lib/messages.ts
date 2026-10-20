@@ -27,7 +27,7 @@ const BY_CODE: Record<string, string> = {
   EXAM_NOT_FOUND: "لم نجد هذا الاختبار.",
   EXAM_IDENTIFIER_TAKEN: "رمز الاختبار أو رابطه مستخدم من قبل. اختر غيره.",
   INVALID_EXAM_TRANSITION: "لا يمكن نقل الاختبار إلى هذه الحالة من حالته الحالية.",
-  EXAM_HAS_NO_PUBLISHED_TAXONOMY: "لا يمكن تفعيل الاختبار قبل نشر نسخة من تصنيفه.",
+  EXAM_HAS_NO_PUBLISHED_TAXONOMY: "يلزم أولًا نشر نسخة من تصنيف هذا الاختبار.",
   TAXONOMY_VERSION_NOT_FOUND: "لم نجد نسخة التصنيف هذه.",
   TAXONOMY_VERSION_CODE_TAKEN: "رمز النسخة مستخدم من قبل لهذا الاختبار.",
   TAXONOMY_VERSION_NOT_DRAFT:
@@ -51,6 +51,15 @@ const BY_CODE: Record<string, string> = {
   QUESTION_ARCHIVED: "هذا السؤال مؤرشف، فلا يمكن تعديله أو نشره.",
   QUESTION_CONTENT_INVALID: "السؤال لا يستوفي شروط هذا الإجراء بعد:",
   TAXONOMY_NOT_PUBLISHED: "لا يُنشر السؤال قبل نشر نسخة التصنيف المرتبط بها.",
+  // Admin: blueprints.
+  BLUEPRINT_NOT_FOUND: "لم نجد هذا النموذج.",
+  BLUEPRINT_CODE_TAKEN: "رمز النموذج مستخدم من قبل لهذا الاختبار. اختر رمزًا آخر.",
+  BLUEPRINT_NOT_EDITABLE:
+    "هذا النموذج لم يعد مسودة، فلا يمكن تعديله أو تفعيله. أنشئ نموذجًا جديدًا بالتغيير المطلوب.",
+  BLUEPRINT_DOMAIN_UNKNOWN: "أحد المجالات لم يعد في نسخة التصنيف المرتبطة بالنموذج. حدّث الصفحة.",
+  BLUEPRINT_WEIGHTS_EMPTY: "يلزم وزن أكبر من صفر لمجال واحد على الأقل.",
+  BLUEPRINT_TAXONOMY_NOT_PUBLISHED:
+    "نُشرت نسخة تصنيف أحدث بعد كتابة هذا النموذج. أنشئ نموذجًا جديدًا مرتبطًا بالنسخة المنشورة.",
   // Admin: settings.
   SETTING_NOT_FOUND: "لم نجد هذا الإعداد.",
   SETTING_VALUE_INVALID:

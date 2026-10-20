@@ -66,6 +66,11 @@ function Profile({ profile }: { profile: SkillProfile }) {
       <PageHeading
         title={`ملف مهاراتي — ${profile.exam.nameAr}`}
         description="مستواك في كل مهارة يُحدَّث بعد كل إجابة. الفجوات مرتبة من الأحوج إلى التدريب."
+        action={
+          <Link href={`/exams/${profile.exam.id}/full-diagnostic`} className="text-link">
+            التشخيص الكامل <Icon name="chevron" />
+          </Link>
+        }
       />
 
       <ul className="profile-summary" aria-label="ملخص">
@@ -90,10 +95,10 @@ function Profile({ profile }: { profile: SkillProfile }) {
       {summary.assessed === 0 ? (
         <EmptyState
           title="لم نقِس مهاراتك بعد"
-          description="أجب عن أسئلة هذا الاختبار ليظهر مستواك في كل مهارة."
+          description="ابدأ التشخيص الكامل ليظهر مستواك في كل مهارة."
         >
-          <Link href="/exams" className="btn btn--small">
-            الاختبارات
+          <Link href={`/exams/${profile.exam.id}/full-diagnostic`} className="btn btn--small">
+            ابدأ التشخيص الكامل
           </Link>
         </EmptyState>
       ) : null}

@@ -16,7 +16,14 @@ import {
 
 const PERCENT = 100;
 
-export function AssessmentQuestions({ sessionId }: { sessionId: string }) {
+export function AssessmentQuestions({
+  sessionId,
+  completedHref,
+}: {
+  sessionId: string;
+  /** Where the student goes once every item is finalized. */
+  completedHref: string;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const queryKey = ["current-item", sessionId];
@@ -26,9 +33,9 @@ export function AssessmentQuestions({ sessionId }: { sessionId: string }) {
   useEffect(() => {
     // Nothing left to answer: the diagnostic is complete.
     if (current.data && current.data.item === null) {
-      router.replace(`/assessments/${sessionId}/result`);
+      router.replace(completedHref);
     }
-  }, [current.data, router, sessionId]);
+  }, [current.data, router, completedHref]);
 
   if (current.isPending) return <Loading />;
   if (current.isError) return <ErrorNotice error={current.error} />;
@@ -42,9 +49,7 @@ export function AssessmentQuestions({ sessionId }: { sessionId: string }) {
       item={item}
       progress={current.data.progress}
       onNext={(completed) =>
-        completed
-          ? router.replace(`/assessments/${sessionId}/result`)
-          : queryClient.invalidateQueries({ queryKey })
+        completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
       }
     />
   );

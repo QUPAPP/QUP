@@ -46,8 +46,8 @@ export default function ResultPage() {
                 <p className="muted small">{result.data.nextStep.message}</p>
               </div>
               <p className="notice">
-                التشخيص الكامل والتدريب ما زالا قيد التطوير. الباقات المعروضة أدناه تخص هذا
-                الاختبار.
+                بعد الاشتراك تكمل التشخيص الكامل من حيث توقفت، وتُحسب إجاباتك هنا. الباقات المعروضة
+                أدناه تخص هذا الاختبار.
               </p>
               {session.isError ? (
                 <ErrorNotice error={session.error} />
@@ -57,11 +57,16 @@ export default function ResultPage() {
                 <Loading />
               )}
             </section>
-          ) : (
-            <p className="notice notice--success">
-              أنت مشترك في هذا الاختبار. التشخيص الكامل والتدريب قادمان قريبًا.
-            </p>
-          )}
+          ) : session.data ? (
+            <section className="notice notice--success stack">
+              <p>أنت مشترك في هذا الاختبار. أكمل التشخيص الكامل ليظهر مستواك في كل مهارة.</p>
+              <p>
+                <Link href={`/exams/${session.data.examId}/full-diagnostic`} className="btn">
+                  أكمل التشخيص الكامل <Icon name="arrow" />
+                </Link>
+              </p>
+            </section>
+          ) : null}
         </>
       ) : null}
       <p>
