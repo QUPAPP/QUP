@@ -7,8 +7,24 @@ import type { DraftContent, MappingDraft, OptionDraft, QuestionType } from "./qu
  * rules gate submission and publishing, and the database re-checks the core
  * of them at publish time (migration 0007).
  *
- * Returns human-readable problems; an empty list means publishable.
+ * Each problem names its rule — a stable code clients translate — and keeps a
+ * message for developers. An empty list means publishable.
  */
+
+export type ContentRule =
+  | "OPTION_COUNT"
+  | "CORRECT_ANSWER_COUNT"
+  | "PRIMARY_MAPPING_COUNT"
+  | "DUPLICATE_OPTION_KEY"
+  | "DUPLICATE_MAPPING"
+  | "MAPPING_OUTSIDE_VERSION"
+  | "TAXONOMY_VERSION_MISSING"
+  | "DATABASE_RULE";
+
+export interface ContentProblem {
+  rule: ContentRule;
+  message: string;
+}
 
 const OPTION_COUNT: Record<QuestionType, { min: number; max: number }> = {
   SINGLE_CHOICE: { min: 2, max: 6 },
@@ -16,36 +32,52 @@ const OPTION_COUNT: Record<QuestionType, { min: number; max: number }> = {
   TRUE_FALSE: { min: 2, max: 2 },
 };
 
-export function answerKeyProblems(type: QuestionType, options: readonly OptionDraft[]): string[] {
-  const problems: string[] = [];
+export function answerKeyProblems(
+  type: QuestionType,
+  options: readonly OptionDraft[],
+): ContentProblem[] {
+  const problems: ContentProblem[] = [];
   const { min, max } = OPTION_COUNT[type];
   if (options.length < min || options.length > max) {
-    problems.push(
-      min === max
-        ? `${type} needs exactly ${min} options.`
-        : `${type} needs between ${min} and ${max} options.`,
-    );
+    problems.push({
+      rule: "OPTION_COUNT",
+      message:
+        min === max
+          ? `${type} needs exactly ${min} options.`
+          : `${type} needs between ${min} and ${max} options.`,
+    });
   }
 
   const correct = options.filter((option) => option.isCorrect).length;
   if (type === "MULTIPLE_CHOICE") {
-    if (correct === 0) problems.push("At least one option must be marked correct.");
+    if (correct === 0) {
+      problems.push({
+        rule: "CORRECT_ANSWER_COUNT",
+        message: "At least one option must be marked correct.",
+      });
+    }
   } else if (correct !== 1) {
-    problems.push("Exactly one option must be marked correct.");
+    problems.push({
+      rule: "CORRECT_ANSWER_COUNT",
+      message: "Exactly one option must be marked correct.",
+    });
   }
   return problems;
 }
 
-export function mappingProblems(mappings: readonly MappingDraft[]): string[] {
-  const problems: string[] = [];
+export function mappingProblems(mappings: readonly MappingDraft[]): ContentProblem[] {
   const primaries = mappings.filter((mapping) => mapping.role === "PRIMARY").length;
-  if (primaries !== 1) {
-    problems.push("Exactly one PRIMARY skill mapping is required.");
-  }
-  return problems;
+  return primaries === 1
+    ? []
+    : [
+        {
+          rule: "PRIMARY_MAPPING_COUNT",
+          message: "Exactly one PRIMARY skill mapping is required.",
+        },
+      ];
 }
 
-export function publishabilityProblems(content: DraftContent): string[] {
+export function publishabilityProblems(content: DraftContent): ContentProblem[] {
   return [
     ...answerKeyProblems(content.questionType, content.options),
     ...mappingProblems(content.mappings),
@@ -53,14 +85,19 @@ export function publishabilityProblems(content: DraftContent): string[] {
 }
 
 /** Structural rules that hold even for an unfinished draft. */
-export function structuralProblems(content: DraftContent): string[] {
-  const problems: string[] = [];
+export function structuralProblems(content: DraftContent): ContentProblem[] {
+  const problems: ContentProblem[] = [];
   const keys = content.options.map((option) => option.key);
-  if (new Set(keys).size !== keys.length) problems.push("Option keys must be unique.");
+  if (new Set(keys).size !== keys.length) {
+    problems.push({ rule: "DUPLICATE_OPTION_KEY", message: "Option keys must be unique." });
+  }
 
   const nodes = content.mappings.map((m) => m.skillId ?? m.subskillId);
   if (new Set(nodes).size !== nodes.length) {
-    problems.push("A skill or subskill can be mapped only once.");
+    problems.push({
+      rule: "DUPLICATE_MAPPING",
+      message: "A skill or subskill can be mapped only once.",
+    });
   }
   return problems;
 }

@@ -52,6 +52,37 @@ describe("answer key", () => {
   });
 });
 
+describe("rule codes", () => {
+  const rules = (problems: { rule: string }[]) => problems.map((problem) => problem.rule);
+
+  it("names a wrong number of correct answers", () => {
+    expect(rules(answerKeyProblems("SINGLE_CHOICE", options(true, true, false)))).toEqual([
+      "CORRECT_ANSWER_COUNT",
+    ]);
+    expect(rules(answerKeyProblems("MULTIPLE_CHOICE", options(false, false)))).toEqual([
+      "CORRECT_ANSWER_COUNT",
+    ]);
+  });
+
+  it("names a wrong number of options", () => {
+    expect(rules(answerKeyProblems("TRUE_FALSE", options(true, false, false)))).toContain(
+      "OPTION_COUNT",
+    );
+  });
+
+  it("names a missing or doubled PRIMARY mapping", () => {
+    expect(rules(mappingProblems([mapping("SECONDARY", "a")]))).toEqual(["PRIMARY_MAPPING_COUNT"]);
+  });
+
+  it("names duplicate keys and duplicate nodes", () => {
+    const draft = {
+      options: [...options(true), ...options(false)],
+      mappings: [mapping("PRIMARY", "a"), mapping("SECONDARY", "a")],
+    } as DraftContent;
+    expect(rules(structuralProblems(draft))).toEqual(["DUPLICATE_OPTION_KEY", "DUPLICATE_MAPPING"]);
+  });
+});
+
 describe("mappings", () => {
   it("requires exactly one PRIMARY mapping", () => {
     expect(mappingProblems([mapping("PRIMARY", "a"), mapping("SECONDARY", "b")])).toEqual([]);

@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 
 import type { ActorContext } from "../../../common/actor.js";
+import type { ValidationIssue } from "../../../common/validation/zod-validation.pipe.js";
 import { CATALOG_LOOKUP, type CatalogLookup } from "../../catalog/catalog.contract.js";
 import { publishabilityProblems, structuralProblems } from "../domain/content-rules.js";
 import {
@@ -140,11 +141,18 @@ export class QuestionsService {
 
   /** Rules that hold for any saved draft: structure, and mappings into the right taxonomy. */
   private async assertValidDraft(content: DraftContent): Promise<void> {
-    const problems = structuralProblems(content).map((message) => ({ path: "", message }));
+    const problems: ValidationIssue[] = structuralProblems(content).map((problem) => ({
+      path: "",
+      ...problem,
+    }));
 
     const status = await this.taxonomy.versionStatus(content.taxonomyVersionId);
     if (status === null) {
-      problems.push({ path: "taxonomyVersionId", message: "The taxonomy version does not exist." });
+      problems.push({
+        path: "taxonomyVersionId",
+        rule: "TAXONOMY_VERSION_MISSING",
+        message: "The taxonomy version does not exist.",
+      });
     } else {
       const skillIds = content.mappings.flatMap((m) => (m.skillId ? [m.skillId] : []));
       const subskillIds = content.mappings.flatMap((m) => (m.subskillId ? [m.subskillId] : []));
@@ -159,6 +167,7 @@ export class QuestionsService {
         if (!known) {
           problems.push({
             path: `mappings.${index}`,
+            rule: "MAPPING_OUTSIDE_VERSION",
             message: "Must be an active skill or subskill of the question's taxonomy version.",
           });
         }
@@ -171,7 +180,7 @@ export class QuestionsService {
 function assertPublishable(version: QuestionVersionDetail): void {
   const problems = publishabilityProblems(version);
   if (problems.length > 0) {
-    throw new QuestionContentInvalid(problems.map((message) => ({ path: "", message })));
+    throw new QuestionContentInvalid(problems.map((problem) => ({ path: "", ...problem })));
   }
 }
 

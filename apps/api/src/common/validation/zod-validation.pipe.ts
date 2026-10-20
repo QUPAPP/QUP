@@ -6,6 +6,8 @@ import { DomainError } from "../errors/domain-error.js";
 export interface ValidationIssue {
   path: string;
   message: string;
+  /** A stable code clients may translate (e.g. question content rules). */
+  rule?: string;
 }
 
 export class ValidationFailed extends DomainError {

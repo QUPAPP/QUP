@@ -138,6 +138,10 @@ PUT  /admin/question-versions/:id     replace the whole content of a DRAFT
 - V1 types: `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `TRUE_FALSE`. Submitting and publishing require a
   valid answer key and exactly one PRIMARY mapping (`422 QUESTION_CONTENT_INVALID` with `details`).
   Mapping weights default to PRIMARY 1.00 / SECONDARY 0.35 (DOMAIN_MODEL.md §6).
+- Each `QUESTION_CONTENT_INVALID` detail is `{ path, message, rule }`; `message` is for developers,
+  `rule` is a stable code for clients to translate: `OPTION_COUNT`, `CORRECT_ANSWER_COUNT`,
+  `PRIMARY_MAPPING_COUNT`, `DUPLICATE_OPTION_KEY`, `DUPLICATE_MAPPING`, `MAPPING_OUTSIDE_VERSION`,
+  `TAXONOMY_VERSION_MISSING`, `DATABASE_RULE` (a database check fired as the backstop).
 - Publishing needs a published taxonomy (`TAXONOMY_NOT_PUBLISHED`) and archives the question's
   previous live version. One version in progress per question (`409 QUESTION_VERSION_IN_PROGRESS`).
 - `GET /admin/questions?status=&taxonomyVersionId=&limit=&offset=` lists each question once, by its

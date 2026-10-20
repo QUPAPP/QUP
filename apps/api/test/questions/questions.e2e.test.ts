@@ -194,6 +194,36 @@ describe("authoring", () => {
     expect(error.details.map((d) => d.path)).toContain("mappings.0");
   });
 
+  it("names the broken rules when a draft is submitted", async () => {
+    const draft = await createQuestion(
+      completeContent({
+        options: [
+          { key: "A", content: text("3"), isCorrect: false },
+          { key: "B", content: text("5"), isCorrect: false },
+        ],
+        mappings: [],
+      }),
+    );
+
+    const submit = await call(
+      manager,
+      "POST",
+      `/admin/question-versions/${draft.id}/submit-review`,
+    );
+    const { error } = submit.json<{ error: { details: { rule: string }[] } }>();
+    expect(error.details.map((d) => d.rule)).toEqual(
+      expect.arrayContaining(["CORRECT_ANSWER_COUNT", "PRIMARY_MAPPING_COUNT"]),
+    );
+  });
+
+  it("names a mapping outside the question's taxonomy version", async () => {
+    const response = await call(manager, "POST", "/admin/questions", {
+      content: completeContent({ mappings: [{ skillId: draftTaxonomy.skillId, role: "PRIMARY" }] }),
+    });
+    const { error } = response.json<{ error: { details: { rule: string }[] } }>();
+    expect(error.details.map((d) => d.rule)).toContain("MAPPING_OUTSIDE_VERSION");
+  });
+
   it("rejects a duplicate stable code", async () => {
     const stableCode = `E2E-${Date.now()}`;
     await call(manager, "POST", "/admin/questions", { stableCode, content: completeContent() });

@@ -79,7 +79,11 @@ function translate(error: unknown): never {
       throw new QuestionVersionChanged();
     case PgErrorCode.checkViolation:
       throw new QuestionContentInvalid([
-        { path: "", message: "The content violates a database rule (answer key or mapping)." },
+        {
+          path: "",
+          rule: "DATABASE_RULE",
+          message: "The content violates a database rule (answer key or mapping).",
+        },
       ]);
     default:
       throw error;
