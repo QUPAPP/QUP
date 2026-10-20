@@ -316,6 +316,14 @@ applyEvidence(input): {
 
 No DB/HTTP/LLM inside calculation.
 
+## 23a. V1 Implementation
+
+- Mastery: `@qup/adaptive-engine` — `ALGORITHM_VERSION = "mastery-v1.0"`, `MASTERY_CONFIG_V1`
+  (`mastery-config-v1.0`).
+- Selection (§15–§20): `selection.ts` — `ADAPTIVE_ENGINE_VERSION = "adaptive-v1.0"`,
+  `SELECTION_CONFIG_V1` (`selection-config-v1.0`). Defaults the spec leaves open: OPEN_QUESTIONS.md
+  #12d. Every training question is stored as an `adaptive_decisions` row with both versions.
+
 ## 24. Future Algorithms
 
 Future candidates:

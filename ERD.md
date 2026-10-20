@@ -262,6 +262,9 @@ is 1) and domain-level rules carrying `target_weight` (OPEN_QUESTIONS.md #9a).
 - status
 - started_at/completed_at/expires_at
 - scoring_version
+- result_config_version (0010)
+- planned_item_count (0013): items a session chosen one at a time ends at (adaptive training);
+  NULL = all items planned up front
 - created_at
 
 ### assessment_items
