@@ -7,6 +7,7 @@ import type {
   AuthoringExam,
   CatalogLookup,
   NodeSettings,
+  ProfileTaxonomy,
   PublishedTaxonomy,
   SkillLabel,
   TaxonomyOutline,
@@ -20,6 +21,76 @@ const toThreshold = (value: string | null) => (value === null ? null : Number(va
 @Injectable()
 export class DrizzleCatalogLookup implements CatalogLookup {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  /** Four queries whatever the tree size (PRD §16: no N+1). */
+  async profileTaxonomy(examId: string): Promise<ProfileTaxonomy | null> {
+    const [version] = await this.db
+      .select({ id: taxonomyVersions.id })
+      .from(taxonomyVersions)
+      .where(and(eq(taxonomyVersions.examId, examId), eq(taxonomyVersions.status, "PUBLISHED")));
+    if (!version) return null;
+
+    const domainRows = await this.db
+      .select({ id: domains.id, name: domains.name })
+      .from(domains)
+      .where(and(eq(domains.taxonomyVersionId, version.id), eq(domains.status, "ACTIVE")))
+      .orderBy(asc(domains.displayOrder), asc(domains.code));
+    const domainIds = domainRows.map((d) => d.id);
+
+    const skillRows = domainIds.length
+      ? await this.db
+          .select({
+            id: skills.id,
+            domainId: skills.domainId,
+            name: skills.name,
+            weight: skills.weight,
+            masteryThreshold: skills.masteryThreshold,
+            minCoverage: skills.minCoverage,
+          })
+          .from(skills)
+          .where(and(inArray(skills.domainId, domainIds), eq(skills.status, "ACTIVE")))
+          .orderBy(asc(skills.displayOrder), asc(skills.code))
+      : [];
+    const skillIds = skillRows.map((s) => s.id);
+
+    const subskillRows = skillIds.length
+      ? await this.db
+          .select({
+            id: subskills.id,
+            skillId: subskills.skillId,
+            name: subskills.name,
+            weight: subskills.weight,
+            masteryThreshold: subskills.masteryThreshold,
+          })
+          .from(subskills)
+          .where(and(inArray(subskills.skillId, skillIds), eq(subskills.status, "ACTIVE")))
+          .orderBy(asc(subskills.displayOrder), asc(subskills.code))
+      : [];
+
+    return {
+      domains: domainRows.map((d) => ({
+        id: d.id,
+        name: d.name,
+        skills: skillRows
+          .filter((s) => s.domainId === d.id)
+          .map((s) => ({
+            id: s.id,
+            name: s.name,
+            weight: Number(s.weight),
+            masteryThreshold: toThreshold(s.masteryThreshold),
+            minCoverage: s.minCoverage,
+            subskills: subskillRows
+              .filter((ss) => ss.skillId === s.id)
+              .map((ss) => ({
+                id: ss.id,
+                name: ss.name,
+                weight: Number(ss.weight),
+                masteryThreshold: toThreshold(ss.masteryThreshold),
+              })),
+          })),
+      })),
+    };
+  }
 
   /** Two queries whatever the number of exams. */
   async authoringTaxonomies(): Promise<AuthoringExam[]> {

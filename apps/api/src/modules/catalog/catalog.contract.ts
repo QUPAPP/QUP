@@ -54,7 +54,25 @@ export interface TaxonomyOutline {
   }[];
 }
 
+/** The exam's published taxonomy as a student's skill profile presents it. */
+export interface ProfileTaxonomy {
+  domains: {
+    id: string;
+    name: string;
+    skills: {
+      id: string;
+      name: string;
+      weight: number;
+      masteryThreshold: number | null;
+      minCoverage: number;
+      subskills: { id: string; name: string; weight: number; masteryThreshold: number | null }[];
+    }[];
+  }[];
+}
+
 export interface CatalogLookup {
+  /** The exam's published version: active nodes, named, with their settings, in display order. */
+  profileTaxonomy(examId: string): Promise<ProfileTaxonomy | null>;
   /** Exams that are not archived, by code, each with its versions that are not archived. */
   authoringTaxonomies(): Promise<AuthoringExam[]>;
   /** The version's active domains, skills and subskills, or null when it does not exist. */

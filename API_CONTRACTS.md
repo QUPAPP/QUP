@@ -167,6 +167,24 @@ Permission `questions.create`: authors choose a taxonomy and map skills without
   [{ id, code, name, subskills: [{ id, code, name }] }] }] }`: ACTIVE nodes only, in display
   order. Unknown version: `404 TAXONOMY_VERSION_NOT_FOUND`.
 
+## Skill profile
+
+```text
+GET /exams/:examId/skill-profile
+```
+
+The signed-in student's own profile (no route takes a student id). Exam not active:
+`404 EXAM_NOT_AVAILABLE`; no access to the exam: `403 SKILL_PROFILE_REQUIRES_ACCESS` (PRD §7: the
+full skill map is paid).
+- `domains[].skills[]`: `{ id, name, state, mastery, coverage, evidenceCount, gapSeverity,
+  subskills[] }` for every active skill of the published taxonomy, in display order. `mastery` is
+  `null` until the node has evidence — the prior is never shown as a level.
+- A skill with subskills is computed from them (ADAPTIVE_ENGINE.md §14; confidence, coverage and
+  state per OPEN_QUESTIONS.md #12c).
+- `gaps`: skills that are gaps (§15: measured, confident enough, below their threshold, not
+  mastered), largest `severity = (threshold − mastery) / threshold` first.
+- `summary`: `{ skills, assessed, gaps, readyForReassessment, mastered }`.
+
 ## Settings
 
 ```text
