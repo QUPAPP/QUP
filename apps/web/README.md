@@ -44,8 +44,10 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/exams/:examId/diagnostic` | The free mini diagnostic: start or resume, answer, skip |
 | `/exams/:examId/full-diagnostic` | Paid full diagnostic: start or resume; explains access, or links to the profile when done |
 | `/exams/:examId/training` | Paid adaptive training: start or resume; explains access, or that nothing is left to train |
+| `/exams/:examId/skills/:skillId/reassessment` | Start or resume a skill reassessment; explains when the skill is not ready yet |
 | `/exams/:examId/profile` | Paid skill profile: summary, gaps by priority, every skill and subskill with its state |
 | `/assessments/:sessionId` | Resume a diagnostic or training session at its next unanswered item; training shows the skill, a review after each answer, and an end button |
+| `/assessments/:sessionId/reassessment` | A skill reassessment's outcome: mastered, or the answers a retry still needs |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
 | `/admin/exams` | Admin: every exam with its status; create an exam |
@@ -126,5 +128,5 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 
 ## Not built yet
 
-Math rendering (formulas show as their source), reassessment screens, the student dashboard, the
+Math rendering (formulas show as their source), the full re-diagnostic, the student dashboard, the
 admin screens for imports, users and adaptive decisions, and browser end-to-end tests.

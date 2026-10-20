@@ -265,7 +265,15 @@ is 1) and domain-level rules carrying `target_weight` (OPEN_QUESTIONS.md #9a).
 - result_config_version (0010)
 - planned_item_count (0013): items a session chosen one at a time ends at (adaptive training);
   NULL = all items planned up front
+- target_skill_id (0014): the skill a SKILL_REASSESSMENT checks
 - created_at
+
+### skill_reassessments (0014)
+- id, student_id, exam_id, skill_id
+- session_id (unique: one outcome per reassessment session)
+- passed, correct, total, required_correct
+- mastery_after, config_version, created_at
+- index (student_id, exam_id, skill_id, created_at): the latest outcome per skill
 
 ### assessment_items
 - id
