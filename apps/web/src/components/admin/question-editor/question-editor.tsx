@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { isApiError } from "@/lib/api";
 import {
@@ -35,6 +35,8 @@ type EditorProps = {
   onSaved: (version: QuestionVersion) => void;
   /** Another request changed the version: the page refetches it. */
   onStale?: () => void;
+  /** Unsaved edits exist: the page holds back actions that use the saved version. */
+  onDirtyChange?: (dirty: boolean) => void;
 } & ({ mode: "create" } | { mode: "edit"; version: QuestionVersion });
 
 /**
@@ -42,13 +44,14 @@ type EditorProps = {
  * allowed; what a version needs before review is checked by the API on submit.
  */
 export function QuestionEditor(props: EditorProps) {
-  const { userId, onSaved, onStale } = props;
+  const { userId, onSaved, onStale, onDirtyChange } = props;
   const form = useForm<QuestionForm>({
     resolver: zodResolver(questionFormSchema),
     defaultValues: props.mode === "edit" ? formFromVersion(props.version) : emptyQuestionForm(),
   });
   const { control, register, formState } = form;
   const errors = formState.errors;
+  useEffect(() => onDirtyChange?.(formState.isDirty), [formState.isDirty, onDirtyChange]);
 
   const taxonomies = useQuery({
     queryKey: ["authoring-taxonomies", userId],
