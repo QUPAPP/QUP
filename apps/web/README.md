@@ -52,6 +52,7 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
 | `/admin/questions/new` | The question editor; saving creates a DRAFT |
 | `/admin/questions/:questionId` | A question's versions; start the next version; archive (admin) |
 | `/admin/question-versions/:versionId` | Preview, review history and the workflow: edit/submit, review, publish |
+| `/admin/settings` | Admin: versioned settings — the diagnostic level boundaries and their history |
 
 ### Admin panel
 
@@ -79,6 +80,9 @@ admin call it should.
   type, and the API's `QUESTION_CONTENT_INVALID` rule codes are listed in Arabic
   (`src/lib/question-form.ts`). Changing the taxonomy version clears mappings with a note. Submitting
   for review is held back while the editor has unsaved changes. Every request is single-flight.
+- Settings (`settings.manage`, admins) are saved as new versions with the version they were read at;
+  a conflicting save shows the newer values and says so. Changing the level boundaries affects new
+  diagnostics only — each session keeps the version it started under.
 
 ## Rules this app keeps
 

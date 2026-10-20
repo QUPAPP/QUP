@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { useSingleFlight } from "@/components/admin/use-single-flight";
@@ -53,7 +54,7 @@ function Settings({ userId }: { userId: string }) {
           </button>
         </ErrorNotice>
       ) : null}
-      {levels ? <LevelBoundaries key={levels.version} userId={userId} setting={levels} /> : null}
+      {levels ? <LevelBoundaries userId={userId} setting={levels} /> : null}
     </main>
   );
 }
@@ -64,6 +65,11 @@ function LevelBoundaries({ userId, setting }: { userId: string; setting: Setting
     resolver: zodResolver(levelsFormSchema),
     defaultValues: formFromLevels(setting.value as LevelsValue),
   });
+  // A newer version arrived (ours or someone else's): show its values, keeping any message.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the version changes
+  useEffect(() => {
+    form.reset(formFromLevels(setting.value as LevelsValue));
+  }, [setting.version]);
   const versions = useQuery({
     queryKey: ["admin-setting-versions", userId, LEVELS_KEY],
     queryFn: () => listSettingVersions(LEVELS_KEY),
@@ -98,6 +104,11 @@ function LevelBoundaries({ userId, setting }: { userId: string; setting: Setting
           : `النسخة ${setting.version} — آخر تعديل ${new Date(setting.updatedAt ?? "").toLocaleString("ar-SA")}`}
       </p>
       {save.isError ? <ErrorNotice error={save.error} /> : null}
+      {save.isSuccess ? (
+        <p className="notice notice--success" role="status">
+          {`حُفظت النسخة ${save.data.version}. تسري على التشخيصات الجديدة.`}
+        </p>
+      ) : null}
       <form
         className="admin-form"
         noValidate
