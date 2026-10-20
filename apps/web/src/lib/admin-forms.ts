@@ -9,7 +9,7 @@ import { z } from "zod";
 
 const NAME_MAX = 120;
 const DESCRIPTION_MAX = 2000;
-const WEIGHT_MAX = 99.9999;
+export const WEIGHT_MAX = 99.9999;
 const PERCENT_MAX = 100;
 const MIN_COVERAGE_MAX = 10_000;
 const DISPLAY_ORDER_MAX = 1_000_000;
@@ -56,7 +56,11 @@ export function normalizeDigits(raw: string): string {
 }
 
 /** A blank input is "not provided"; anything else must match and pass the check. */
-function optionalNumber(pattern: RegExp, isValid: (value: number) => boolean, message: string) {
+export function optionalNumber(
+  pattern: RegExp,
+  isValid: (value: number) => boolean,
+  message: string,
+) {
   return z.string().transform((raw, context): number | undefined => {
     const value = normalizeDigits(raw);
     if (value === "") return undefined;
@@ -94,7 +98,7 @@ const displayOrderField = optionalNumber(
   "الترتيب عدد صحيح من 0 فأكثر",
 );
 
-const requiredName = z
+export const requiredName = z
   .string()
   .trim()
   .min(1, "هذا الحقل مطلوب")
@@ -108,7 +112,7 @@ const optionalText = (max: number) =>
     .max(max, `${max} حرفًا كحد أقصى`)
     .transform((value) => (value === "" ? null : value));
 
-const nodeCode = z
+export const nodeCode = z
   .string()
   .trim()
   .regex(/^[A-Z0-9][A-Z0-9_.-]{0,63}$/, "رمز بحروف إنجليزية كبيرة وأرقام و _ . - فقط");

@@ -13,6 +13,7 @@ export const ADMIN_PERMISSIONS = {
   questionsReview: "questions.review",
   questionsPublish: "questions.publish",
   settingsManage: "settings.manage",
+  blueprintsManage: "blueprints.manage",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {

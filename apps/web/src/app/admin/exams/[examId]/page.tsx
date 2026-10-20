@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { BlueprintsSection } from "@/components/admin/blueprints-section";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { ExamEditFormView } from "@/components/admin/exam-form";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -20,18 +21,31 @@ import {
   listTaxonomyVersions,
   updateExam,
 } from "@/lib/admin-api";
-import { ADMIN_PERMISSIONS } from "@/lib/permissions";
+import { ADMIN_PERMISSIONS, hasPermission } from "@/lib/permissions";
 
 export default function AdminExamPage() {
   const { examId } = useParams<{ examId: string }>();
   return (
     <AdminGate permission={ADMIN_PERMISSIONS.taxonomyManage}>
-      {(me) => <ExamAdmin userId={me.user.id} examId={examId} />}
+      {(me) => (
+        <ExamAdmin
+          userId={me.user.id}
+          examId={examId}
+          canManageBlueprints={hasPermission(me, ADMIN_PERMISSIONS.blueprintsManage)}
+        />
+      )}
     </AdminGate>
   );
 }
 
-function ExamAdmin({ userId, examId }: { userId: string; examId: string }) {
+interface ExamAdminProps {
+  userId: string;
+  examId: string;
+  /** Only decides whether the section shows; the API checks blueprints.manage itself. */
+  canManageBlueprints: boolean;
+}
+
+function ExamAdmin({ userId, examId, canManageBlueprints }: ExamAdminProps) {
   // The API has no single-exam admin route; exams number in the single digits (PRD §4).
   const exams = useQuery({ queryKey: ["admin-exams", userId], queryFn: listAdminExams });
   const exam = exams.data?.items.find((item) => item.id === examId);
@@ -65,7 +79,7 @@ function ExamAdmin({ userId, examId }: { userId: string; examId: string }) {
       </main>
     );
   }
-  return <ExamDetails userId={userId} exam={exam} />;
+  return <ExamDetails userId={userId} exam={exam} canManageBlueprints={canManageBlueprints} />;
 }
 
 const NEXT_STATUSES: Record<ExamStatus, { status: ExamStatus; label: string; note: string }[]> = {
@@ -91,7 +105,15 @@ const NEXT_STATUSES: Record<ExamStatus, { status: ExamStatus; label: string; not
   ARCHIVED: [],
 };
 
-function ExamDetails({ userId, exam }: { userId: string; exam: AdminExam }) {
+function ExamDetails({
+  userId,
+  exam,
+  canManageBlueprints,
+}: {
+  userId: string;
+  exam: AdminExam;
+  canManageBlueprints: boolean;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const examsKey = ["admin-exams", userId];
@@ -172,6 +194,16 @@ function ExamDetails({ userId, exam }: { userId: string; exam: AdminExam }) {
           }}
         />
       </section>
+
+      {canManageBlueprints ? (
+        <BlueprintsSection
+          userId={userId}
+          examId={exam.id}
+          versionCodes={
+            new Map(versions.data?.items.map((version) => [version.id, version.versionCode]) ?? [])
+          }
+        />
+      ) : null}
 
       <section className="card stack" aria-labelledby="details-heading">
         <h2 id="details-heading">بيانات الاختبار</h2>
