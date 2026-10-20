@@ -20,6 +20,7 @@ const admin = account([
   "questions.publish",
   "settings.manage",
   "audit.view",
+  "ai.manage",
 ]);
 const student = account([]);
 const contentManager = account(["questions.create", "questions.review"]);
@@ -52,6 +53,7 @@ describe("permissions", () => {
       "/admin/analytics",
       "/admin/audit",
       "/admin/adaptive-decisions",
+      "/admin/ai",
     ]);
     // Taxonomy management stays admin-only (OPEN_QUESTIONS.md #16a).
     expect(adminNavItems(contentManager).map((item) => item.href)).toEqual([

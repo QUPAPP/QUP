@@ -2406,3 +2406,21 @@
     padding: 0;
   }
 }
+
+/* AI assistance in the question editor (C3). */
+@layer components {
+  :where(.ai-assist) {
+    padding: 1rem;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-small);
+  }
+  :where(.ai-assist__result) {
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-small);
+  }
+  :where(.ai-assist__draft) {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+}

@@ -15,6 +15,7 @@ export const ADMIN_PERMISSIONS = {
   settingsManage: "settings.manage",
   blueprintsManage: "blueprints.manage",
   auditView: "audit.view",
+  aiManage: "ai.manage",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -74,6 +75,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     title: "قرارات التدريب",
     icon: "compass",
     permission: ADMIN_PERMISSIONS.auditView,
+  },
+  {
+    href: "/admin/ai",
+    title: "الذكاء الاصطناعي",
+    icon: "check",
+    permission: ADMIN_PERMISSIONS.aiManage,
   },
 ];
 

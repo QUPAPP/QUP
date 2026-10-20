@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { applySuggestion, explanationBlocks } from "@/lib/ai-assist";
 import { isApiError } from "@/lib/api";
 import {
   createQuestion,
@@ -24,6 +25,7 @@ import {
 import { ErrorNotice, Loading } from "../../status";
 import { TextField } from "../../text-field";
 import { useSingleFlight } from "../use-single-flight";
+import { AiAssistPanel } from "./ai-assist-panel";
 import { BlocksField } from "./blocks-field";
 import { ContentErrorNotice } from "./content-error";
 import { MappingsField } from "./mappings-field";
@@ -202,6 +204,22 @@ export function QuestionEditor(props: EditorProps) {
           />
         </div>
       </section>
+
+      {props.mode === "edit" ? (
+        <AiAssistPanel
+          versionId={props.version.id}
+          userId={userId}
+          unsaved={formState.isDirty}
+          onApplySuggestion={(suggestion) => {
+            const next = applySuggestion(form.getValues(), suggestion);
+            form.setValue("mappings", next.mappings, { shouldDirty: true, shouldValidate: true });
+            form.setValue("difficulty", next.difficulty, { shouldDirty: true });
+          }}
+          onApplyExplanation={(explanation) =>
+            form.setValue("explanation", explanationBlocks(explanation), { shouldDirty: true })
+          }
+        />
+      ) : null}
 
       <div className="row">
         <button type="submit" className="btn" disabled={save.isPending}>
