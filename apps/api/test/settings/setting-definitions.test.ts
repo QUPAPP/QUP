@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_FULL_REASSESSMENT_GATE,
   DEFAULT_PRELIMINARY_LEVELS,
+  FULL_REASSESSMENT_GATE_KEY,
   isSettingKey,
   PRELIMINARY_LEVELS_KEY,
   parseSettingValue,
@@ -47,5 +49,33 @@ describe("preliminary result levels setting", () => {
   it("knows its keys only", () => {
     expect(isSettingKey(PRELIMINARY_LEVELS_KEY)).toBe(true);
     expect(isSettingKey("assessment.unknown")).toBe(false);
+  });
+});
+
+describe("full re-diagnostic gate setting (PRD §8)", () => {
+  const gate = (value: unknown) => () => parseSettingValue(FULL_REASSESSMENT_GATE_KEY, value);
+
+  it("defaults to a 7-day cooldown and 30 training answers", () => {
+    expect(isSettingKey(FULL_REASSESSMENT_GATE_KEY)).toBe(true);
+    expect(DEFAULT_FULL_REASSESSMENT_GATE).toEqual({ cooldownDays: 7, minTrainingAttempts: 30 });
+    expect(gate(DEFAULT_FULL_REASSESSMENT_GATE)()).toEqual(DEFAULT_FULL_REASSESSMENT_GATE);
+  });
+
+  it("accepts no gate at all", () => {
+    expect(gate({ cooldownDays: 0, minTrainingAttempts: 0 })()).toEqual({
+      cooldownDays: 0,
+      minTrainingAttempts: 0,
+    });
+  });
+
+  it.each([
+    ["a negative cooldown", { cooldownDays: -1, minTrainingAttempts: 30 }],
+    ["a cooldown over a year", { cooldownDays: 366, minTrainingAttempts: 30 }],
+    ["a fractional count", { cooldownDays: 7, minTrainingAttempts: 2.5 }],
+    ["too many attempts", { cooldownDays: 7, minTrainingAttempts: 1001 }],
+    ["a missing field", { cooldownDays: 7 }],
+    ["an unknown field", { cooldownDays: 7, minTrainingAttempts: 30, extra: 1 }],
+  ])("refuses %s", (_name, value) => {
+    expect(gate(value)).toThrow(SettingValueInvalid);
   });
 });

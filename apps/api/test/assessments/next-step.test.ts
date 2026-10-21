@@ -10,6 +10,7 @@ const base: NextStepInput = {
   miniCompleted: true,
   fullCompleted: true,
   readySkill: null,
+  fullReassessmentEligible: false,
   trainable: { any: true, topGapName: "الاستيعاب" },
 };
 
@@ -35,6 +36,21 @@ describe("next step", () => {
       "a ready skill before more training",
       { readySkill: { id: "k1", name: "التناظر" } },
       { type: "REASSESS", skillId: "k1", skillName: "التناظر" },
+    ],
+    [
+      "a ready skill before the re-diagnostic",
+      { readySkill: { id: "k1", name: "التناظر" }, fullReassessmentEligible: true },
+      { type: "REASSESS", skillId: "k1", skillName: "التناظر" },
+    ],
+    [
+      "the re-diagnostic once eligible, before more training (PRD §6)",
+      { fullReassessmentEligible: true },
+      { type: "START_FULL_REASSESSMENT" },
+    ],
+    [
+      "the re-diagnostic rather than all mastered",
+      { fullReassessmentEligible: true, trainable: { any: false, topGapName: null } },
+      { type: "START_FULL_REASSESSMENT" },
     ],
     ["training on the top gap", {}, { type: "TRAIN", skillName: "الاستيعاب" }],
     [

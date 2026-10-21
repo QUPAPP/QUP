@@ -70,12 +70,40 @@ const levelsSchema = z
     }
   });
 
+export const FULL_REASSESSMENT_GATE_KEY = "assessment.fullReassessment.gate";
+
+export interface FullReassessmentGateValue {
+  cooldownDays: number;
+  minTrainingAttempts: number;
+}
+
+const MAX_COOLDOWN_DAYS = 365;
+const MAX_TRAINING_ATTEMPTS = 1_000;
+
+/** PRD §8 / WORKFLOWS.md §6 defaults: a 7-day cooldown and 30 new training answers. */
+export const DEFAULT_FULL_REASSESSMENT_GATE: FullReassessmentGateValue = Object.freeze({
+  cooldownDays: 7,
+  minTrainingAttempts: 30,
+});
+
+const gateSchema = z.strictObject({
+  cooldownDays: z.number().int().min(0).max(MAX_COOLDOWN_DAYS),
+  minTrainingAttempts: z.number().int().min(0).max(MAX_TRAINING_ATTEMPTS),
+});
+
 export const SETTING_DEFINITIONS = {
   [PRELIMINARY_LEVELS_KEY]: {
     valueType: "JSON",
     description: "Lowest performance percentage for each preliminary diagnostic level.",
     schema: levelsSchema,
     defaultValue: DEFAULT_PRELIMINARY_LEVELS,
+  },
+  [FULL_REASSESSMENT_GATE_KEY]: {
+    valueType: "JSON",
+    description:
+      "When a student may take the full re-diagnostic again: days since the last full measurement, and training answers since then.",
+    schema: gateSchema,
+    defaultValue: DEFAULT_FULL_REASSESSMENT_GATE,
   },
 } as const;
 

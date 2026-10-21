@@ -8,8 +8,9 @@ import { apportion } from "./apportion.js";
  *   2. each domain's slots are split across its skills by skill weight;
  *   3. questions the student already answered count towards their skill's
  *      share, so a full diagnostic continues the mini one (PRD §3, §7);
- *   4. within a skill, questions closest to the target difficulty win, with a
- *      random tie-break so students do not all see the same form;
+ *   4. within a skill, questions the student has not seen come first; then those
+ *      closest to the target difficulty win, with a random tie-break so students
+ *      do not all see the same form;
  *   5. items are interleaved across domains so the test does not run in blocks.
  *
  * A domain or skill with too few questions gives its unused share to the
@@ -21,6 +22,11 @@ export interface PlanCandidate {
   questionVersionId: string;
   questionId: string;
   difficulty: number;
+  /**
+   * The student met this question before. Only the re-diagnostic offers such
+   * questions, to keep a skill covered when unseen ones run out (#12g).
+   */
+  seen?: boolean;
 }
 
 export interface PlanSkill {
@@ -97,10 +103,11 @@ function pickClosest(
   const ranked = distinctQuestions(skill.candidates)
     .map((candidate) => ({
       candidate,
+      seen: candidate.seen === true ? 1 : 0,
       distance: Math.abs(candidate.difficulty - input.targetDifficulty),
       tieBreak: input.random(),
     }))
-    .sort((a, b) => a.distance - b.distance || a.tieBreak - b.tieBreak);
+    .sort((a, b) => a.seen - b.seen || a.distance - b.distance || a.tieBreak - b.tieBreak);
 
   const picked: PlanCandidate[] = [];
   for (const { candidate } of ranked) {

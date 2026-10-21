@@ -170,6 +170,34 @@ describe("diagnostic plan", () => {
     );
   });
 
+  it("asks unseen questions first and fills a skill's share with seen ones (re-diagnostic)", () => {
+    const mixed: PlanDomain[] = [
+      {
+        id: "verbal",
+        weight: 1,
+        skills: [
+          {
+            id: "analogy",
+            weight: 1,
+            candidates: [
+              { questionVersionId: "v-seen-near", questionId: "q1", difficulty: 0.5, seen: true },
+              { questionVersionId: "v-new-far", questionId: "q2", difficulty: 0.95 },
+              { questionVersionId: "v-seen-far", questionId: "q3", difficulty: 0.1, seen: true },
+              { questionVersionId: "v-new-near", questionId: "q4", difficulty: 0.6 },
+            ],
+          },
+        ],
+      },
+    ];
+    const ids = (size: number) =>
+      planDiagnostic({ domains: mixed, size, targetDifficulty: 0.5, random: seeded(1) })
+        .map((i) => i.questionVersionId)
+        .sort();
+    expect(ids(2)).toEqual(["v-new-far", "v-new-near"]);
+    expect(ids(3)).toEqual(["v-new-far", "v-new-near", "v-seen-near"]);
+    expect(ids(9)).toHaveLength(4);
+  });
+
   it("is reproducible for a given random source, and varies across sources", () => {
     const ids = (seed: number) => plan(6, seed).map((i) => i.questionVersionId);
     expect(ids(7)).toEqual(ids(7));

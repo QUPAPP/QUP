@@ -12,6 +12,7 @@ export type NextStep =
   | { type: "SUBSCRIBE" }
   | { type: "START_FULL_DIAGNOSTIC" }
   | { type: "REASSESS"; skillId: string; skillName: string }
+  | { type: "START_FULL_REASSESSMENT" }
   | { type: "TRAIN"; skillName: string | null }
   | { type: "ALL_MASTERED" };
 
@@ -23,6 +24,8 @@ export interface NextStepInput {
   fullCompleted: boolean;
   /** The first READY_FOR_REASSESSMENT skill in display order. */
   readySkill: { id: string; name: string } | null;
+  /** The full re-diagnostic's gate is open (PRD §8, OPEN_QUESTIONS.md #12g). */
+  fullReassessmentEligible: boolean;
   /** Whether anything is trainable, and the top gap's name when there is a gap. */
   trainable: { any: boolean; topGapName: string | null };
 }
@@ -42,6 +45,7 @@ export function nextStep(input: NextStepInput): NextStep {
   if (input.readySkill) {
     return { type: "REASSESS", skillId: input.readySkill.id, skillName: input.readySkill.name };
   }
+  if (input.fullReassessmentEligible) return { type: "START_FULL_REASSESSMENT" };
   if (input.trainable.any) return { type: "TRAIN", skillName: input.trainable.topGapName };
   return { type: "ALL_MASTERED" };
 }

@@ -6,9 +6,15 @@
 
 import type { SettingKey, SettingValue } from "./domain/setting-definitions.js";
 
-export type { PreliminaryLevelsValue, SettingKey } from "./domain/setting-definitions.js";
+export type {
+  FullReassessmentGateValue,
+  PreliminaryLevelsValue,
+  SettingKey,
+} from "./domain/setting-definitions.js";
 export {
+  DEFAULT_FULL_REASSESSMENT_GATE,
   DEFAULT_PRELIMINARY_LEVELS,
+  FULL_REASSESSMENT_GATE_KEY,
   PRELIMINARY_LEVELS_KEY,
 } from "./domain/setting-definitions.js";
 

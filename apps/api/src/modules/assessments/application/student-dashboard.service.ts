@@ -71,6 +71,8 @@ export class StudentDashboardService {
             miniCompleted: completed("MINI_DIAGNOSTIC"),
             fullCompleted: completed("FULL_DIAGNOSTIC"),
             readySkill: ready ? { id: ready.id, name: ready.name } : null,
+            // Connected to the gate with the re-diagnostic's service (next commit).
+            fullReassessmentEligible: false,
             trainable: {
               any: skills.some(
                 (skill) => skill.gapSeverity !== null || NEEDS_EVIDENCE.has(skill.state),
