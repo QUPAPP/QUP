@@ -243,6 +243,8 @@ default.
 - V1 key `assessment.preliminaryResult.levels`: the five levels `NEEDS_FOUNDATION`, `BEGINNER`,
   `INTERMEDIATE`, `GOOD`, `ADVANCED` in that order, each `{ level, fromPercentage }` with an integer
   0–100, the first 0, strictly increasing (OPEN_QUESTIONS.md #10b/#10c).
+- Key `assessment.fullReassessment.gate`: `{ cooldownDays, minTrainingAttempts }`, integers 0–365
+  and 0–1000. Default `{ 7, 30 }` (PRD §8; the full re-diagnostic's gate, OPEN_QUESTIONS.md #12g).
 
 ## Imports
 
@@ -367,10 +369,74 @@ view and the same session endpoints as the mini diagnostic.
   the session holds 28 more. Shares follow domain weights (blueprint override, else taxonomy),
   then skill weights; within a skill the questions nearest difficulty 0.5 win; a question already
   given in any session is never repeated. Nothing left to ask: `422 NO_QUESTIONS_AVAILABLE`.
-- One per exam for now: after completing it, `409 FULL_DIAGNOSTIC_ALREADY_COMPLETED` with
-  `details: { sessionId }`. Re-diagnostic (PRD §8) comes later.
+- One per exam: after completing it, `409 FULL_DIAGNOSTIC_ALREADY_COMPLETED` with
+  `details: { sessionId }`. Measuring again is the full re-diagnostic (below).
 - A blueprint pinned to a taxonomy version that is no longer published is ignored (defaults apply).
   Both diagnostics record the blueprint they were planned from.
+
+### Full re-diagnostic
+
+```text
+GET  /exams/:examId/full-reassessment                 status
+POST /exams/:examId/assessments/full-reassessment     201 new · 200 resumed
+GET  /assessments/:sessionId/full-reassessment-result
+```
+
+The whole exam measured again (PRD §6, §8; WORKFLOWS.md §6). Assumptions are in
+OPEN_QUESTIONS.md #12g. The session is `type: "FULL_REASSESSMENT"`, and the usual session routes
+run it (right/wrong only, no review).
+
+**The gate** is the admin setting `assessment.fullReassessment.gate` (see Settings), default 7
+days and 30 answers. Both must hold:
+
+- the cooldown, counted from the completion of the latest full measurement (a full diagnostic or a
+  re-diagnostic);
+- answered training attempts recorded after that completion.
+
+**Status:**
+
+```json
+{ "state": "WAITING", "openSessionId": null, "lastMeasuredAt": "…", "availableAt": "…",
+  "trainingAttempts": { "done": 12, "required": 30 }, "cooldownDays": 7 }
+```
+
+`state`, first match:
+
+1. `OPEN`: an unfinished re-diagnostic, always resumable.
+2. `REQUIRES_ACCESS`.
+3. `FULL_DIAGNOSTIC_REQUIRED`.
+4. `WAITING`: the cooldown or the attempts are not met.
+5. `ELIGIBLE`.
+
+An inactive exam is `404 EXAM_NOT_AVAILABLE`.
+
+**Start:**
+
+- `403 FULL_REASSESSMENT_REQUIRES_ACCESS`.
+- `409 FULL_REASSESSMENT_NOT_ELIGIBLE`, `details: { reason: "FULL_DIAGNOSTIC_REQUIRED" | "WAITING",
+  availableAt, attemptsRemaining }`.
+- `422 NO_QUESTIONS_AVAILABLE`.
+
+The form uses the full diagnostic's recipe (its active blueprint, else 40 questions, difficulty
+0.5). Earlier answers do not count toward the size. Unseen questions come first, and questions
+seen before fill a skill's share only once its unseen ones run out. A question is never repeated
+within the session.
+
+**Result** (`404` for another type or another student; `422 ASSESSMENT_NOT_COMPLETED` before the
+end): correct answers out of all items, compared with the previous full measurement.
+
+```json
+{ "score": { "correct": 31, "total": 40 },
+  "previous": { "type": "FULL_DIAGNOSTIC", "completedAt": "…", "correct": 24, "total": 40 },
+  "skills": [{ "skillId": "…", "name": "…", "correct": 8, "total": 10,
+               "previousCorrect": 5, "previousTotal": 10 }] }
+```
+
+- Skills are listed in the taxonomy's order. A subskill's questions count toward its skill.
+- When the previous measurement was the full diagnostic, its baseline includes the completed mini
+  diagnostic, which it continued.
+- Skips are not correct.
+- A skill measured on one side only has 0/0 on the other.
 
 ### Session history
 
@@ -489,8 +555,8 @@ progress are served together by the dashboard. لا تعرض alpha/beta للطا
 
 - `nextStep.type`, first match (OPEN_QUESTIONS.md #12f): `RESUME_SESSION { sessionId, sessionType }`
   for any unfinished session → without access `START_MINI_DIAGNOSTIC` / `SUBSCRIBE` →
-  `START_FULL_DIAGNOSTIC` → `REASSESS { skillId, skillName }` → `TRAIN { skillName | null }` →
-  `ALL_MASTERED`.
+  `START_FULL_DIAGNOSTIC` → `REASSESS { skillId, skillName }` → `START_FULL_REASSESSMENT` (the
+  re-diagnostic's status is `ELIGIBLE`) → `TRAIN { skillName | null }` → `ALL_MASTERED`.
 - `standing` is `null` without access (PRD §7). Strengths: up to 2 measured non-gap skills, mastered
   first; gaps: up to 3 by severity; improvements: up to 3 nodes whose mastery rose most over the last
   7 days (first `before`, last `after` of their evidence).
@@ -500,7 +566,7 @@ progress are served together by the dashboard. لا تعرض alpha/beta للطا
 ```text
 POST /exams/:examId/skills/:skillId/reassessment     201 new · 200 resumed (implemented, B4)
 GET  /assessments/:sessionId/reassessment-result     (implemented, B4)
-POST /me/exams/:examId/full-reassessment             (planned: full re-diagnostic, PRD §8)
+POST /exams/:examId/assessments/full-reassessment    (implemented: see "Full re-diagnostic")
 ```
 
 Server determines eligibility: the skill profile's `state: "READY_FOR_REASSESSMENT"` is the

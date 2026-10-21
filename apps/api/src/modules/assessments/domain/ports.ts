@@ -142,6 +142,13 @@ export interface AssessmentStore {
   askedQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
   /** Question versions the student answered (not skipped) in this exam, any session. */
   answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
+  /** Answered (not skipped) attempts in the student's sessions of a type, recorded after `since`. */
+  answeredAttemptsSince(
+    studentId: string,
+    examId: string,
+    type: SessionType,
+    since: Date,
+  ): Promise<number>;
 
   /**
    * Creates the session with its items. When another request opened a session

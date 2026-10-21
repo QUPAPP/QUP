@@ -12,6 +12,7 @@ import {
 import { DASHBOARD_DEFAULTS } from "../domain/assessment-config.js";
 import { type NextStep, nextStep } from "../domain/next-step.js";
 import { ASSESSMENT_STORE, type AssessmentStore } from "../domain/ports.js";
+import { FullReassessmentService } from "./full-reassessment.service.js";
 
 const DAY_MS = 86_400_000;
 /** Measured too little or below readiness without being a gap: training still helps. */
@@ -42,6 +43,7 @@ export class StudentDashboardService {
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     @Inject(SKILL_STANDING_READER) private readonly standings: SkillStandingReader,
+    private readonly fullReassessment: FullReassessmentService,
   ) {}
 
   async dashboard(studentId: string, now = new Date()): Promise<ExamProgressCard[]> {
@@ -58,6 +60,11 @@ export class StudentDashboardService {
           activity.completed.some((c) => c.examId === exam.id && c.type === type);
         const open = activity.open.find((session) => session.examId === exam.id) ?? null;
         const standing = hasAccess ? await this.standings.standing(studentId, exam.id) : null;
+        // Only asked when it could be the next step: paid, diagnosed, nothing open.
+        const reDiagnostic =
+          hasAccess && completed("FULL_DIAGNOSTIC") && !open
+            ? await this.fullReassessment.status(studentId, exam.id)
+            : null;
         const skills = standing?.domains.flatMap((domain) => domain.skills) ?? [];
         const gaps = rankedGaps(skills);
         const ready = skills.find((skill) => skill.state === "READY_FOR_REASSESSMENT");
@@ -71,8 +78,7 @@ export class StudentDashboardService {
             miniCompleted: completed("MINI_DIAGNOSTIC"),
             fullCompleted: completed("FULL_DIAGNOSTIC"),
             readySkill: ready ? { id: ready.id, name: ready.name } : null,
-            // Connected to the gate with the re-diagnostic's service (next commit).
-            fullReassessmentEligible: false,
+            fullReassessmentEligible: reDiagnostic?.state === "ELIGIBLE",
             trainable: {
               any: skills.some(
                 (skill) => skill.gapSeverity !== null || NEEDS_EVIDENCE.has(skill.state),

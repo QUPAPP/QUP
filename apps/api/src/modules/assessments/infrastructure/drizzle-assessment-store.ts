@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { EligibleAttempt } from "@qup/adaptive-engine";
 import { type Database, tables } from "@qup/db";
-import { and, asc, count, desc, eq, inArray, max, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, max, sql } from "drizzle-orm";
 
 import { DomainError } from "../../../common/errors/domain-error.js";
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
@@ -213,6 +213,29 @@ export class DrizzleAssessmentStore implements AssessmentStore {
         and(eq(assessmentSessions.studentId, studentId), eq(assessmentSessions.examId, examId)),
       );
     return rows.map((r) => r.questionVersionId);
+  }
+
+  async answeredAttemptsSince(
+    studentId: string,
+    examId: string,
+    type: SessionType,
+    since: Date,
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ attempts: count() })
+      .from(questionAttempts)
+      .innerJoin(assessmentItems, eq(assessmentItems.id, questionAttempts.assessmentItemId))
+      .innerJoin(assessmentSessions, eq(assessmentSessions.id, assessmentItems.sessionId))
+      .where(
+        and(
+          eq(assessmentSessions.studentId, studentId),
+          eq(assessmentSessions.examId, examId),
+          eq(assessmentSessions.type, type),
+          eq(questionAttempts.resultType, "ANSWERED"),
+          gt(questionAttempts.createdAt, since),
+        ),
+      );
+    return row?.attempts ?? 0;
   }
 
   async answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]> {

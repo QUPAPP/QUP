@@ -8,6 +8,8 @@ import { QuestionsModule } from "../questions/questions.module.js";
 import { SettingsModule } from "../settings/settings.module.js";
 import { AssessmentsService } from "./application/assessments.service.js";
 import { BlueprintsService } from "./application/blueprints.service.js";
+import { DiagnosticSessions } from "./application/diagnostic-sessions.service.js";
+import { FullReassessmentService } from "./application/full-reassessment.service.js";
 import { StudentDashboardService } from "./application/student-dashboard.service.js";
 import { ASSESSMENT_STORE, BLUEPRINT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
@@ -39,6 +41,8 @@ import { MeController } from "./presentation/me.controller.js";
   ],
   providers: [
     AssessmentsService,
+    DiagnosticSessions,
+    FullReassessmentService,
     BlueprintsService,
     StudentDashboardService,
     { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore },

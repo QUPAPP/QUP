@@ -19,6 +19,7 @@ import { ZodValidationPipe } from "../../../common/validation/zod-validation.pip
 import type { Principal } from "../../auth/domain/principal.js";
 import { CurrentPrincipal } from "../../auth/presentation/current-principal.decorator.js";
 import { AssessmentsService, type SubmitResult } from "../application/assessments.service.js";
+import { FullReassessmentService } from "../application/full-reassessment.service.js";
 import type { Session, SessionProgress } from "../domain/ports.js";
 import {
   type AnswerBody,
@@ -63,7 +64,10 @@ function toSubmitView(result: SubmitResult) {
 @ApiTags("assessments")
 @Controller()
 export class AssessmentsController {
-  constructor(private readonly assessments: AssessmentsService) {}
+  constructor(
+    private readonly assessments: AssessmentsService,
+    private readonly fullReassessment: FullReassessmentService,
+  ) {}
 
   @Get("assessments")
   @ApiOperation({ summary: "The caller's session history and progress, newest first. Paginated." })
@@ -116,6 +120,54 @@ export class AssessmentsController {
     );
     reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
     return { ...toSessionView(session), resumed: !created };
+  }
+
+  @Get("exams/:examId/full-reassessment")
+  @ApiOperation({
+    summary: "Whether the full re-diagnostic can start now, and what is left before it can.",
+  })
+  async fullReassessmentStatus(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+  ) {
+    const status = await this.fullReassessment.status(principal.userId, examId);
+    return {
+      ...status,
+      lastMeasuredAt: status.lastMeasuredAt?.toISOString() ?? null,
+      availableAt: status.availableAt?.toISOString() ?? null,
+    };
+  }
+
+  @Post("exams/:examId/assessments/full-reassessment")
+  @ApiOperation({
+    summary:
+      "Start the full re-diagnostic once eligible, or resume the open one (201 new, 200 resumed).",
+  })
+  async startFullReassessment(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, created } = await this.fullReassessment.start(principal.userId, examId);
+    reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return { ...toSessionView(session), resumed: !created };
+  }
+
+  @Get("assessments/:sessionId/full-reassessment-result")
+  @ApiOperation({
+    summary: "A finished full re-diagnostic compared with the previous full measurement.",
+  })
+  async fullReassessmentResult(
+    @CurrentPrincipal() principal: Principal,
+    @Param("sessionId", uuid) sessionId: string,
+  ) {
+    const result = await this.fullReassessment.result(principal.userId, sessionId);
+    return {
+      ...result,
+      previous: result.previous
+        ? { ...result.previous, completedAt: result.previous.completedAt.toISOString() }
+        : null,
+    };
   }
 
   @Get("assessments/:sessionId/reassessment-result")

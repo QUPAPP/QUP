@@ -196,7 +196,7 @@ export class FullDiagnosticRequiresAccess extends DomainError {
   }
 }
 
-/** One full diagnostic per exam until re-diagnostic exists (PRD §8, a later slice). */
+/** One full diagnostic per exam; measuring again is the full re-diagnostic (PRD §8). */
 export class FullDiagnosticAlreadyCompleted extends DomainError {
   readonly code = "FULL_DIAGNOSTIC_ALREADY_COMPLETED";
   readonly kind = "CONFLICT";
@@ -206,6 +206,41 @@ export class FullDiagnosticAlreadyCompleted extends DomainError {
   constructor(sessionId: string) {
     super("You have already completed the full diagnostic for this exam.");
     this.details = { sessionId };
+  }
+}
+
+/* -------------------------------------------------------- full re-diagnostic */
+
+export class FullReassessmentRequiresAccess extends DomainError {
+  readonly code = "FULL_REASSESSMENT_REQUIRES_ACCESS";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("The full re-diagnostic is part of this exam's package.");
+  }
+}
+
+/** PRD §8: the full diagnostic comes first, then a cooldown and training answers. */
+export class FullReassessmentNotEligible extends DomainError {
+  readonly code = "FULL_REASSESSMENT_NOT_ELIGIBLE";
+  readonly kind = "CONFLICT";
+  override readonly details: {
+    reason: "FULL_DIAGNOSTIC_REQUIRED" | "WAITING";
+    availableAt: string | null;
+    attemptsRemaining: number;
+  };
+
+  constructor(
+    reason: "FULL_DIAGNOSTIC_REQUIRED" | "WAITING",
+    availableAt: Date | null,
+    attemptsRemaining: number,
+  ) {
+    super(
+      reason === "FULL_DIAGNOSTIC_REQUIRED"
+        ? "Take the full diagnostic first."
+        : "The full re-diagnostic is not available yet.",
+    );
+    this.details = { reason, availableAt: availableAt?.toISOString() ?? null, attemptsRemaining };
   }
 }
 
