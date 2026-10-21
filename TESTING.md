@@ -141,3 +141,29 @@ Browser checks used fixtures at the network boundary, with real rendered pages a
 
 Screenshots and the local CLI smoke script are under the ignored `output/playwright/` directory.
 These are UI checks, not evidence of a completed full diagnostic or a real Stream payment.
+
+## Hardening verification (C4, 2026-10-21)
+
+- **Security, automated:**
+  - client address: forged `X-Forwarded-For`, a valid and an invalid proxy secret, a malformed
+    address (`apps/api/test/auth/client-address.e2e.test.ts`);
+  - `TRUST_PROXY` and secret configuration;
+  - proxy header allow-lists and the cross-site write decision table (`apps/web/test/api-proxy.test.ts`);
+  - the CSP builder (`apps/web/test/csp.test.ts`).
+- **Security, by hand on a production build:**
+  - every script carries the nonce, with no console violations;
+  - a cross-site `POST` gets `403 CROSS_SITE_REQUEST`, and a same-origin one reaches the API.
+- **Dependencies:** `pnpm audit --prod` must be clean.
+- **Backups:** `scripts/backup-restore-check.sh <url>` restores a dump into a scratch database and
+  compares every table. Run it against the local database (RUNBOOK.md §9).
+- **Performance:** `pnpm --filter @qup/api perf` (`PERF_STUDENTS` for more load). The p95 answer
+  latency must stay under 500 ms. Baselines are in RUNBOOK.md §10.
+- **Accessibility and devices** (production build, 375 px):
+  - pages: dashboard, exams, skill profile, subscriptions, account, assessment runner, admin
+    question version, imports, AI and analytics;
+  - checks: no horizontal overflow, one `h1`, labelled controls, named buttons and links,
+    keyboard-only answering.
+
+  Focus loss in the runner was found and fixed. The web app has no component-test tooling, so
+  that fix is verified in the browser only.
+

@@ -99,6 +99,21 @@ One does not replace the other.
 - Not yet: OpenTelemetry tracing, Sentry, a metrics endpoint for scraping, payment/AI metrics
   (OPEN_QUESTIONS.md #21a).
 
+## Alerts (C4, 2026-10-21)
+
+No monitoring vendor is chosen yet (OPEN_QUESTIONS.md #21b). [RUNBOOK.md](RUNBOOK.md) §1 lists each
+alert with where to read it, when to act and the first step:
+
+- readiness;
+- server errors;
+- outbox backlog and failures;
+- AI failures (`/admin/ai`);
+- stuck payments;
+- rate limiting.
+
+When a vendor is chosen, each row becomes an alert rule. The `requestId` that every log line, error
+response and audit entry already carries is what joins them.
+
 ## Adaptive Decision Audit
 
 Persist:

@@ -1,24 +1,17 @@
 # Security Requirements
 
-## Dependency audit — 2026-10-17
+## Dependency audit — 2026-10-21 (C4)
 
-`pnpm audit --prod` reports two high-severity advisories in dependencies already present before
-the student-interface/history/logo changes. This is an open dependency-maintenance item, not a
-clean-audit claim:
+`pnpm audit --prod` is clean. On 2026-10-21 it reported three advisories, fixed in C4:
 
-- `drizzle-orm` 0.44.7, GHSA-gpj5-g38j-94v9: identifier escaping when untrusted runtime strings
-  reach identifier/alias APIs. The inspected application uses static schema identifiers and
-  parameterized values; no request-controlled `sql.identifier()` or alias construction was found.
-  The schema helper's raw column names are literal `email`/`phone`, not request input.
-  Upgrade both ORM consumers together to a patched compatible version (advisory: >=0.45.2),
-  then run DB and API regression tests before production use.
-- Transitive `source-map-js` 1.2.1 via Next/PostCSS, GHSA-68fv-2mgg-jv7q: indexed-source-map offsets
-  can synchronously block parsing. Current HTTP routes do not accept source maps for processing;
-  the untrusted-content import pipeline is not implemented. Update the dependency chain to
-  `source-map-js` >=1.2.2 and recheck the production build before adding such processing.
+- `drizzle-orm` <0.45.2 (GHSA-gpj5-g38j-94v9, high): upgraded to 0.45.4 in `apps/api` and
+  `packages/db`.
+- `fflate` <0.8.3 (GHSA-px8p-9vwx-vf98, moderate): an infinite loop on a malformed ZIP64 archive,
+  reachable through the XLSX question import. Upgraded to 0.8.3.
+- `source-map-js` <1.2.2 via `next > postcss` (GHSA-68fv-2mgg-jv7q, high): forced to >=1.2.2 by a
+  pnpm override (`pnpm-workspace.yaml`).
 
-Reassess these findings when the dependency graph or request-processing paths change. No
-dependency versions, audit suppression or runtime security policy were changed in this patch.
+Rerun `pnpm audit --prod` before each release, and whenever dependencies change.
 
 ## High-Value Assets
 
@@ -132,6 +125,28 @@ Implemented (Stream):
 - Checkout takes only `planId` from the client; price from the plan, student from the session.
 
 ## Web Security
+
+Implemented (C4, 2026-10-21):
+
+- **CSP** on every page (`apps/web/src/proxy.ts`, `src/lib/csp.ts`):
+  - scripts only with a per-request nonce plus `'strict-dynamic'`;
+  - `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`;
+  - `upgrade-insecure-requests` in production.
+  - Inline styles stay allowed.
+- **Cross-site writes** through the web app's API proxy are refused (`403 CROSS_SITE_REQUEST`), by
+  `Sec-Fetch-Site`, or by `Origin` for older browsers. This is a second line behind
+  `SameSite=Lax`.
+- **Trusted client address for rate limits:**
+  - the API trusts a counted number of proxies (`TRUST_PROXY=1`), never every `X-Forwarded-For`
+    entry;
+  - the web app never forwards the browser's `X-Forwarded-For`. It names the student in
+    `x-qup-client-ip`, proven by `PROXY_SHARED_SECRET` (constant-time comparison, redacted from
+    logs).
+
+Before C4, a client could choose its own address, and so reset the login rate limit on every
+request.
+
+Required:
 
 - CSP.
 - security headers.

@@ -32,7 +32,8 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 | --- | --- |
 | `NODE_ENV` | `production` |
 | `HOST` / `PORT` | `0.0.0.0` / `3000` |
-| `TRUST_PROXY` | `true` (behind CranL's proxy and the web app) |
+| `TRUST_PROXY` | `1` (CranL's proxy). `true` is refused since C4: it trusted client-written addresses |
+| `PROXY_SHARED_SECRET` | 32+ random characters (`openssl rand -hex 32`), the **same** value as qup-web's |
 | `DATABASE_URL` | set by CranL: connect the production database to the app (`qup-db-prod`; still `qup-db` today, see Current state) |
 | `STREAM_API_KEY`, `STREAM_WEBHOOK_SECRET` | from Stream's dashboard — set in CranL, never in the repo |
 | `PAYMENT_SUCCESS_URL`, `PAYMENT_FAILURE_URL` | `https://qupedu.com/payment/return` (both) |
@@ -57,6 +58,14 @@ real provider needs OPEN_QUESTIONS.md #17 and its own adapter first.
 | Variable | Value |
 | --- | --- |
 | `API_INTERNAL_URL` | `https://api.qupedu.com` |
+| `PROXY_SHARED_SECRET` | the same value as qup-backend's (C4) |
+
+**Before the first deploy that includes C4:**
+
+- set `TRUST_PROXY=1` on qup-backend, and the same `PROXY_SHARED_SECRET` on both apps;
+- otherwise qup-backend refuses to start, and qup-web answers every API call with an error.
+
+Operations, alerts, backups and incidents: [RUNBOOK.md](RUNBOOK.md).
 
 ## 3. DNS at Porkbun (qupedu.com)
 

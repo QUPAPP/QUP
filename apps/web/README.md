@@ -30,6 +30,24 @@ The browser never calls the API directly. It calls this app's own `/api/v1/*`, a
   taken from the request. Payment webhooks are not reachable through the web app — the provider
   calls the API itself.
 - Every proxied response is `Cache-Control: no-store`.
+- **Client address (C4).** The browser's own `X-Forwarded-For` is never forwarded. The proxy
+  names the student it serves in `x-qup-client-ip`, which is the right-most `X-Forwarded-For`
+  entry, appended by CranL's proxy. It proves itself with `PROXY_SHARED_SECRET`, so the API's rate
+  limits count students, not this server.
+- **Cross-site writes are refused** (`403 CROSS_SITE_REQUEST`): `POST`/`PUT`/`PATCH`/`DELETE`
+  whose `Sec-Fetch-Site` is not `same-origin`, or, from older browsers, whose `Origin` is another
+  host.
+
+## Content Security Policy
+
+`src/proxy.ts` gives every page a fresh nonce and the policy from `src/lib/csp.ts` (tested):
+
+- scripts run only with the nonce (`'strict-dynamic'` for what they load);
+- nothing can frame the app, and forms post only to it;
+- no plugins load.
+
+The root layout renders per request (`await connection()`) so Next.js can put the nonce on its
+scripts. Adding a third-party script means adding its origin to the policy, deliberately.
 
 ## Screens
 
@@ -129,6 +147,7 @@ brand palette, spacing, form controls, state treatments and an authored stroke i
 | Variable | Where | Meaning |
 | --- | --- | --- |
 | `API_INTERNAL_URL` | web server, run time | Base URL of the API. Required in production; `http://localhost:3000` in dev. |
+| `PROXY_SHARED_SECRET` | web server, run time | Same value as the API's. Required in production; unset in dev. |
 | `PORT`, `HOSTNAME` | web server, run time | Listen address in the container (`3000`, `0.0.0.0`). |
 
 ## Not built yet
