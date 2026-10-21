@@ -8,7 +8,14 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
-import { getSkillProfile, isApiError, type ProfileNode, type SkillProfile } from "@/lib/api";
+import {
+  getFullReassessmentStatus,
+  getSkillProfile,
+  isApiError,
+  type ProfileNode,
+  type SkillProfile,
+} from "@/lib/api";
+import { waitingLines } from "@/lib/full-reassessment";
 import { answersText, coverageText, MASTERY_STATE_LABELS, percentText } from "@/lib/mastery-labels";
 import { useRequireUser } from "@/lib/session";
 
@@ -111,6 +118,8 @@ function Profile({ profile }: { profile: SkillProfile }) {
         </p>
       ) : null}
 
+      {summary.assessed > 0 ? <ReDiagnosticCard examId={profile.exam.id} /> : null}
+
       {profile.gaps.length > 0 ? (
         <section className="card stack" aria-labelledby="gaps-heading">
           <h2 id="gaps-heading">الفجوات حسب الأولوية</h2>
@@ -189,5 +198,45 @@ function NodeRow({ node }: { node: ProfileNode }) {
       )}
       <span className="small muted">{coverageText(node.coverage)}</span>
     </div>
+  );
+}
+
+/** Where the student stands with the full re-diagnostic (PRD §8); hidden until it applies. */
+function ReDiagnosticCard({ examId }: { examId: string }) {
+  const user = useRequireUser();
+  const status = useQuery({
+    queryKey: ["full-reassessment-status", user?.id, examId],
+    queryFn: () => getFullReassessmentStatus(examId),
+    enabled: user !== null,
+  });
+  const state = status.data?.state;
+  if (!status.data || (state !== "ELIGIBLE" && state !== "WAITING" && state !== "OPEN")) {
+    return null;
+  }
+  const href = `/exams/${examId}/full-reassessment`;
+  return (
+    <section className="card stack" aria-labelledby="rediagnostic-heading">
+      <h2 id="rediagnostic-heading">إعادة التشخيص الشامل</h2>
+      {state === "WAITING" ? (
+        <ul className="stack small">
+          {waitingLines(status.data, new Date()).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="small">
+          {state === "OPEN"
+            ? "بدأت إعادة التشخيص ولم تكملها بعد."
+            : "متاحة الآن: قِس الاختبار كله من جديد وقارن بقياسك السابق."}
+        </p>
+      )}
+      <Link href={href} className={state === "WAITING" ? "text-link" : "btn btn--small"}>
+        {state === "OPEN"
+          ? "أكمل إعادة التشخيص"
+          : state === "ELIGIBLE"
+            ? "ابدأ إعادة التشخيص"
+            : "التفاصيل"}
+      </Link>
+    </section>
   );
 }

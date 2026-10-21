@@ -11,17 +11,25 @@ export const DIAGNOSTIC_TITLES: Record<DiagnosticType, string> = {
 export const isDiagnostic = (type: SessionType): type is DiagnosticType =>
   type === "MINI_DIAGNOSTIC" || type === "FULL_DIAGNOSTIC";
 
-/** Sessions the question runner plays: diagnostics, adaptive training and skill reassessment. */
-export type RunnerType = DiagnosticType | "ADAPTIVE_TRAINING" | "SKILL_REASSESSMENT";
+/** Sessions the question runner plays: diagnostics, training and both reassessments. */
+export type RunnerType =
+  | DiagnosticType
+  | "ADAPTIVE_TRAINING"
+  | "SKILL_REASSESSMENT"
+  | "FULL_REASSESSMENT";
 
 export const SESSION_TITLES: Record<RunnerType, string> = {
   ...DIAGNOSTIC_TITLES,
   ADAPTIVE_TRAINING: "التدريب التكيفي",
   SKILL_REASSESSMENT: "إعادة قياس المهارة",
+  FULL_REASSESSMENT: "إعادة التشخيص الشامل",
 };
 
 export const isRunnable = (type: SessionType): type is RunnerType =>
-  isDiagnostic(type) || type === "ADAPTIVE_TRAINING" || type === "SKILL_REASSESSMENT";
+  isDiagnostic(type) ||
+  type === "ADAPTIVE_TRAINING" ||
+  type === "SKILL_REASSESSMENT" ||
+  type === "FULL_REASSESSMENT";
 
 /** The last button of a session names where it leads (see completionHref). */
 export const COMPLETION_LABELS: Record<RunnerType, string> = {
@@ -29,11 +37,12 @@ export const COMPLETION_LABELS: Record<RunnerType, string> = {
   FULL_DIAGNOSTIC: "عرض ملف مهاراتي",
   ADAPTIVE_TRAINING: "عرض ملف مهاراتي",
   SKILL_REASSESSMENT: "عرض النتيجة",
+  FULL_REASSESSMENT: "عرض المقارنة",
 };
 
 /**
- * Where a finished session leads: the mini diagnostic and a reassessment to
- * their own result; the full diagnostic and training to the skill profile
+ * Where a finished session leads: the mini diagnostic and both reassessments
+ * to their own result; the full diagnostic and training to the skill profile
  * they update (PRD §6).
  */
 export function completionHref(session: { id: string; examId: string; type: RunnerType }) {
@@ -42,6 +51,8 @@ export function completionHref(session: { id: string; examId: string; type: Runn
       return `/assessments/${session.id}/result`;
     case "SKILL_REASSESSMENT":
       return `/assessments/${session.id}/reassessment`;
+    case "FULL_REASSESSMENT":
+      return `/assessments/${session.id}/full-reassessment`;
     default:
       return `/exams/${session.examId}/profile`;
   }

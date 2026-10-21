@@ -58,3 +58,35 @@ export function toLevelsValue(form: LevelsForm | LevelsFormInput): LevelsValue {
     fromPercentage: Number(normalizeDigits(form.boundaries[index] ?? "")),
   }));
 }
+
+/* ---------------------------------------------------- full re-diagnostic gate */
+
+/** PRD §8: days since the last full measurement, and training answers since then. */
+export type GateValue = { cooldownDays: number; minTrainingAttempts: number };
+
+/** A whole number; its upper bounds are the API's rule (SETTING_VALUE_INVALID). */
+const wholeNumber = z
+  .string()
+  .transform(normalizeDigits)
+  .refine((value) => /^\d{1,4}$/.test(value), "عدد صحيح");
+
+export const gateFormSchema = z.object({
+  cooldownDays: wholeNumber,
+  minTrainingAttempts: wholeNumber,
+});
+export type GateFormInput = z.input<typeof gateFormSchema>;
+export type GateForm = z.output<typeof gateFormSchema>;
+
+export function formFromGate(value: GateValue): GateFormInput {
+  return {
+    cooldownDays: String(value.cooldownDays),
+    minTrainingAttempts: String(value.minTrainingAttempts),
+  };
+}
+
+export function toGateValue(form: GateForm): GateValue {
+  return {
+    cooldownDays: Number(form.cooldownDays),
+    minTrainingAttempts: Number(form.minTrainingAttempts),
+  };
+}

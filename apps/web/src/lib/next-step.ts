@@ -25,6 +25,8 @@ export function nextStepLink(step: NextStep, examId: string): { href: string; la
         href: `/exams/${examId}/skills/${step.skillId}/reassessment`,
         label: `أعد قياس: ${step.skillName}`,
       };
+    case "START_FULL_REASSESSMENT":
+      return { href: `/exams/${examId}/full-reassessment`, label: "ابدأ إعادة التشخيص الشامل" };
     case "TRAIN":
       return {
         href: `/exams/${examId}/training`,

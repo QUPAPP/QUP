@@ -6,6 +6,8 @@
 import { api } from "./api";
 
 export const LEVELS_KEY = "assessment.preliminaryResult.levels";
+/** The full re-diagnostic's gate (PRD §8). */
+export const GATE_KEY = "assessment.fullReassessment.gate";
 
 export interface SettingView {
   key: string;

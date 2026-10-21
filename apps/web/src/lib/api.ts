@@ -278,6 +278,43 @@ export const startMiniDiagnostic = (examId: string) =>
 export const startFullDiagnostic = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/full-diagnostic`, { method: "POST" });
 
+/** API_CONTRACTS.md "Full re-diagnostic"; the gate is the server's (PRD §8). */
+export interface FullReassessmentStatus {
+  state: "OPEN" | "REQUIRES_ACCESS" | "FULL_DIAGNOSTIC_REQUIRED" | "WAITING" | "ELIGIBLE";
+  openSessionId: string | null;
+  lastMeasuredAt: string | null;
+  availableAt: string | null;
+  trainingAttempts: { done: number; required: number };
+  cooldownDays: number;
+}
+
+export interface FullReassessmentResult {
+  score: { correct: number; total: number };
+  previous: {
+    type: SessionType;
+    completedAt: string;
+    correct: number;
+    total: number;
+  } | null;
+  skills: {
+    skillId: string;
+    name: string;
+    correct: number;
+    total: number;
+    previousCorrect: number | null;
+    previousTotal: number | null;
+  }[];
+}
+
+export const getFullReassessmentStatus = (examId: string) =>
+  api<FullReassessmentStatus>(`/exams/${examId}/full-reassessment`);
+
+export const startFullReassessment = (examId: string) =>
+  api<AssessmentSession>(`/exams/${examId}/assessments/full-reassessment`, { method: "POST" });
+
+export const getFullReassessmentResult = (sessionId: string) =>
+  api<FullReassessmentResult>(`/assessments/${sessionId}/full-reassessment-result`);
+
 /** The server's choice of the student's next learning action in one exam (OPEN_QUESTIONS.md #12f). */
 export type NextStep =
   | { type: "RESUME_SESSION"; sessionId: string; sessionType: SessionType }
@@ -285,6 +322,7 @@ export type NextStep =
   | { type: "SUBSCRIBE" }
   | { type: "START_FULL_DIAGNOSTIC" }
   | { type: "REASSESS"; skillId: string; skillName: string }
+  | { type: "START_FULL_REASSESSMENT" }
   | { type: "TRAIN"; skillName: string | null }
   | { type: "ALL_MASTERED" };
 

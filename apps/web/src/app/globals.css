@@ -2424,3 +2424,12 @@
     white-space: pre-wrap;
   }
 }
+
+/* Full re-diagnostic comparison rows (PRD §8). */
+@layer components {
+  :where(.comparison-row) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+}
