@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Kufi_Arabic, Noto_Sans_Arabic } from "next/font/google";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
 import { SiteFooter } from "@/components/site-footer";
@@ -32,7 +33,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#081f3d" };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Every page renders per request, so Next.js can put this request's CSP
+  // nonce on its scripts (src/proxy.ts). A page built ahead of time has none.
+  await connection();
   return (
     // RTL first (AGENTS.md §9): direction is set once, at the root.
     <html
