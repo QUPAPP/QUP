@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -37,6 +37,9 @@ export function AssessmentQuestions({
   const current = useQuery({ queryKey, queryFn: () => getCurrentItem(sessionId) });
 
   const item = current.data?.item ?? null;
+  // The question the page opened on keeps the page's own focus; each later one takes it.
+  const firstItemId = useRef<string | null>(null);
+  if (item && firstItemId.current === null) firstItemId.current = item.id;
   useEffect(() => {
     // Nothing left to answer: the session is complete.
     if (current.data && current.data.item === null) {
@@ -57,6 +60,7 @@ export function AssessmentQuestions({
         item={item}
         progress={current.data.progress}
         completedLabel={completion.label}
+        focusOnMount={item.id !== firstItemId.current}
         onNext={(completed) =>
           completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
         }
@@ -101,10 +105,19 @@ interface QuestionProps {
   item: NonNullable<CurrentItem["item"]>;
   progress: CurrentItem["progress"];
   completedLabel: string;
+  /** Moves keyboard and screen-reader focus to this question when it appears. */
+  focusOnMount: boolean;
   onNext: (completed: boolean) => void;
 }
 
-function Question({ sessionId, item, progress, completedLabel, onNext }: QuestionProps) {
+function Question({
+  sessionId,
+  item,
+  progress,
+  completedLabel,
+  focusOnMount,
+  onNext,
+}: QuestionProps) {
   const queryClient = useQueryClient();
   const multiple = item.question.questionType === "MULTIPLE_CHOICE";
   const [selected, setSelected] = useState<string[]>([]);
@@ -122,6 +135,17 @@ function Question({ sessionId, item, progress, completedLabel, onNext }: Questio
   const outcome = submit.data;
   const locked = submit.isPending || outcome !== undefined;
 
+  // The button that had focus disappears on both transitions; without these,
+  // focus falls back to the page and a keyboard user starts again from the top.
+  const headingRef = useRef<HTMLParagraphElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (focusOnMount) headingRef.current?.focus();
+  }, [focusOnMount]);
+  useEffect(() => {
+    if (outcome) nextRef.current?.focus();
+  }, [outcome]);
+
   const toggle = (key: string) =>
     setSelected((keys) =>
       multiple ? (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]) : [key],
@@ -132,7 +156,7 @@ function Question({ sessionId, item, progress, completedLabel, onNext }: Questio
     <section className="card question-card stack stack--loose" aria-labelledby="question-heading">
       <div className="stack">
         <div className="question-meta">
-          <p className="small muted" id="question-heading">
+          <p className="small muted" id="question-heading" ref={headingRef} tabIndex={-1}>
             السؤال <strong>{position}</strong> من {progress.total}
           </p>
           <span>{item.target ? `تدريب على: ${item.target.skillName}` : "خطوة نحو فهم مستواك"}</span>
@@ -183,6 +207,7 @@ function Question({ sessionId, item, progress, completedLabel, onNext }: Questio
       <div className="question-footer">
         {outcome ? (
           <button
+            ref={nextRef}
             type="button"
             className="btn"
             onClick={() => onNext(outcome.next.type === "COMPLETED")}
