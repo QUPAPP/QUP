@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   forwardedRequestHeaders,
   forwardedResponseHeaders,
+  isCrossSiteWrite,
   upstreamPath,
   upstreamUrl,
 } from "../src/lib/api-proxy";
@@ -107,5 +108,33 @@ describe("which headers cross the proxy", () => {
     expect(headers.get("cache-control")).toBe("no-store");
     expect(headers.get("x-request-id")).toBe("r-1");
     expect(headers.get("x-internal-debug")).toBeNull();
+  });
+});
+
+describe("cross-site writes (C4, CSRF defence in depth)", () => {
+  const request = (method: string, headers: Record<string, string>) =>
+    isCrossSiteWrite(method, new Headers({ host: "qupedu.com", ...headers }));
+
+  it.each([
+    ["a same-origin write", "POST", { "sec-fetch-site": "same-origin" }, false],
+    ["a write from another site", "POST", { "sec-fetch-site": "cross-site" }, true],
+    ["a write from a sibling subdomain", "PUT", { "sec-fetch-site": "same-site" }, true],
+    ["a write the user typed or bookmarked", "DELETE", { "sec-fetch-site": "none" }, true],
+    ["a read from another site", "GET", { "sec-fetch-site": "cross-site" }, false],
+    ["an old browser's same-origin write", "POST", { origin: "https://qupedu.com" }, false],
+    ["an old browser's write from elsewhere", "PATCH", { origin: "https://evil.example" }, true],
+    ["an opaque origin", "POST", { origin: "null" }, true],
+    ["a client that is not a browser", "POST", {}, false],
+  ])("%s", (_name, method, headers, refused) => {
+    expect(request(method, headers)).toBe(refused);
+  });
+
+  it("compares with the public host behind a proxy", () => {
+    const behindProxy = new Headers({
+      host: "10.0.0.5:3001",
+      "x-forwarded-host": "qupedu.com",
+      origin: "https://qupedu.com",
+    });
+    expect(isCrossSiteWrite("POST", behindProxy)).toBe(false);
   });
 });

@@ -27,6 +27,26 @@ const FORWARDED_RESPONSE_HEADERS = ["content-type", "retry-after", "x-request-id
 
 const SAFE_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 
+/** Methods that change something; only these can do harm from another site. */
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * A write a browser sent from another site (CSRF, SECURITY.md "Web
+ * Security"). The session cookie is SameSite=Lax; this is the second line.
+ * Browsers say where a request comes from in Sec-Fetch-Site; older ones only
+ * in Origin, compared with the public host. A request with neither is not
+ * from a browser page, and the API still checks its session.
+ */
+export function isCrossSiteWrite(method: string, headers: Headers): boolean {
+  if (!WRITE_METHODS.has(method.toUpperCase())) return false;
+  const fetchSite = headers.get("sec-fetch-site");
+  if (fetchSite !== null) return fetchSite !== "same-origin";
+  const origin = headers.get("origin");
+  if (origin === null) return false;
+  const host = headers.get("x-forwarded-host") ?? headers.get("host");
+  return !URL.canParse(origin) || new URL(origin).host !== host;
+}
+
 /**
  * The API path for the requested segments, or null when it must not be proxied.
  * Payment webhooks are for the provider, which calls the API itself; a browser

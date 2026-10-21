@@ -1,6 +1,11 @@
 import type { NextRequest } from "next/server";
 
-import { forwardedRequestHeaders, forwardedResponseHeaders, upstreamUrl } from "@/lib/api-proxy";
+import {
+  forwardedRequestHeaders,
+  forwardedResponseHeaders,
+  isCrossSiteWrite,
+  upstreamUrl,
+} from "@/lib/api-proxy";
 
 /**
  * Same-origin gateway to the QUP API. Runs on the server at request time, so
@@ -48,6 +53,9 @@ async function proxy(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ): Promise<Response> {
+  if (isCrossSiteWrite(request.method, request.headers)) {
+    return errorResponse(403, "CROSS_SITE_REQUEST", "Requests from other sites are not accepted.");
+  }
   const { path } = await context.params;
   const target = upstreamUrl(apiBaseUrl(), path, request.nextUrl.search);
   if (!target) return errorResponse(404, "NOT_FOUND", "The requested resource was not found.");

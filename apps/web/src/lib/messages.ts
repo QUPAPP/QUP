@@ -31,6 +31,7 @@ const BY_CODE: Record<string, string> = {
   PAYMENT_PROVIDER_UNAVAILABLE: "تعذّر الاتصال بخدمة الدفع. لم يُخصم منك شيء؛ حاول مرة أخرى.",
   SERVICE_UNAVAILABLE: "الخدمة غير متاحة مؤقتًا. حاول بعد قليل.",
   FORBIDDEN: "ليس لديك صلاحية لهذا الإجراء.",
+  CROSS_SITE_REQUEST: "رُفض الطلب لأنه لم يصدر من صفحات QUP. أعد تحميل الصفحة وحاول مرة أخرى.",
   // Admin: exams and taxonomy.
   EXAM_NOT_FOUND: "لم نجد هذا الاختبار.",
   EXAM_IDENTIFIER_TAKEN: "رمز الاختبار أو رابطه مستخدم من قبل. اختر غيره.",
