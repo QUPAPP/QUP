@@ -111,8 +111,8 @@ function State({ examId, status }: { examId: string; status: FullReassessmentSta
         <section className="card stack" aria-labelledby="ready-heading">
           <h2 id="ready-heading">متاحة الآن</h2>
           <p>
-            جلسة كاملة على كل مهارات الاختبار، بالأسئلة نفسها في عددها وتوزيعها كالتشخيص الكامل.
-            تُحتسب إجاباتك في مستواك كأي جلسة، وفي النهاية ترى مقارنة بقياسك السابق.
+            جلسة على كل مهارات الاختبار، بعدد أسئلة التشخيص الكامل وتوزيعه، وبأسئلة لم ترها قدر
+            الإمكان. تُحتسب إجاباتك في مستواك كأي جلسة، وفي النهاية ترى مقارنة بقياسك السابق.
           </p>
           {start.isError ? <ErrorNotice error={start.error} /> : null}
           <button

@@ -95,6 +95,13 @@ Default configurable gate:
 - 7 days cooldown.
 - 30 new eligible attempts.
 
+Implemented (2026-10-21; API_CONTRACTS.md "Full re-diagnostic", OPEN_QUESTIONS.md #12g):
+
+- **The gate:** the admin setting `assessment.fullReassessment.gate`. The cooldown counts from the
+  last full measurement, and the training answers are those recorded since it.
+- **The form:** the full diagnostic's recipe, with unseen questions first.
+- **The result:** compared with the previous full measurement, per skill.
+
 ## 7. Manual Question Workflow
 
 ```text

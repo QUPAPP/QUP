@@ -61,13 +61,7 @@ function Comparison({ result }: { result: FullReassessmentResult }) {
       <ul className="profile-summary" aria-label="النتيجة الإجمالية">
         <li>
           <strong>{accuracyText(score.correct, score.total)}</strong>
-          <span>
-            الآن (
-            <bdi dir="ltr">
-              {score.correct} / {score.total}
-            </bdi>
-            )
-          </span>
+          <span>{`الآن: ${score.correct} من ${score.total} صحيحة`}</span>
         </li>
         {previous ? (
           <li>

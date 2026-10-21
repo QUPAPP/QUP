@@ -63,9 +63,11 @@ scripts. Adding a third-party script means adding its origin to the policy, deli
 | `/exams/:examId/full-diagnostic` | Paid full diagnostic: start or resume; explains access, or links to the profile when done |
 | `/exams/:examId/training` | Paid adaptive training: start or resume; explains access, or that nothing is left to train |
 | `/exams/:examId/skills/:skillId/reassessment` | Start or resume a skill reassessment; explains when the skill is not ready yet |
+| `/exams/:examId/full-reassessment` | The full re-diagnostic: why it is not open yet (days, training answers), or start/resume it |
 | `/exams/:examId/profile` | Paid skill profile: summary, gaps by priority, every skill and subskill with its state |
 | `/assessments/:sessionId` | Resume a diagnostic or training session at its next unanswered item; training shows the skill, a review after each answer, and an end button |
 | `/assessments/:sessionId/reassessment` | A skill reassessment's outcome: mastered, or the answers a retry still needs |
+| `/assessments/:sessionId/full-reassessment` | The re-diagnostic compared with the previous full measurement, overall and per skill |
 | `/assessments/:sessionId/result` | Preliminary result, and plans to subscribe |
 | `/payment/return` | Where the payment provider sends the student back; polls the payment |
 | `/admin/exams` | Admin: every exam with its status; create an exam |
