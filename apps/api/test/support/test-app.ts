@@ -21,6 +21,8 @@ import {
  */
 
 export const TEST_ALLOWED_ORIGIN = "https://app.qup.test";
+/** The web proxy's shared secret in tests (PROXY_SHARED_SECRET, required in production). */
+export const TEST_PROXY_SECRET = "test-proxy-secret-0123456789abcdef";
 export const TEST_BODY_LIMIT_BYTES = 1024;
 
 export function testConfig(overrides: Record<string, string> = {}): AppConfig {
@@ -30,6 +32,7 @@ export function testConfig(overrides: Record<string, string> = {}): AppConfig {
     LOG_LEVEL: "info",
     CORS_ALLOWED_ORIGINS: TEST_ALLOWED_ORIGIN,
     BODY_LIMIT_BYTES: String(TEST_BODY_LIMIT_BYTES),
+    PROXY_SHARED_SECRET: TEST_PROXY_SECRET,
     ...overrides,
   });
 }

@@ -209,6 +209,7 @@ describe("payment configuration", () => {
   it("refuses to send the API key over plain HTTP in production", () => {
     const env = {
       NODE_ENV: "production",
+      PROXY_SHARED_SECRET: "a-proxy-secret-that-is-long-enough-1234",
       STREAM_API_KEY: "k",
       STREAM_WEBHOOK_SECRET: "s",
       STREAM_API_BASE_URL: "http://stream.example.com",

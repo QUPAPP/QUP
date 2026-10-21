@@ -12,6 +12,7 @@ import { ErrorResponseFilter } from "../common/errors/error-response.filter.js";
 import { REQUEST_ID_HEADER, resolveRequestId } from "../common/http/request-id.js";
 import type { AppConfig } from "../config/app-config.js";
 import { IMPORT_UPLOAD_BODY_LIMIT_BYTES } from "../modules/content-import/domain/import-limits.js";
+import { registerClientAddress } from "./client-address.js";
 
 /**
  * Production and tests build the application through the same two functions,
@@ -33,10 +34,20 @@ const UPLOAD_BODY_LIMITS: Readonly<Record<string, number>> = {
  */
 export const NEST_APP_OPTIONS = { rawBody: true } as const;
 
+/**
+ * Trusts the socket address and the next `hops - 1` X-Forwarded-For entries
+ * from the right, as Fastify does for a number (the adapter's type wants the
+ * function form). `request.ip` is then the address the outermost trusted
+ * proxy saw, never one the client wrote.
+ */
+function trustedHops(hops: number | false): false | ((address: string, hop: number) => boolean) {
+  return hops === false ? false : (_address, hop) => hop < hops;
+}
+
 export function createAdapter(config: AppConfig): FastifyAdapter {
   return new FastifyAdapter({
     logger: false, // pino-http (nestjs-pino) owns request logging
-    trustProxy: config.server.trustProxy,
+    trustProxy: trustedHops(config.server.trustProxy),
     bodyLimit: config.server.bodyLimitBytes,
     // Validated ourselves rather than trusted blindly from the header.
     requestIdHeader: false,
@@ -66,6 +77,9 @@ export async function configureApp(app: NestFastifyApplication, config: AppConfi
     const limit = UPLOAD_BODY_LIMITS[route.url];
     if (limit !== undefined) route.bodyLimit = limit;
   });
+
+  // Before the guards run: the rate limiter counts requests per client address.
+  registerClientAddress(fastify, config.proxy.sharedSecret);
 
   fastify.addHook("onRequest", async (request, reply) => {
     reply.header(REQUEST_ID_HEADER, request.id);

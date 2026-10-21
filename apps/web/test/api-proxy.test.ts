@@ -42,6 +42,8 @@ describe("which paths are proxied", () => {
   });
 });
 
+const SECRET = "test-proxy-secret-0123456789abcdef";
+
 describe("which headers cross the proxy", () => {
   it("forwards what the API needs and nothing else", () => {
     const headers = forwardedRequestHeaders(
@@ -53,15 +55,44 @@ describe("which headers cross the proxy", () => {
         host: "qupedu.com",
         authorization: "Bearer should-not-pass",
         "x-api-key": "should-not-pass",
+        "x-qup-client-ip": "198.51.100.1",
         connection: "keep-alive",
       }),
+      null,
     );
     expect(Object.fromEntries(headers)).toEqual({
       cookie: "qup_session=abc",
       "content-type": "application/json",
       "idempotency-key": "k-1",
-      "x-forwarded-for": "203.0.113.7",
     });
+  });
+
+  it("vouches for the client address its own edge proxy saw (C4)", () => {
+    // The browser wrote 10.0.0.1; the edge proxy appended the address it saw.
+    const headers = forwardedRequestHeaders(
+      new Headers({ "x-forwarded-for": "10.0.0.1, 203.0.113.7" }),
+      SECRET,
+    );
+    expect(Object.fromEntries(headers)).toEqual({
+      "x-qup-proxy-secret": SECRET,
+      "x-qup-client-ip": "203.0.113.7",
+    });
+  });
+
+  it.each([
+    ["no forwarded address", {}],
+    ["a malformed one", { "x-forwarded-for": "10.0.0.1, not-an-address" }],
+  ])("names no client for %s", (_name, incoming) => {
+    const headers = forwardedRequestHeaders(new Headers(incoming), SECRET);
+    expect(Object.fromEntries(headers)).toEqual({ "x-qup-proxy-secret": SECRET });
+  });
+
+  it("accepts an IPv6 client", () => {
+    const headers = forwardedRequestHeaders(
+      new Headers({ "x-forwarded-for": "2001:db8::7" }),
+      SECRET,
+    );
+    expect(headers.get("x-qup-client-ip")).toBe("2001:db8::7");
   });
 
   it("returns every Set-Cookie and forbids caching", () => {

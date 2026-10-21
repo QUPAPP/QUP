@@ -22,6 +22,20 @@ function apiBaseUrl(): string {
   return DEFAULT_DEV_API_URL;
 }
 
+/**
+ * Lets the API count each student separately (PROXY_SHARED_SECRET, shared
+ * with the API). Without it in production every student would share this
+ * server's address and its rate limits, so its absence is an error there.
+ */
+function proxySecret(): string | null {
+  const configured = process.env.PROXY_SHARED_SECRET;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("PROXY_SHARED_SECRET is required in production.");
+  }
+  return null;
+}
+
 /** Same envelope as the API's own errors, so the client handles one shape. */
 function errorResponse(status: number, code: string, message: string): Response {
   return Response.json(
@@ -43,7 +57,7 @@ async function proxy(
   try {
     upstream = await fetch(target, {
       method: request.method,
-      headers: forwardedRequestHeaders(request.headers),
+      headers: forwardedRequestHeaders(request.headers, proxySecret()),
       ...(hasBody ? { body: await request.arrayBuffer() } : {}),
       redirect: "manual",
       cache: "no-store",

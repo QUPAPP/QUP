@@ -27,6 +27,7 @@ const REDACTED_PATHS = [
   "req.headers.cookie",
   'res.headers["set-cookie"]',
   'req.headers["x-webhook-signature"]',
+  'req.headers["x-qup-proxy-secret"]',
   "*.password",
   "*.passwordHash",
   "*.token",

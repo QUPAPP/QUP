@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { InvalidConfigError, loadConfig } from "../src/config/app-config.js";
 
 const VALID_URL = "postgresql://user:pass@db.internal:5432/qup_db";
+/** Production requires the web proxy's shared secret. */
+const PROXY_SECRET = "a-proxy-secret-that-is-long-enough-1234";
+const PRODUCTION = { NODE_ENV: "production", PROXY_SHARED_SECRET: PROXY_SECRET };
 
 function loadExpectingFailure(env: Record<string, string>): InvalidConfigError {
   try {
@@ -37,14 +40,38 @@ describe("configuration", () => {
   });
 
   it("accepts only the literal strings true/false for flags", () => {
-    expect(loadConfig({ DATABASE_URL: VALID_URL, TRUST_PROXY: "true" }).server.trustProxy).toBe(
-      true,
-    );
+    expect(loadConfig({ DATABASE_URL: VALID_URL, LOG_PRETTY: "true" }).logging.pretty).toBe(true);
     for (const ambiguous of ["yes", "1", "TRUE", "on"]) {
-      expect(() => loadConfig({ DATABASE_URL: VALID_URL, TRUST_PROXY: ambiguous })).toThrow(
+      expect(() => loadConfig({ DATABASE_URL: VALID_URL, LOG_PRETTY: ambiguous })).toThrow(
         InvalidConfigError,
       );
     }
+  });
+
+  it("trusts a counted number of proxies, never every forwarded address", () => {
+    expect(loadConfig({ DATABASE_URL: VALID_URL, TRUST_PROXY: "1" }).server.trustProxy).toBe(1);
+    expect(loadConfig({ DATABASE_URL: VALID_URL, TRUST_PROXY: "false" }).server.trustProxy).toBe(
+      false,
+    );
+    // `true` takes the left-most X-Forwarded-For entry, which the client writes.
+    for (const unsafe of ["true", "0", "9", "yes"]) {
+      expect(
+        loadExpectingFailure({ DATABASE_URL: VALID_URL, TRUST_PROXY: unsafe }).problems,
+      ).toEqual([expect.stringContaining("TRUST_PROXY")]);
+    }
+  });
+
+  it("requires the web proxy's secret in production, and a long one anywhere", () => {
+    expect(
+      loadExpectingFailure({ DATABASE_URL: VALID_URL, NODE_ENV: "production" }).problems,
+    ).toEqual([expect.stringContaining("PROXY_SHARED_SECRET")]);
+    expect(
+      loadExpectingFailure({ DATABASE_URL: VALID_URL, PROXY_SHARED_SECRET: "short" }).problems,
+    ).toEqual([expect.stringContaining("PROXY_SHARED_SECRET")]);
+    expect(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }).proxy.sharedSecret).toBe(
+      PROXY_SECRET,
+    );
+    expect(loadConfig({ DATABASE_URL: VALID_URL }).proxy.sharedSecret).toBeNull();
   });
 
   it("parses the CORS allowlist and drops blank entries", () => {
@@ -56,15 +83,13 @@ describe("configuration", () => {
   });
 
   it("disables API docs in production unless explicitly enabled", () => {
-    expect(loadConfig({ DATABASE_URL: VALID_URL, NODE_ENV: "production" }).apiDocs.enabled).toBe(
-      false,
-    );
+    expect(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }).apiDocs.enabled).toBe(false);
     expect(loadConfig({ DATABASE_URL: VALID_URL, NODE_ENV: "development" }).apiDocs.enabled).toBe(
       true,
     );
     expect(
-      loadConfig({ DATABASE_URL: VALID_URL, NODE_ENV: "production", API_DOCS_ENABLED: "true" })
-        .apiDocs.enabled,
+      loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION, API_DOCS_ENABLED: "true" }).apiDocs
+        .enabled,
     ).toBe(true);
   });
 
@@ -75,14 +100,14 @@ describe("configuration", () => {
       maxAttempts: 2,
     });
     expect(loadConfig({ DATABASE_URL: VALID_URL }).rateLimit.aiPerMinute).toBe(20);
-    expect(loadConfig({ DATABASE_URL: VALID_URL, NODE_ENV: "production" }).ai.provider).toBeNull();
+    expect(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }).ai.provider).toBeNull();
     expect(loadConfig({ DATABASE_URL: VALID_URL, AI_PROVIDER: "disabled" }).ai.provider).toBeNull();
   });
 
   it("refuses the test AI provider in production (OPEN_QUESTIONS #17)", () => {
     const error = loadExpectingFailure({
       DATABASE_URL: VALID_URL,
-      NODE_ENV: "production",
+      ...PRODUCTION,
       AI_PROVIDER: "fake",
     });
     expect(error.problems).toEqual([expect.stringContaining("AI_PROVIDER")]);

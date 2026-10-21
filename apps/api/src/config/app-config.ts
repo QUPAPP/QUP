@@ -27,6 +27,10 @@ const ONE_DAY_IN_MINUTES = 1_440;
 const MIN_AI_TIMEOUT_MS = 100;
 const MAX_AI_TIMEOUT_MS = 120_000;
 const MAX_AI_ATTEMPTS = 5;
+/** More proxies than this in front of the API is a misconfiguration, not a topology. */
+const MAX_PROXY_HOPS = 5;
+/** 256 bits as hex; anything shorter is guessable enough to forge a client address. */
+const MIN_PROXY_SECRET_LENGTH = 32;
 
 /** Empty strings in a .env file mean "not set". */
 const optionalSecret = z
@@ -56,8 +60,26 @@ const envSchema = z.object({
 
   /** Browser origins allowed to call the API. Empty means no cross-origin access. */
   CORS_ALLOWED_ORIGINS: commaSeparatedList.default([]),
-  /** Trust X-Forwarded-* headers. Enable only behind a known reverse proxy. */
-  TRUST_PROXY: booleanFlag.default(false),
+  /**
+   * How many reverse proxies in front of the API append to X-Forwarded-For
+   * (`1` behind CranL), or `false` for none. Never "all": the left-most
+   * entries are written by the client.
+   */
+  TRUST_PROXY: z
+    .string()
+    .default("false")
+    .refine((value) => value === "false" || new RegExp(`^[1-${MAX_PROXY_HOPS}]$`).test(value), {
+      message: `must be false or the number of proxies in front of the API (1-${MAX_PROXY_HOPS}); true would trust addresses the client writes`,
+    })
+    .transform((value) => (value === "false" ? (false as const) : Number(value))),
+  /**
+   * Shared with the web app, which sends it with the address of the student
+   * it forwards for (x-qup-client-ip). Required in production.
+   */
+  PROXY_SHARED_SECRET: optionalSecret.refine(
+    (value) => value === undefined || value.length >= MIN_PROXY_SECRET_LENGTH,
+    `must be at least ${MIN_PROXY_SECRET_LENGTH} characters`,
+  ),
   /**
    * Maximum JSON body size. File uploads belong in object storage; the one
    * exception is the structured-import upload (≤ 2 MiB), which has its own
@@ -122,6 +144,10 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   if (env.NODE_ENV === "production" && !env.STREAM_API_BASE_URL.startsWith("https://")) {
     problems.push("STREAM_API_BASE_URL: must use https in production");
   }
+  // Every student reaches the API through the web app: without the secret they would all share its address.
+  if (env.NODE_ENV === "production" && env.PROXY_SHARED_SECRET === undefined) {
+    problems.push("PROXY_SHARED_SECRET: required in production (shared with the web app)");
+  }
   // Canned suggestions would reach real authors as if a model wrote them.
   if (env.NODE_ENV === "production" && env.AI_PROVIDER === "fake") {
     problems.push("AI_PROVIDER: the fake provider is for development and tests only");
@@ -151,6 +177,9 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
     },
     cors: {
       allowedOrigins: env.CORS_ALLOWED_ORIGINS,
+    },
+    proxy: {
+      sharedSecret: env.PROXY_SHARED_SECRET ?? null,
     },
     apiDocs: {
       enabled: env.API_DOCS_ENABLED ?? env.NODE_ENV !== "production",

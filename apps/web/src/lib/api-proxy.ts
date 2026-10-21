@@ -6,6 +6,8 @@
  * request, so the proxy cannot be pointed somewhere else (SECURITY.md: SSRF).
  */
 
+import { isIP } from "node:net";
+
 /** Request headers the API needs from the browser. */
 const FORWARDED_REQUEST_HEADERS = [
   "accept",
@@ -14,9 +16,11 @@ const FORWARDED_REQUEST_HEADERS = [
   "idempotency-key",
   "user-agent",
   "x-request-id",
-  // The API rate-limits per client address; without this every student would share ours.
-  "x-forwarded-for",
 ] as const;
+
+/** The API trusts the client address only alongside the shared secret (PROXY_SHARED_SECRET). */
+export const PROXY_SECRET_HEADER = "x-qup-proxy-secret";
+export const CLIENT_IP_HEADER = "x-qup-client-ip";
 
 /** Response headers the browser needs back. Set-Cookie is handled separately (it repeats). */
 const FORWARDED_RESPONSE_HEADERS = ["content-type", "retry-after", "x-request-id"] as const;
@@ -47,11 +51,33 @@ export function upstreamUrl(
   return url;
 }
 
-export function forwardedRequestHeaders(incoming: Headers): Headers {
+/**
+ * The address of the client this app is serving: the right-most
+ * X-Forwarded-For entry, appended by the edge proxy in front of this app (or
+ * filled from the socket by Next.js when there is none). Entries to its left
+ * were written by the client and are never used.
+ */
+export function clientAddress(incoming: Headers): string | null {
+  const entries = incoming.get("x-forwarded-for")?.split(",") ?? [];
+  const nearest = entries.at(-1)?.trim() ?? "";
+  return isIP(nearest) === 0 ? null : nearest;
+}
+
+/**
+ * Headers for the API. The browser's own X-Forwarded-For never passes: the
+ * API rate-limits per client, and that header is whatever the client wants.
+ * With the shared secret, this app names the client it is serving instead.
+ */
+export function forwardedRequestHeaders(incoming: Headers, proxySecret: string | null): Headers {
   const headers = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = incoming.get(name);
     if (value !== null) headers.set(name, value);
+  }
+  if (proxySecret !== null) {
+    headers.set(PROXY_SECRET_HEADER, proxySecret);
+    const client = clientAddress(incoming);
+    if (client !== null) headers.set(CLIENT_IP_HEADER, client);
   }
   return headers;
 }

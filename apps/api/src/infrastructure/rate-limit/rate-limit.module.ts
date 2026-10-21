@@ -15,8 +15,9 @@ import { APP_CONFIG, type AppConfig } from "../../config/app-config.js";
  * than one API instance requires moving the storage to Redis
  * (ARCHITECTURE.md already plans Redis for rate limits).
  *
- * Client IPs come from Fastify's `request.ip`; behind a proxy set TRUST_PROXY,
- * or every client will share the proxy's address and budget.
+ * Requests are counted per `request.clientAddress` (bootstrap/client-address.ts):
+ * the student's address as vouched for by the web app, otherwise the address
+ * the trusted proxies saw (TRUST_PROXY hops). A client cannot pick its own.
  */
 
 const WINDOW_MS = 60_000;
@@ -40,6 +41,8 @@ function isMarked(context: ExecutionContext, marker: string): boolean {
       imports: [], // APP_CONFIG is provided globally by ConfigModule
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) => ({
+        getTracker: (request: Record<string, unknown>) =>
+          String(request.clientAddress ?? request.ip),
         throttlers: [
           { name: GLOBAL_THROTTLER, ttl: WINDOW_MS, limit: config.rateLimit.perMinute },
           {
