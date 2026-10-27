@@ -17,7 +17,14 @@ export type IconName =
   | "user"
   | "lock"
   | "plus"
-  | "close";
+  | "close"
+  | "home"
+  | "target"
+  | "flag"
+  | "layers"
+  | "trend"
+  | "settings"
+  | "shield";
 
 const paths: Record<IconName, ReactNode> = {
   arrow: (
@@ -99,6 +106,24 @@ const paths: Record<IconName, ReactNode> = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   close: <path d="m6 6 12 12M6 18 18 6" />,
+  home: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" />,
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 12h.01" />
+    </>
+  ),
+  flag: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
+  layers: <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />,
+  trend: <path d="M3 17 9 11l4 4 8-8m0 0h-5m5 0v5" />,
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z" />
+    </>
+  ),
+  shield: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Zm-3 9 2 2 4-4" />,
 };
 
 export function Icon({ name, className = "" }: { name: IconName; className?: string }) {

@@ -3,27 +3,41 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isAdminPath, isWorkspacePath } from "@/lib/navigation";
-import { useCurrentUser } from "@/lib/session";
+import { hasAdminAccess, homePath } from "@/lib/permissions";
+import { useMe } from "@/lib/session";
 import { Brand } from "./brand";
 import { Icon } from "./icon";
 
+const sections = [
+  { href: "/#why-qup", title: "لماذا QUP؟" },
+  { href: "/#how-it-works", title: "كيف يعمل" },
+  { href: "/#report", title: "مساحتك" },
+  { href: "/#questions", title: "أسئلة شائعة" },
+];
+
 export function SiteHeader() {
-  const { data: user } = useCurrentUser();
+  const { data: me } = useMe();
   const path = usePathname();
-  if (isWorkspacePath(path) || isAdminPath(path)) return null;
+  // Sign-in pages carry the logo in their own photo panel.
+  if (isWorkspacePath(path) || isAdminPath(path) || path === "/login" || path === "/register")
+    return null;
+  // On the home page the header floats over the hero photograph.
+  const overlay = path === "/";
   return (
-    <header className="site-header">
+    <header className={`site-header ${overlay ? "site-header--overlay" : ""}`}>
       <div className="site-header__inner">
-        <Brand />
-        <nav className="public-nav" aria-label="التنقل">
-          <a href="/#how-it-works">كيف يعمل؟</a>
-          <a href="/#why-qup">لماذا QUP؟</a>
-          <a href="/#questions">أسئلة شائعة</a>
+        <Brand tone={overlay ? "light" : "dark"} />
+        <nav className="public-nav" aria-label="أقسام الصفحة">
+          {sections.map((section) => (
+            <a key={section.href} href={section.href}>
+              {section.title}
+            </a>
+          ))}
         </nav>
         <div className="site-header__actions">
-          {user ? (
-            <Link href="/dashboard" className="btn btn--small">
-              مساحتي <Icon name="arrow" />
+          {me ? (
+            <Link href={homePath(me)} className="btn btn--gold btn--small">
+              {hasAdminAccess(me) ? "لوحة الإدارة" : "مساحتي"} <Icon name="arrow" />
             </Link>
           ) : (
             <>
@@ -34,7 +48,7 @@ export function SiteHeader() {
               >
                 دخول
               </Link>
-              <Link href="/register" className="btn btn--small">
+              <Link href="/register" className="btn btn--gold btn--small">
                 ابدأ مجانًا <Icon name="arrow" />
               </Link>
             </>

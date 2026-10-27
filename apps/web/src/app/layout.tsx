@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Kufi_Arabic, Noto_Sans_Arabic } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, Noto_Kufi_Arabic } from "next/font/google";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -10,17 +10,18 @@ import { Providers } from "./providers";
 
 import "./globals.css";
 
-// UI_BRAND.md: Kufi for headings and buttons, Sans for body and dense content.
+// UI_BRAND.md: Kufi for headings, a Sans for body and dense content. Plex
+// carries real 500/600 weights, so hierarchy does not lean on bold alone.
 const kufi = Noto_Kufi_Arabic({
   subsets: ["arabic"],
-  weight: ["600", "700"],
+  weight: ["600", "700", "800"],
   display: "swap",
   variable: "--font-kufi",
 });
 
-const sansArabic = Noto_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "600"],
+const sansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
   variable: "--font-sans-arabic",
 });

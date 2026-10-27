@@ -11,16 +11,21 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
-        <Brand />
-        <p>تعلّم يبدأ بفهم مستواك.</p>
+        <div className="site-footer__brand">
+          <Brand tone="light" />
+          <p>منصة تشخيص وتدريب تبدأ من مستواك، وتنتهي بإتقان مُثبت.</p>
+        </div>
         <nav aria-label="روابط التذييل">
-          <Link href="/register">ابدأ رحلتك</Link>
+          <Link href="/register">ابدأ التشخيص المجاني</Link>
           <Link href="/login">تسجيل الدخول</Link>
-          <a href="/#how-it-works">كيف يعمل؟</a>
+          <a href="/#how-it-works">كيف يعمل</a>
+          <a href="/#questions">أسئلة شائعة</a>
         </nav>
       </div>
       <div className="footer-bottom">
-        <span>QUP · جميع الحقوق محفوظة</span>
+        <span>
+          QUP © <bdi>{new Date().getFullYear()}</bdi> · جميع الحقوق محفوظة
+        </span>
         <span>صُمّم للتعلّم، خطوة بخطوة.</span>
       </div>
     </footer>

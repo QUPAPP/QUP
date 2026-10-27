@@ -21,9 +21,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const current = items.find((item) => isActivePath(path, item.href));
 
   return (
-    <div className="workspace">
+    <div className="workspace workspace--admin">
       <aside className="sidebar" aria-label="قائمة الإدارة">
-        <Brand href="/admin" />
+        <Brand href="/admin" tone="light" />
         <div className="sidebar-section-label">لوحة الإدارة</div>
         <nav className="sidebar-nav" aria-label="تنقل الإدارة">
           {items.map((item) => (
@@ -35,36 +35,40 @@ export function AdminShell({ children }: { children: ReactNode }) {
             >
               <Icon name={item.icon} />
               <span>{item.title}</span>
-              <Icon name="chevron" className="nav-chevron" />
             </Link>
           ))}
-          <Link href="/dashboard" className="sidebar-link">
-            <Icon name="grid" />
-            <span>العودة إلى مساحتي</span>
-            <Icon name="chevron" className="nav-chevron" />
+          <Link href="/dashboard" className="sidebar-link sidebar-link--separated">
+            <Icon name="home" />
+            <span>مساحة الطالب</span>
           </Link>
         </nav>
         <div className="sidebar-bottom">
           <SignOutButton />
-          <span className="small muted">QUP · لوحة الإدارة</span>
         </div>
       </aside>
       <div className="workspace-body">
         <header className="workspace-header">
           <div className="workspace-breadcrumb">
+            <span className="workspace-greeting__brand">
+              <Brand href="/admin" tagline={false} />
+            </span>
             <span>لوحة الإدارة</span>
             <Icon name="chevron" />
             <strong>{current?.title ?? "الإدارة"}</strong>
           </div>
           <div className="workspace-user">
-            <span className="user-avatar" aria-hidden="true">
-              {me?.user.displayName?.trim().charAt(0) || <Icon name="user" />}
+            <span className="user-chip">
+              <span className="user-avatar" aria-hidden="true">
+                {me?.user.displayName?.trim().charAt(0) || <Icon name="user" />}
+              </span>
+              <span className="user-chip__name">
+                {me?.user.displayName ?? me?.user.email ?? "حساب إداري"}
+                <small>صلاحيات إدارية</small>
+              </span>
             </span>
-            <span>{me?.user.displayName ?? me?.user.email ?? "حساب إداري"}</span>
-            <span className="session-indicator">صلاحيات إدارية</span>
           </div>
         </header>
-        <nav className="mobile-nav" aria-label="تنقل الإدارة على الجوال">
+        <nav className="mobile-nav mobile-nav--scroll" aria-label="تنقل الإدارة على الجوال">
           {items.map((item) => (
             <Link
               key={item.href}
@@ -76,8 +80,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <Link href="/dashboard">
-            <Icon name="grid" />
-            مساحتي
+            <Icon name="home" />
+            مساحة الطالب
           </Link>
         </nav>
         <div className="workspace-content">{children}</div>

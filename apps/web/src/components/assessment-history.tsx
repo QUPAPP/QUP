@@ -95,7 +95,7 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
                 </Link>
               ) : session.status === "CREATED" || session.status === "IN_PROGRESS" ? (
                 <Link className="btn btn--small" href={`/assessments/${session.id}`}>
-                  استكمال التشخيص <Icon name="arrow" />
+                  أكمل الجلسة <Icon name="arrow" />
                 </Link>
               ) : null
             ) : null}

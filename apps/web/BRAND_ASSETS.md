@@ -24,3 +24,15 @@ Create a finished professional brand logo for QUP, an Arabic adaptive learning a
 Reference: `public/brand/qup-logo-v2.png`.
 
 Extract and faithfully reproduce ONLY the standalone Q symbol at the far LEFT of this supplied QUP logo, removing the separate QUP wordmark entirely. Preserve the exact distinctive shape: substantial midnight navy #081F3D open circular Q form with the same warm gold #D39A27 folded diagonal tail/page stroke. No redesign, no extra objects, no lettering or text, no background, no gradients, no shadows, no border or square container. Center the isolated symbol, large, with balanced modest clearspace in a SQUARE canvas and true alpha transparency, ready for a favicon and app icon. Flat crisp logo artwork, consistent optical weight, recognizable at 32 pixels. The only output should be that original leftmost icon.
+
+## Additions — 2026-10-27
+
+- `public/brand/qup-logo-light.png`: the primary logo for navy and photographic backgrounds
+  (sidebar, hero, footer, sign-in panel). Derived from `qup-logo-v2.png` by recolouring every
+  non-gold pixel to white and keeping the original alpha; not regenerated or redrawn.
+- `public/brand/qup-mountain-journey.webp` (2172 px) and `qup-mountain-journey-1200.webp`
+  (1200 px): the hero photograph used on the home page, sign-in pages, dashboard banner and
+  sidebar card. WebP re-encodes of `qup-mountain-journey-v1.png`, an AI-generated image made for
+  the 2026-10-19 reference redesign (not a photograph of a real student; its prompt was not
+  recorded). The owner chose to keep it on 2026-10-27. Replace it with a licensed or commissioned
+  photograph when one is available.

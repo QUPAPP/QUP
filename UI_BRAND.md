@@ -36,14 +36,17 @@ Gold للتأكيد والإنجاز والزخرفة، وليس للنصوص ا
 ## Logo Assets
 
 The website uses the navy/gold QUP logo in `apps/web/public/brand/qup-logo-v2.png` and the
-matching standalone symbol `qup-symbol-v2.png`. Both preserve native transparency. Shared
+matching standalone symbol `qup-symbol-v2.png`. On navy or photographic backgrounds it uses
+`qup-logo-light.png`: the same artwork with a white wordmark and the gold stroke unchanged. Both preserve native transparency. Shared
 `Brand` rendering retains the Arabic tagline as accessible text. Asset usage and generation
 provenance are documented in `apps/web/BRAND_ASSETS.md`.
 
 ## Typography
 
-- `Noto Kufi Arabic`: headings/buttons/high-presence UI.
-- `Noto Sans Arabic`: body/educational content/dense UI.
+- `Noto Kufi Arabic`: headings and high-presence UI.
+- `IBM Plex Sans Arabic`: body, buttons, educational content and dense UI. It replaced Noto Sans
+  Arabic on 2026-10-27 because it carries real 500/600 weights, so hierarchy does not rely on bold
+  alone.
 
 Suggested scale:
 - H1: 32–40px
@@ -113,6 +116,16 @@ Domain:
 - QuestionEditor
 - ImportPreview
 - ReviewPanel
+
+## Visual Language (2026-10-27)
+
+- Public pages and sign-in open on the mountain photograph with a navy shade; copy sits on the
+  dark side of the image, never over the figure.
+- The student and admin workspaces share a navy sidebar on the right; the active item has a gold
+  marker. Content sits on the pale surface in white panels with navy-tinted shadows.
+- Gold marks the primary call to action and achievement only; long text stays navy or muted.
+- Public pages show no figures about the platform (students, questions, satisfaction) until real
+  numbers exist. Any product illustration is labelled «مثال توضيحي».
 
 ## Student Dashboard Principle
 

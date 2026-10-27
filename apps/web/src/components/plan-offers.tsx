@@ -53,8 +53,7 @@ export function PlanOffers({ examId }: { examId: string }) {
       <div className="notice notice--success" role="status">
         <strong>اشتراكك في هذا الاختبار مفعّل.</strong>
         <p>
-          يمكنك مراجعة جلساتك ونتائجك من مساحتك. التشخيص الكامل والتدريب سيُتاحان عند اكتمال
-          تطويرهما.
+          التشخيص الكامل وملف المهارات والتدريب وإعادة القياس متاحة لك الآن من مساحتك.
         </p>
       </div>
     );
