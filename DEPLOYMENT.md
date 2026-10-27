@@ -101,6 +101,10 @@ once DNS resolves.
 | qup-db | `qup-db-pws32w` | development + automated tests; `DATABASE_URL` of qup-backend today | running, migrated |
 | qup-db-prod | `qup-db-prod-t7vcqv` | production (real students) | running, **empty, not migrated** |
 
+A CranL uptime monitor (2026-10-27, "QUP API readiness (database)") checks qup-backend's
+`/health/ready` every minute: two failures notify the account (`app.down`), recovery sends `app.up`.
+It reports down until the database connectivity problem below is fixed.
+
 Both apps have automatic rollback on. `qup-web` currently points `API_INTERNAL_URL` at the backend's
 `cranl.net` address; it can switch to `https://api.qupedu.com` once DNS and SSL are up.
 
