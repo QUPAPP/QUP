@@ -34,7 +34,7 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 | `HOST` / `PORT` | `0.0.0.0` / `3000` |
 | `TRUST_PROXY` | `1` (CranL's proxy). `true` is refused since C4: it trusted client-written addresses |
 | `PROXY_SHARED_SECRET` | 32+ random characters (`openssl rand -hex 32`), the **same** value as qup-web's |
-| `DATABASE_URL` | set by CranL: connect the production database to the app (`qup-db-prod`; still `qup-db` today, see Current state) |
+| `DATABASE_URL` | `qup-db-prod`'s **external** address with `?sslmode=require` (see Current state for why not the internal host) |
 | `STREAM_API_KEY`, `STREAM_WEBHOOK_SECRET` | from Stream's dashboard — set in CranL, never in the repo |
 | `PAYMENT_SUCCESS_URL`, `PAYMENT_FAILURE_URL` | `https://qupedu.com/payment/return` (both) |
 
@@ -82,69 +82,70 @@ once DNS resolves.
 ## 4. After the first deploy
 
 1. **First administrator** — from a machine with database access, never over HTTP:
-   `pnpm build && pnpm admin:create --email <admin email>` (apps/api/README.md).
+   `pnpm build && pnpm admin:create --email <admin email>` (apps/api/README.md). To target
+   production, set `$env:DATABASE_URL` (PowerShell) to `qup-db-prod`'s TLS URL for that session
+   only: a variable already in the environment wins over the repository's `.env`.
 2. **Stream webhook** — in Stream's dashboard register
    `https://api.qupedu.com/api/v1/payments/webhooks/stream` for payment events, then put the secret
    it shows in `STREAM_WEBHOOK_SECRET`.
 3. Run one sandbox payment end to end before real money: the Stream adapter has only been tested
    against a local fake of Stream's documented API.
 
-## Current state (2026-10-20)
+## Current state (2026-10-27)
 
 | App | CranL address | Custom domain | State |
 | --- | --- | --- | --- |
-| qup-backend | `qup-backend-ladsbz.cranl.net` | `api.qupedu.com` | running; **cannot reach the database** |
+| qup-backend | `qup-backend-ladsbz.cranl.net` | `api.qupedu.com` (**no DNS record yet**) | running; `/health/ready` 200, database up |
 | qup-web | `qup-web-4kqgra.cranl.net` | `qupedu.com`, `www.qupedu.com` | running; forwards to qup-backend |
 
 | Database | Internal host | Role | State |
 | --- | --- | --- | --- |
-| qup-db | `qup-db-pws32w` | development + automated tests; `DATABASE_URL` of qup-backend today | running, migrated |
-| qup-db-prod | `qup-db-prod-t7vcqv` | production (real students) | running, **empty, not migrated** |
+| qup-db | `qup-db-pws32w` | development + automated tests | running, migrated; no app uses it |
+| qup-db-prod | `qup-db-prod-t7vcqv` | production (real students); `DATABASE_URL` of qup-backend | running, 17 migrations applied, TLS on |
 
 A CranL uptime monitor (2026-10-27, "QUP API readiness (database)") checks qup-backend's
 `/health/ready` every minute: two failures notify the account (`app.down`), recovery sends `app.up`.
-It reports down until the database connectivity problem below is fixed.
 
-Both apps have automatic rollback on. `qup-web` currently points `API_INTERNAL_URL` at the backend's
-`cranl.net` address; it can switch to `https://api.qupedu.com` once DNS and SSL are up.
+Both apps have automatic rollback on. `qup-web` points `API_INTERNAL_URL` at the backend's
+`cranl.net` address; it can switch to `https://api.qupedu.com` once the `api` CNAME (§3) exists and
+CranL has issued its certificate. A third app named `QUP` (`qup-jlcftz.cranl.net`, no domain) has
+been stuck in "deploying" since 2026-10-08; it is an early attempt and serves nothing.
 
-`qup-db-prod` is linked to qup-backend as `PROD_DATABASE_URL`, a test variable no code reads. It
-stays until CranL support answers the problem below, as live evidence for them. A third app named
-`QUP` (`qup-jlcftz.cranl.net`, no domain) has been stuck in "deploying" since 2026-10-08; it is an
-early attempt and serves nothing.
+**Database connection: external address over TLS.** CranL's internal names still do not resolve
+from QUP's apps (`getaddrinfo ENOTFOUND qup-db-prod-t7vcqv`, also `qup-db-pws32w`; first seen
+2026-10-20), while another account project reaches its database internally — so the fault is
+specific to this project's network. CranL support's answer was to use the external connection. Its
+PostgreSQL ships with `ssl = off`, so on 2026-10-27 TLS was turned on in qup-db-prod itself:
 
-**Open problem — database connectivity (reported to CranL support).** No app can resolve any
-database's internal host name: qup-backend logs `getaddrinfo ENOTFOUND qup-db-pws32w`, and
-`/health/ready` reports the database down. `DATABASE_URL` is correct. Checked on 2026-10-20 from
-inside the running containers:
+- a self-signed certificate and key generated **on the database server** (`server.crt`,
+  `server.key` in the data directory; the key never left it, mode 600);
+- `ALTER SYSTEM SET ssl = on` and `pg_reload_conf()`: no restart, no downtime;
+- qup-backend's `DATABASE_URL` is the external address with `?sslmode=require`; `pg_stat_ssl`
+  shows its connection as TLSv1.3, `TLS_AES_256_GCM_SHA384`.
 
-- qup-backend and qup-web resolve each other's names, `localhost` and `github.com`.
-- Neither resolves `qup-db-pws32w` nor `qup-db-prod-t7vcqv`.
-- `qup-db-prod` was created that day in riyadh-1, so the database's age is not the cause; linking it
-  to qup-backend through CranL and restarting the app did not help either.
+Still open, in order of priority:
 
-The earlier guess, that the app and the database sit on different servers, does not explain a
-brand-new database failing the same way: this is CranL's internal networking, and only CranL can fix
-it. Do **not** work around it with a database's external address: that endpoint has no TLS
-(`ssl = off`), so credentials and student data would cross the public network in clear text.
+- the external port is reachable from the internet and still **accepts unencrypted** connections:
+  once every client uses TLS, reject the rest with `hostssl` in `pg_hba.conf`;
+- the app connects as the database superuser `admin`, whose password crossed the network once in
+  clear text before TLS was on: give the app its own least-privilege role, then rotate `admin`;
+- `sslmode=require` encrypts but does not verify the server; `verify-full` needs a certificate the
+  app can trust for the external host name;
+- if CranL fixes internal DNS, prefer the internal host (`qup-db-prod-t7vcqv`) again.
 
-CranL's `run_command` currently returns no output, but its succeeded/failed status follows the
-command's exit code, so `getent hosts <internal host>` works as a yes/no check.
-
-Once CranL fixes it, in order, each step reviewed: confirm `qup-db-prod-t7vcqv` resolves from
-qup-backend; apply migrations to qup-db-prod (`pnpm db:migrate`, then `pnpm db:verify`); point
-`DATABASE_URL` at qup-db-prod and remove `PROD_DATABASE_URL`; check `/health/ready` returns 200;
-create the first administrator (§4).
+CranL's `run_command` returns no output, but its succeeded/failed status follows the command's exit
+code, so `getent hosts <internal host>` works as a yes/no check.
 
 ## Rules
 
 - **Migrations are never run by a deploy.** Apply them deliberately (`pnpm db:migrate`), reviewed,
   before deploying code that needs them (packages/db/README.md).
 - **Secrets live in CranL's environment settings**, never in the repository or an image.
-- The deployed app currently uses `qup-db`, the same database the automated tests run against
-  (decided 2026-10-07). Tests only create and delete rows under reserved test identifiers, but a
-  separate database for real students is required before public launch: that is `qup-db-prod`
-  (created 2026-10-20), not used until the connectivity problem above is fixed.
+- Production uses `qup-db-prod`. `qup-db` stays for development and the automated tests; never
+  point a test run or a local `.env` at `qup-db-prod`.
+- Migrations reach `qup-db-prod` from a reviewed machine over TLS: set `DATABASE_URL` to its
+  external `?sslmode=require` URL for one shell session, run `pnpm db:migrate` then
+  `pnpm db:verify`, and clear the variable. The image carries no migrations.
 
 ## Why the Dockerfiles are at the repository root
 
