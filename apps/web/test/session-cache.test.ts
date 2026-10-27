@@ -17,8 +17,9 @@ describe("session cache", () => {
     client.setQueryData(["assessment-history", "previous-user"], { items: [] });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(me)));
 
-    await startSession(client);
+    const signedIn = await startSession(client);
 
+    expect(signedIn).toEqual(me);
     expect(client.getQueryData(ME_QUERY_KEY)).toEqual(me);
     expect(client.getQueryData(["assessment-history", "previous-user"])).toBeUndefined();
   });

@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="user-avatar" aria-hidden="true">
               {user?.displayName?.trim().charAt(0) || <Icon name="user" />}
             </span>
-            <span>{user?.displayName ?? "حساب الطالب"}</span>
+            <span>{user?.displayName ?? "حسابي"}</span>
             <span className="session-indicator">مساحة خاصة</span>
           </div>
         </header>

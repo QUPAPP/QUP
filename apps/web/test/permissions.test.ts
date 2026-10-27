@@ -6,6 +6,7 @@ import {
   firstAdminScreen,
   hasAdminAccess,
   hasPermission,
+  homePath,
 } from "../src/lib/permissions";
 
 const account = (permissions: string[]): Me => ({
@@ -67,5 +68,13 @@ describe("permissions", () => {
     expect(firstAdminScreen(admin)).toBe("/admin/exams");
     expect(firstAdminScreen(contentManager)).toBe("/admin/questions");
     expect(firstAdminScreen(student)).toBeNull();
+  });
+
+  // Regression: an administrator used to land on the student workspace after signing in.
+  it("sends an account to the panel when it may use it, otherwise to the student workspace", () => {
+    expect(homePath(admin)).toBe("/admin");
+    expect(homePath(contentManager)).toBe("/admin");
+    expect(homePath(student)).toBe("/dashboard");
+    expect(homePath(null)).toBe("/dashboard");
   });
 });

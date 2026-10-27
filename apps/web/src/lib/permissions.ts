@@ -92,6 +92,11 @@ export function adminNavItems(
   );
 }
 
+/** Where an account lands after signing in: the panel for staff, the student workspace otherwise. */
+export function homePath(me: Me | null | undefined): string {
+  return hasAdminAccess(me) ? "/admin" : "/dashboard";
+}
+
 /** Where /admin opens for this account: its first permitted screen, or null for none. */
 export function firstAdminScreen(me: Me | null | undefined): string | null {
   return adminNavItems(me)[0]?.href ?? null;

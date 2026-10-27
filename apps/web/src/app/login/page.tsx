@@ -11,6 +11,7 @@ import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { login } from "@/lib/api";
 import { type LoginForm, loginForm } from "@/lib/auth-forms";
+import { homePath } from "@/lib/permissions";
 import { startSession } from "@/lib/session";
 
 export default function LoginPage() {
@@ -24,8 +25,7 @@ export default function LoginPage() {
   const signIn = useMutation({
     mutationFn: login,
     onSuccess: async () => {
-      await startSession(queryClient);
-      router.replace("/dashboard");
+      router.replace(homePath(await startSession(queryClient)));
     },
   });
 

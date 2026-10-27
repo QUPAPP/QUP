@@ -19,7 +19,7 @@ export async function fetchMe(): Promise<Me | null> {
  * account and loads the new one from /auth/me, so its permissions are known
  * before the first page renders. (The login response carries only the user.)
  */
-export async function startSession(client: QueryClient): Promise<void> {
+export async function startSession(client: QueryClient): Promise<Me | null> {
   client.clear();
-  await client.fetchQuery({ queryKey: ME_QUERY_KEY, queryFn: fetchMe });
+  return client.fetchQuery({ queryKey: ME_QUERY_KEY, queryFn: fetchMe });
 }
