@@ -23,6 +23,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/db/package.json packages/db/
 COPY packages/adaptive-engine/package.json packages/adaptive-engine/
+COPY packages/ai-gateway/package.json packages/ai-gateway/
 RUN pnpm install --frozen-lockfile --filter "@qup/api..."
 
 COPY tsconfig.base.json turbo.json ./
