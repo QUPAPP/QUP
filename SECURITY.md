@@ -1,5 +1,26 @@
 # Security Requirements
 
+## Dependency audit — 2026-10-27
+
+`pnpm audit` (all dependencies, not only production) is clean. It reported 22 advisories; the
+runtime ones:
+
+- `next` 16.4.0 (GHSA-2464-fhr4-w9xw and GHSA-673q-mjm6-r5xr, critical: unauthenticated remote
+  code execution through image optimization of SVG and through `use cache`; GHSA-p3m5-59mp-jv5r,
+  high: denial of service with Server Actions): upgraded to 16.4.2 in `apps/web`.
+- `zod` <4.6.6 (high: memory exhaustion validating oversized constrained collections): every
+  workspace package now declares `^4.6.7`.
+- `fastify` 5.12.5 (GHSA-389g-gv7q-r4x8, low): 5.12.7 in `apps/api`, and the same release forced
+  for `@nestjs/platform-fastify`'s pinned copy.
+- `fast-uri` (moderate/low: scheme spoofing, host confusion) via `fastify`: forced to 4.2.3.
+
+Development-only, fixed the same way: `vitest` 5.0.5 (`@vitest/mocker` code injection), `vite`
+8.3.3 via `unplugin-swc`, `fast-uri` 3.1.9 via `@nestjs/cli`, `esbuild` 0.25.12 via
+`drizzle-kit`. Overrides live in `pnpm-workspace.yaml`, each with its advisory.
+
+Verified after the upgrade: typecheck, lint, the production build, `db:check`, and all 817 tests,
+including the API end-to-end suite against a disposable PostgreSQL 18.
+
 ## Dependency audit — 2026-10-21 (C4)
 
 `pnpm audit --prod` is clean. On 2026-10-21 it reported three advisories, fixed in C4:

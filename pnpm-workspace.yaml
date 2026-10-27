@@ -6,3 +6,15 @@ packages:
 overrides:
   # GHSA-68fv-2mgg-jv7q, via next > postcss.
   source-map-js: ">=1.2.2"
+  # GHSA-587h-7wmj-h5pm and five more Vite/launch-editor advisories, via
+  # api > unplugin-swc > unplugin > vite (development only).
+  "vite@>=8.3.0 <8.3.3": "8.3.3"
+  # fast-uri scheme spoofing, host confusion and path equivalence advisories:
+  # 4.x via fastify > @fastify/ajv-compiler (runtime), 3.x via @nestjs/cli (development).
+  "fast-uri@>=4.0.0 <4.2.3": "4.2.3"
+  "fast-uri@>=3.0.0 <3.1.9": "3.1.9"
+  # GHSA-389g-gv7q-r4x8, via @nestjs/platform-fastify's pinned fastify (runtime);
+  # the same patch release the API declares directly.
+  "fastify@>=5.12.2 <5.12.6": "5.12.7"
+  # GHSA-67mh-4wv8-2f99, via db > drizzle-kit > @esbuild-kit (development only).
+  "esbuild@<0.25.0": "0.25.12"
