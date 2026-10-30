@@ -112,14 +112,14 @@ export function StandingCard({ progress }: { progress: ExamProgress }) {
           <strong>
             <bdi>{percentText(share)}</bdi>
           </strong>
-          <span>من المهارات قيست</span>
+          <span>من المهارات بدأ قياسها</span>
         </div>
       </div>
       <div className="standing__body">
         <p className="eyebrow">{exam.nameAr}</p>
         <h2 id="standing-title">أين أنت الآن</h2>
         <p className="muted small">
-          {`قسنا ${standing.summary.assessed} من ${standing.summary.skills} مهارات، وأتقنت منها ${standing.summary.mastered}.`}
+          {`بدأنا قياس ${standing.summary.assessed} من ${standing.summary.skills} مهارات، وأتقنت منها ${standing.summary.mastered}. كل إجابة تزيد دقة القياس.`}
         </p>
         <div className="row">
           <Link href={next.href} className="btn btn--small">

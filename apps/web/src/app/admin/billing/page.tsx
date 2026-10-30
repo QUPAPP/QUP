@@ -563,7 +563,7 @@ function EntitlementRow({
         {entitlement.status === "ACTIVE" ? (
           <ConfirmAction
             label="إلغاء الوصول"
-            description="سيفقد الطالب مزايا الباقة في هذا الاختبار فورًا. تبقى إجاباته وملف مهاراته محفوظة."
+            description="سيفقد الطالب مزايا الباقة في هذا الاختبار فورًا، وتبقى إجاباته وملف مهاراته محفوظة. إن كان له وصول آخر مجدول بعد هذا، فلن يتقدّم موعد بدايته؛ امنحه وصولًا جديدًا إن لزم."
             confirmLabel="ألغِ الوصول"
             danger
             pending={revoke.isPending}

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
-import { formatDateTime } from "@/lib/format";
+import { countText, formatDateTime, ROWS } from "@/lib/format";
 import { listImports, uploadImport } from "@/lib/import-api";
 import { BATCH_STATUS_LABELS } from "@/lib/import-mapping";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
@@ -55,7 +55,7 @@ function Imports({ userId }: { userId: string }) {
                 <Link href={`/admin/imports/${batch.id}`} className="admin-row__main">
                   <strong>{batch.originalFilename}</strong>
                   <span className="small muted">
-                    {`${batch.detectedType} · ${batch.totals?.detected ?? 0} صفًا · ${formatDateTime(batch.createdAt)}`}
+                    {`${batch.detectedType} · ${countText(batch.totals?.detected ?? 0, ROWS)} · ${formatDateTime(batch.createdAt)}`}
                   </span>
                 </Link>
                 <span className="small">{BATCH_STATUS_LABELS[batch.status]}</span>

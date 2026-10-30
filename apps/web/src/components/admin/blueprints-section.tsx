@@ -12,6 +12,7 @@ import {
   blueprintCreateSchema,
 } from "@/lib/blueprint-form";
 import { DIAGNOSTIC_TITLES } from "@/lib/diagnostics";
+import { countText, QUESTIONS } from "@/lib/format";
 import { Icon } from "../icon";
 import { ErrorNotice, Loading } from "../status";
 import { TextField } from "../text-field";
@@ -51,7 +52,7 @@ export function BlueprintsSection({
               <Link href={`/admin/blueprints/${blueprint.id}`} className="admin-row__main">
                 <strong>{`${DIAGNOSTIC_TITLES[blueprint.type]} — ${blueprint.name}`}</strong>
                 <span className="small muted">
-                  {`${blueprint.questionCount} سؤالًا · `}
+                  {`${countText(blueprint.questionCount, QUESTIONS)} · `}
                   <bdi dir="ltr">{blueprint.code}</bdi>
                   {" · نسخة التصنيف "}
                   <bdi dir="ltr">{versionCodes.get(blueprint.taxonomyVersionId) ?? "—"}</bdi>

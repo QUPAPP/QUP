@@ -108,7 +108,7 @@ function LevelBoundaries({ userId, setting }: { userId: string; setting: Setting
       <h2 id="levels-heading">حدود المستوى التشخيصي</h2>
       <p className="small muted">
         أقل نسبة أداء في التشخيص المصغّر يبدأ عندها كل مستوى. يسري التغيير على التشخيصات الجديدة فقط؛
-        نتائج التشخيصات السابقة تبقى كما هي.
+        نتائج التشخيصات السابقة تبقى كما هي. يبدأ أدنى مستوى من 0، ويزيد كل حد عن الذي قبله.
       </p>
       <p className="small">
         {setting.version === 0

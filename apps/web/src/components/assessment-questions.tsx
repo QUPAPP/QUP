@@ -130,7 +130,10 @@ function Question({
       kind === "ANSWER"
         ? submitAnswer(sessionId, item.id, selected, idempotencyKey, multiple)
         : skipItem(sessionId, item.id, idempotencyKey),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assessment-history"] }),
+    onSuccess: (result, kind) => {
+      void queryClient.invalidateQueries({ queryKey: ["assessment-history"] });
+      if (kind === "SKIP") onNext(result.next.type === "COMPLETED");
+    },
   });
   const outcome = submit.data;
   const locked = submit.isPending || outcome !== undefined;

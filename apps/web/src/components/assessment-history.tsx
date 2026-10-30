@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { SessionHistoryEntry, SessionStatus, SessionType } from "@/lib/api";
 import { completionHref, isRunnable } from "@/lib/diagnostics";
-import { formatDate } from "@/lib/format";
+import { countText, formatDate, QUESTIONS } from "@/lib/format";
 import { EmptyState } from "./empty-state";
 import { Icon } from "./icon";
 
@@ -57,7 +57,7 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
           </div>
           <div className="history-progress">
             <p>
-              تم إنهاء {session.progress.answered} من {session.progress.total} سؤالًا
+              تم إنهاء {session.progress.answered} من {countText(session.progress.total, QUESTIONS)}
             </p>
             <div
               className="progress"

@@ -6,7 +6,8 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
-import { listExams } from "@/lib/api";
+import { getDashboard, listExams } from "@/lib/api";
+import { nextStepLink } from "@/lib/next-step";
 import { useRequireUser } from "@/lib/session";
 
 export default function ExamsPage() {
@@ -16,6 +17,13 @@ export default function ExamsPage() {
     queryFn: listExams,
     enabled: user !== null,
   });
+  const dashboard = useQuery({
+    queryKey: ["dashboard", user?.id],
+    queryFn: getDashboard,
+    enabled: user !== null,
+  });
+  const progressOf = (examId: string) =>
+    dashboard.data?.exams.find((entry) => entry.exam.id === examId);
 
   return (
     <main id="main-content" className="page stack stack--loose">
@@ -49,28 +57,40 @@ export default function ExamsPage() {
       ) : null}
 
       <ul className="exam-grid">
-        {exams.data?.items.map((exam) => (
-          <li key={exam.id} className="exam-card">
-            <div className="exam-card-top">
-              <span className="item-symbol">
-                <Icon name="book" />
-              </span>
-            </div>
-            <div className="exam-card-body">
-              <h2>{exam.nameAr}</h2>
-              {exam.description ? <p className="muted">{exam.description}</p> : null}
-              <div className="exam-card-foot">
-                <span>تشخيص مصغّر مجاني</span>
-                <Link href={`/exams/${exam.id}/diagnostic`} className="btn">
-                  ابدأ التشخيص <Icon name="arrow" />
+        {exams.data?.items.map((exam) => {
+          const progress = progressOf(exam.id);
+          const next = progress
+            ? nextStepLink(progress.nextStep, exam.id)
+            : { href: `/exams/${exam.id}/diagnostic`, label: "ابدأ التشخيص" };
+          const status = !progress
+            ? "تشخيص مصغّر مجاني"
+            : progress.hasAccess
+              ? "مشترك في الباقة"
+              : "بدأت رحلتك";
+          return (
+            <li key={exam.id} className="exam-card">
+              <div className="exam-card-top">
+                <span className="item-symbol">
+                  <Icon name="book" />
+                </span>
+                {progress?.hasAccess ? <span className="badge">مشترك</span> : null}
+              </div>
+              <div className="exam-card-body">
+                <h2>{exam.nameAr}</h2>
+                {exam.description ? <p className="muted">{exam.description}</p> : null}
+                <div className="exam-card-foot">
+                  <span>{status}</span>
+                  <Link href={next.href} className="btn">
+                    {next.label} <Icon name="arrow" />
+                  </Link>
+                </div>
+                <Link href={`/exams/${exam.id}/profile`} className="text-link">
+                  ملف مهاراتي <Icon name="chevron" />
                 </Link>
               </div>
-              <Link href={`/exams/${exam.id}/profile`} className="text-link">
-                ملف مهاراتي <Icon name="chevron" />
-              </Link>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </main>
   );

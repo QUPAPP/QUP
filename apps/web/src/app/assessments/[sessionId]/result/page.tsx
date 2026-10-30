@@ -7,7 +7,8 @@ import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { PlanOffers } from "@/components/plan-offers";
 import { ErrorNotice, Loading } from "@/components/status";
-import { getResult, getSession, type PreliminaryResult } from "@/lib/api";
+import { getDashboard, getResult, getSession, type PreliminaryResult } from "@/lib/api";
+import { nextStepLink } from "@/lib/next-step";
 import { useRequireUser } from "@/lib/session";
 
 export default function ResultPage() {
@@ -23,6 +24,15 @@ export default function ResultPage() {
     queryFn: () => getSession(sessionId),
     enabled: user !== null,
   });
+  const dashboard = useQuery({
+    queryKey: ["dashboard", user?.id],
+    queryFn: getDashboard,
+    enabled: user !== null && result.data?.nextStep === null,
+  });
+  const examProgress = dashboard.data?.exams.find(
+    (entry) => entry.exam.id === session.data?.examId,
+  );
+  const next = examProgress ? nextStepLink(examProgress.nextStep, examProgress.exam.id) : null;
   return (
     <main id="main-content" className="page stack stack--loose">
       <PageHeading
@@ -59,12 +69,17 @@ export default function ResultPage() {
             </section>
           ) : session.data ? (
             <section className="notice notice--success stack">
-              <p>أنت مشترك في هذا الاختبار. أكمل التشخيص الكامل ليظهر مستواك في كل مهارة.</p>
-              <p>
-                <Link href={`/exams/${session.data.examId}/full-diagnostic`} className="btn">
-                  أكمل التشخيص الكامل <Icon name="arrow" />
+              <p>أنت مشترك في هذا الاختبار. تابع من حيث وصلت؛ رحلتك كلها في ملف مهاراتك.</p>
+              <div className="row">
+                {next ? (
+                  <Link href={next.href} className="btn">
+                    {next.label} <Icon name="arrow" />
+                  </Link>
+                ) : null}
+                <Link href={`/exams/${session.data.examId}/profile`} className="btn btn--ghost">
+                  ملف مهاراتي
                 </Link>
-              </p>
+              </div>
             </section>
           ) : null}
         </>
@@ -84,12 +99,7 @@ function Summary({ result }: { result: PreliminaryResult }) {
       <section className="result-overview" aria-label="ملخص النتيجة">
         <div className="result-score">
           <strong>{result.score.percentage}%</strong>
-          <p>
-            <bdi dir="ltr">
-              {result.score.correct} / {result.score.total}
-            </bdi>{" "}
-            إجابة صحيحة
-          </p>
+          <p>{`الإجابات الصحيحة: ${result.score.correct} من ${result.score.total}`}</p>
         </div>
         <div>
           <h2>خطوة أنجزتها، وصورة أوضح اكتشفتها.</h2>

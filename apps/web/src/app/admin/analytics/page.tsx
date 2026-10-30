@@ -13,6 +13,7 @@ import {
   getOutboxStatus,
 } from "@/lib/admin-insights-api";
 import { ANALYTICS_WINDOWS, WINDOW_LABELS } from "@/lib/decision-labels";
+import { countText, MINUTES } from "@/lib/format";
 import { BATCH_STATUS_LABELS } from "@/lib/import-mapping";
 import { percentText } from "@/lib/mastery-labels";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
@@ -228,7 +229,7 @@ function OutboxCard({ userId }: { userId: string }) {
                 "عمر أقدم حدث منتظر",
                 data.oldestPendingSeconds === null
                   ? "—"
-                  : `${Math.round(data.oldestPendingSeconds / 60)} دقيقة`,
+                  : countText(Math.round(data.oldestPendingSeconds / 60), MINUTES),
               ],
             ]}
           />

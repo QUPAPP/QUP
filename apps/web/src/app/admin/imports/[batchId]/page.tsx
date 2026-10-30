@@ -12,6 +12,7 @@ import { useSingleFlight } from "@/components/admin/use-single-flight";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
+import { COLUMNS, countText, ROWS } from "@/lib/format";
 import {
   createImportDrafts,
   getImport,
@@ -97,7 +98,7 @@ function Import({ userId, batchId }: { userId: string; batchId: string }) {
       </Link>
       <PageHeading
         title={current.originalFilename}
-        description={`${current.detectedType} · ${current.headers.length} عمودًا · ${BATCH_STATUS_LABELS[current.status]}`}
+        description={`${current.detectedType} · ${countText(current.headers.length, COLUMNS)} · ${BATCH_STATUS_LABELS[current.status]}`}
       />
       {imported ? null : <MappingSection batch={current} onProcessed={refresh} />}
       {current.totals && current.status !== "UPLOADED" ? <Report batch={current} /> : null}
@@ -272,7 +273,7 @@ function Report({ batch }: { batch: ImportBatch }) {
           {problems.map(([code, rows]) => (
             <li key={code} className="list__item list__item--weakness">
               <span>{rowErrorLabel(code)}</span>
-              <span className="small">{`${rows} صفًا`}</span>
+              <span className="small">{countText(rows, ROWS)}</span>
             </li>
           ))}
         </ul>

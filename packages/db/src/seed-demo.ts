@@ -34,7 +34,11 @@ function text(value: string) {
 }
 
 function shuffleAround(correct: number, distractors: number[], seed: number) {
-  const values = [correct, ...distractors.filter((value) => value !== correct)].slice(0, 4);
+  const values = [...new Set([correct, ...distractors])];
+  for (let step = 1; values.length < 4; step++) {
+    if (!values.includes(correct + step * 3)) values.push(correct + step * 3);
+  }
+  values.length = 4;
   const position = seed % values.length;
   [values[0], values[position]] = [values[position] as number, values[0] as number];
   return { options: values.map(String), correct: position };

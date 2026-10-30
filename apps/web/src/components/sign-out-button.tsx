@@ -6,7 +6,7 @@ import { logout } from "@/lib/api";
 import { ME_QUERY_KEY } from "@/lib/session";
 import { Icon } from "./icon";
 
-export function SignOutButton() {
+export function SignOutButton({ tone = "dark" }: { tone?: "dark" | "light" }) {
   const client = useQueryClient();
   const router = useRouter();
   const signOut = useMutation({
@@ -20,7 +20,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className="sign-out"
+      className={tone === "light" ? "sign-out sign-out--light" : "sign-out"}
       onClick={() => signOut.mutate()}
       disabled={signOut.isPending}
     >

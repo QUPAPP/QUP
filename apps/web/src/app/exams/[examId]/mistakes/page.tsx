@@ -86,7 +86,7 @@ function MistakeList({ examId, items }: { examId: string; items: TrainingMistake
       <ul className="profile-summary" aria-label="ملخص الأخطاء">
         <li>
           <strong>{items.length}</strong>
-          <span>سؤالًا للمراجعة</span>
+          <span>للمراجعة</span>
         </li>
         <li>
           <strong>{open}</strong>

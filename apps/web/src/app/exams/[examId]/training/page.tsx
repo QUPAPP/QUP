@@ -50,12 +50,17 @@ export default function TrainingPage() {
       <main id="main-content" className="page">
         <EmptyState
           icon="check"
-          title="لا يوجد ما تتدرّب عليه الآن"
-          description="مهاراتك في هذا الاختبار جاهزة لإعادة القياس أو متقنة، أو لا توجد أسئلة جديدة لها بعد."
+          title="لا توجد أسئلة جديدة للتدريب الآن"
+          description="أجبت عن كل الأسئلة المتاحة للمهارات التي تحتاج تدريبًا، أو أن مهاراتك جاهزة لإعادة القياس. راجع أخطاءك الآن، وتظهر أسئلة جديدة هنا فور إضافتها."
         >
-          <Link href={`/exams/${examId}/profile`} className="btn">
-            ملف مهاراتي
-          </Link>
+          <div className="row">
+            <Link href={`/exams/${examId}/mistakes`} className="btn">
+              مراجعة أخطائي
+            </Link>
+            <Link href={`/exams/${examId}/profile`} className="btn btn--ghost">
+              ملف مهاراتي
+            </Link>
+          </div>
         </EmptyState>
       </main>
     );
