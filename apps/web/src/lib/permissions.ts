@@ -16,6 +16,7 @@ export const ADMIN_PERMISSIONS = {
   blueprintsManage: "blueprints.manage",
   auditView: "audit.view",
   aiManage: "ai.manage",
+  billingManage: "billing.manage",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -51,6 +52,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     title: "استيراد الأسئلة",
     icon: "plus",
     permission: ADMIN_PERMISSIONS.questionsCreate,
+  },
+  {
+    href: "/admin/billing",
+    title: "الباقات والاشتراكات",
+    icon: "credit",
+    permission: ADMIN_PERMISSIONS.billingManage,
   },
   {
     href: "/admin/settings",

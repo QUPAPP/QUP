@@ -38,6 +38,7 @@ let admin: string;
 let studentA: string;
 let studentAId: string;
 let studentB: string;
+let studentAEmail: string;
 
 type Method = "GET" | "POST" | "PATCH";
 
@@ -201,6 +202,7 @@ beforeAll(async () => {
   const a = await register("billing-a");
   studentA = a.token;
   studentAId = a.id;
+  studentAEmail = a.email;
   studentB = (await register("billing-b")).token;
 });
 
@@ -390,6 +392,38 @@ describe("entitlements", () => {
         }),
       ),
     ).toBe("EXAM_NOT_FOUND");
+  });
+});
+
+describe("student lookup", () => {
+  it("finds an account by exact email, case-insensitively, with its entitlements", async () => {
+    const examId = await exam();
+    const granted = (
+      await call(admin, "POST", "/admin/entitlements", {
+        payload: { studentId: studentAId, examId, durationDays: 30 },
+      })
+    ).json<{ id: string }>();
+
+    const found = await call(
+      admin,
+      "GET",
+      `/admin/students/lookup?identifier=${encodeURIComponent(` ${studentAEmail.toUpperCase()} `)}`,
+    );
+    expect(found.statusCode).toBe(200);
+    const body = found.json<{
+      student: { id: string; email: string };
+      entitlements: { id: string; examId: string }[];
+    }>();
+    expect(body.student).toMatchObject({ id: studentAId, email: studentAEmail });
+    expect(body.entitlements.map((e) => e.id)).toContain(granted.id);
+  });
+
+  it("answers not found for an unknown or partial identifier, and only to billing managers", async () => {
+    const lookup = (token: string, identifier: string) =>
+      call(token, "GET", `/admin/students/lookup?identifier=${encodeURIComponent(identifier)}`);
+    expect(errorCode(await lookup(admin, "nobody@qup.test"))).toBe("STUDENT_NOT_FOUND");
+    expect(errorCode(await lookup(admin, studentAEmail.slice(0, 6)))).toBe("STUDENT_NOT_FOUND");
+    expect((await lookup(studentA, studentAEmail)).statusCode).toBe(403);
   });
 });
 

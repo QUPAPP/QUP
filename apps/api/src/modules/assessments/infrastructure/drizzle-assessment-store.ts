@@ -28,6 +28,7 @@ import type {
   SessionProgress,
   SessionType,
   StoredAttempt,
+  TrainingMistake,
 } from "../domain/ports.js";
 
 const { assessmentSessions, assessmentItems, questionAttempts } = tables;
@@ -236,6 +237,56 @@ export class DrizzleAssessmentStore implements AssessmentStore {
         ),
       );
     return row?.attempts ?? 0;
+  }
+
+  async trainingMistakes(
+    studentId: string,
+    examId: string,
+    limit: number,
+  ): Promise<TrainingMistake[]> {
+    const rows = await this.db.execute<{
+      question_version_id: string;
+      adaptive_decision_id: string | null;
+      submitted_answer: { optionKeys?: string[] } | null;
+      answered_at: string | Date;
+      corrected_later: boolean;
+    }>(sql`
+      SELECT * FROM (
+        SELECT DISTINCT ON (i.question_version_id)
+          i.question_version_id,
+          i.adaptive_decision_id,
+          a.submitted_answer,
+          a.finalized_at AS answered_at,
+          EXISTS (
+            SELECT 1
+            FROM question_attempts later
+            JOIN assessment_items later_item ON later_item.id = later.assessment_item_id
+            JOIN assessment_sessions later_session ON later_session.id = later_item.session_id
+            WHERE later_session.student_id = s.student_id
+              AND later_session.exam_id = s.exam_id
+              AND later_item.question_version_id = i.question_version_id
+              AND later.is_correct
+              AND later.finalized_at > a.finalized_at
+          ) AS corrected_later
+        FROM question_attempts a
+        JOIN assessment_items i ON i.id = a.assessment_item_id
+        JOIN assessment_sessions s ON s.id = i.session_id
+        WHERE s.student_id = ${studentId}
+          AND s.exam_id = ${examId}
+          AND s.type = 'ADAPTIVE_TRAINING'
+          AND a.result_type = 'ANSWERED'
+          AND a.is_correct = false
+        ORDER BY i.question_version_id, a.finalized_at DESC
+      ) latest
+      ORDER BY answered_at DESC, question_version_id
+      LIMIT ${limit}`);
+    return rows.map((row) => ({
+      questionVersionId: row.question_version_id,
+      adaptiveDecisionId: row.adaptive_decision_id,
+      chosenKeys: row.submitted_answer?.optionKeys ?? [],
+      answeredAt: new Date(row.answered_at),
+      correctedLater: row.corrected_later,
+    }));
   }
 
   async answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]> {

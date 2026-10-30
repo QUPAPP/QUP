@@ -117,6 +117,14 @@ export interface PlannedSessionItem {
   questionVersionId: string;
 }
 
+export interface TrainingMistake {
+  questionVersionId: string;
+  adaptiveDecisionId: string | null;
+  chosenKeys: string[];
+  answeredAt: Date;
+  correctedLater: boolean;
+}
+
 export interface AssessmentStore {
   /** Caller-owned sessions, newest first with id as a stable tie-breaker. */
   history(
@@ -142,6 +150,7 @@ export interface AssessmentStore {
   askedQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
   /** Question versions the student answered (not skipped) in this exam, any session. */
   answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
+  trainingMistakes(studentId: string, examId: string, limit: number): Promise<TrainingMistake[]>;
   /** Answered (not skipped) attempts in the student's sessions of a type, recorded after `since`. */
   answeredAttemptsSince(
     studentId: string,

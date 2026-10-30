@@ -29,6 +29,7 @@
 pnpm install
 pnpm dev                      # الباك (3000) والفرونت (3001) معًا — افتح http://localhost:3001
 docker compose up --build     # نفس التطبيقين بصور الإنتاج
+pnpm db:seed:demo             # اختبار قدرات تجريبي بأسئلته وباقته لقاعدة تطوير محلية فقط
 ```
 
 يحتاج ملف `.env` في جذر المستودع (انظر `.env.example`). التفاصيل: `apps/api/README.md`،

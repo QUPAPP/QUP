@@ -21,6 +21,7 @@ import {
   listTaxonomyVersions,
   updateExam,
 } from "@/lib/admin-api";
+import { formatDate } from "@/lib/format";
 import { ADMIN_PERMISSIONS, hasPermission } from "@/lib/permissions";
 
 export default function AdminExamPage() {
@@ -175,9 +176,7 @@ function ExamDetails({
               <li key={version.id} className="admin-row">
                 <Link href={`/admin/taxonomy-versions/${version.id}`} className="admin-row__main">
                   <strong dir="ltr">{version.versionCode}</strong>
-                  <span className="small muted">
-                    أُنشئت {new Date(version.createdAt).toLocaleDateString("ar-SA")}
-                  </span>
+                  <span className="small muted">أُنشئت {formatDate(version.createdAt)}</span>
                 </Link>
                 <StatusBadge status={version.status} />
                 <Icon name="chevron" />

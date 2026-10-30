@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SessionHistoryEntry, SessionStatus, SessionType } from "@/lib/api";
 import { completionHref, isRunnable } from "@/lib/diagnostics";
+import { formatDate } from "@/lib/format";
 import { EmptyState } from "./empty-state";
 import { Icon } from "./icon";
 
@@ -20,11 +21,6 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   FULL_REASSESSMENT: "إعادة القياس الشامل",
   MOCK_EXAM: "اختبار محاكي",
 };
-const dateFormat = new Intl.DateTimeFormat("ar-SA", {
-  calendar: "gregory",
-  dateStyle: "medium",
-  timeZone: "Asia/Riyadh",
-});
 const PERCENT = 100;
 
 export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
@@ -56,9 +52,7 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
             </div>
             <p className="small muted">
               {SESSION_TYPE_LABELS[session.type]} ·{" "}
-              <time dateTime={session.createdAt}>
-                {dateFormat.format(new Date(session.createdAt))}
-              </time>
+              <time dateTime={session.createdAt}>{formatDate(new Date(session.createdAt))}</time>
             </p>
           </div>
           <div className="history-progress">

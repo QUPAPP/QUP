@@ -111,11 +111,14 @@ function Profile({ profile }: { profile: SkillProfile }) {
       ) : null}
 
       {summary.assessed > 0 ? (
-        <p>
+        <div className="row">
           <Link href={`/exams/${profile.exam.id}/training`} className="btn">
             {profile.gaps.length > 0 ? "تدرّب على فجواتك" : "ابدأ التدريب"} <Icon name="arrow" />
           </Link>
-        </p>
+          <Link href={`/exams/${profile.exam.id}/mistakes`} className="btn btn--ghost">
+            <Icon name="book" /> مراجعة أخطائي
+          </Link>
+        </div>
       ) : null}
 
       {summary.assessed > 0 ? <ReDiagnosticCard examId={profile.exam.id} /> : null}

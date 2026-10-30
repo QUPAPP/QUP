@@ -27,6 +27,8 @@ import {
   grantEntitlementBody,
   type ListPlansQuery,
   listPlansQuery,
+  type StudentLookupQuery,
+  studentLookupQuery,
   type UpdatePlanBody,
   updatePlanBody,
 } from "./billing.dto.js";
@@ -82,6 +84,13 @@ export class AdminBillingController {
   })
   async retirePlan(@Param("id", uuid) id: string, @Req() request: FastifyRequest) {
     return toAdminPlanView(await this.plans.retire(id, actorFrom(request)));
+  }
+
+  @Get("students/lookup")
+  @ApiOperation({ summary: "Find one account by exact email or phone, with its entitlements." })
+  async lookupStudent(@Query(new ZodValidationPipe(studentLookupQuery)) query: StudentLookupQuery) {
+    const { student, entitlements } = await this.entitlements.lookupStudent(query.identifier);
+    return { student, entitlements: entitlements.map(toAdminEntitlementView) };
   }
 
   @Post("entitlements")

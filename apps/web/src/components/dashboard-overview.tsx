@@ -121,9 +121,14 @@ export function StandingCard({ progress }: { progress: ExamProgress }) {
         <p className="muted small">
           {`قسنا ${standing.summary.assessed} من ${standing.summary.skills} مهارات، وأتقنت منها ${standing.summary.mastered}.`}
         </p>
-        <Link href={next.href} className="btn btn--small">
-          {next.label} <Icon name="arrow" />
-        </Link>
+        <div className="row">
+          <Link href={next.href} className="btn btn--small">
+            {next.label} <Icon name="arrow" />
+          </Link>
+          <Link href={`/exams/${exam.id}/mistakes`} className="text-link">
+            مراجعة أخطائي <Icon name="chevron" />
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -211,9 +216,7 @@ export function SkillMap({ examId }: { examId: string }) {
                     <span className="profile-bar" aria-hidden="true">
                       <span style={{ "--share": skill.mastery ?? 0 } as CSSProperties} />
                     </span>
-                    <span
-                      className={`mastery-badge mastery-badge--${skill.state.toLowerCase()}`}
-                    >
+                    <span className={`mastery-badge mastery-badge--${skill.state.toLowerCase()}`}>
                       {MASTERY_STATE_LABELS[skill.state]}
                     </span>
                   </li>
@@ -243,9 +246,7 @@ export function FocusPanels({ progress }: { progress: ExamProgress }) {
               <li key={gap.skillName}>
                 <span className="rank-list__index">{index + 1}</span>
                 <span>{gap.skillName}</span>
-                <span className="mastery-badge mastery-badge--gap">
-                  {MASTERY_STATE_LABELS.GAP}
-                </span>
+                <span className="mastery-badge mastery-badge--gap">{MASTERY_STATE_LABELS.GAP}</span>
               </li>
             ))}
           </ol>

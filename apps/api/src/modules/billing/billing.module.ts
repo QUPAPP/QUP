@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { APP_CONFIG, type AppConfig } from "../../config/app-config.js";
+import { AuthModule } from "../auth/auth.module.js";
 import { CatalogModule } from "../catalog/catalog.module.js";
 import { EntitlementsService } from "./application/entitlements.service.js";
 import { PaymentsService } from "./application/payments.service.js";
@@ -25,7 +26,7 @@ import { PaymentWebhooksController } from "./presentation/payment-webhooks.contr
  * configured it is null: selling is off, everything else works.
  */
 @Module({
-  imports: [CatalogModule],
+  imports: [CatalogModule, AuthModule],
   controllers: [BillingController, AdminBillingController, PaymentWebhooksController],
   providers: [
     PlansService,

@@ -55,9 +55,6 @@ export default function ExamsPage() {
               <span className="item-symbol">
                 <Icon name="book" />
               </span>
-              <span className="exam-code" dir="ltr">
-                {exam.code}
-              </span>
             </div>
             <div className="exam-card-body">
               <h2>{exam.nameAr}</h2>

@@ -408,3 +408,17 @@ export const revokeOtherSessions = () => api<void>("/auth/sessions/revoke", { me
 
 export const getSkillProfile = (examId: string) =>
   api<SkillProfile>(`/exams/${examId}/skill-profile`);
+
+export interface TrainingMistake {
+  questionVersionId: string;
+  answeredAt: string;
+  correctedLater: boolean;
+  skillName: string | null;
+  question: NonNullable<CurrentItem["item"]>["question"];
+  chosenKeys: string[];
+  correctOptionKeys: string[];
+  explanation: RichContent | null;
+}
+
+export const getTrainingMistakes = (examId: string) =>
+  api<{ items: TrainingMistake[] }>(`/exams/${examId}/mistakes`);

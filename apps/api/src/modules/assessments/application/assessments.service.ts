@@ -86,6 +86,19 @@ export interface AnswerReview {
   explanation: RichContent | null;
 }
 
+export interface TrainingMistakeView {
+  questionVersionId: string;
+  answeredAt: Date;
+  correctedLater: boolean;
+  skillName: string | null;
+  question: StudentQuestionView;
+  chosenKeys: string[];
+  correctOptionKeys: string[];
+  explanation: RichContent | null;
+}
+
+const TRAINING_MISTAKES_LIMIT = 50;
+
 /** The preliminary result with skills named instead of identified. */
 export interface PreliminaryResultReport {
   score: PreliminaryResult["score"];
@@ -472,6 +485,36 @@ export class AssessmentsService {
       },
       progress,
     };
+  }
+
+  async trainingMistakes(studentId: string, examId: string): Promise<TrainingMistakeView[]> {
+    if (!(await this.access.hasExamAccess(studentId, examId))) {
+      throw new TrainingRequiresAccess();
+    }
+    const mistakes = await this.store.trainingMistakes(studentId, examId, TRAINING_MISTAKES_LIMIT);
+    if (mistakes.length === 0) return [];
+    const [questions, targets] = await Promise.all([
+      this.questions.forDelivery(mistakes.map((m) => m.questionVersionId)),
+      this.adaptive.targetsOf(
+        mistakes.flatMap((m) => (m.adaptiveDecisionId ? [m.adaptiveDecisionId] : [])),
+      ),
+    ]);
+    return mistakes.flatMap((mistake) => {
+      const question = questions.get(mistake.questionVersionId);
+      if (!question) return [];
+      return [
+        {
+          questionVersionId: mistake.questionVersionId,
+          answeredAt: mistake.answeredAt,
+          correctedLater: mistake.correctedLater,
+          skillName: targets.get(mistake.adaptiveDecisionId ?? "")?.skillName ?? null,
+          question: toStudentQuestionView(toPresentable(question)),
+          chosenKeys: mistake.chosenKeys,
+          correctOptionKeys: question.options.filter((o) => o.isCorrect).map((o) => o.key),
+          explanation: question.explanation,
+        },
+      ];
+    });
   }
 
   /** The latest item's target, with the answers given on it in this session (skips excluded). */

@@ -11,6 +11,7 @@ import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import type { Me } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { ADMIN_PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { archiveQuestion, createNextVersion, getQuestion } from "@/lib/question-api";
 
@@ -88,9 +89,7 @@ function QuestionDetails({ me, questionId }: { me: Me; questionId: string }) {
             <li key={version.id} className="admin-row">
               <Link href={`/admin/question-versions/${version.id}`} className="admin-row__main">
                 <strong>{`النسخة ${version.versionNumber}`}</strong>
-                <span className="small muted">
-                  {`آخر تعديل ${new Date(version.updatedAt).toLocaleDateString("ar-SA")}`}
-                </span>
+                <span className="small muted">{`آخر تعديل ${formatDate(version.updatedAt)}`}</span>
               </Link>
               <StatusBadge status={version.status} />
             </li>

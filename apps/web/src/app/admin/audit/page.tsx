@@ -6,6 +6,7 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { type AuditFilter, listAuditLogs } from "@/lib/admin-insights-api";
+import { formatDateTime } from "@/lib/format";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 
 const PAGE_SIZE = 50;
@@ -86,9 +87,7 @@ function Audit({ userId }: { userId: string }) {
               <li key={entry.id} className="audit-entry">
                 <div className="audit-entry__head">
                   <strong dir="ltr">{entry.action}</strong>
-                  <span className="small muted">
-                    {new Date(entry.createdAt).toLocaleString("ar-SA")}
-                  </span>
+                  <span className="small muted">{formatDateTime(entry.createdAt)}</span>
                 </div>
                 <span className="small">
                   {`${entry.actor ? (entry.actor.displayName ?? entry.actor.email ?? "حساب بلا اسم") : "حساب غير متاح"} · `}
