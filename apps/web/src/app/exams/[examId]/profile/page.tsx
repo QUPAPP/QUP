@@ -2,19 +2,21 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import type { CSSProperties } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { type CSSProperties, Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import {
   getFullReassessmentStatus,
+  getSession,
   getSkillProfile,
   isApiError,
   type ProfileNode,
   type SkillProfile,
 } from "@/lib/api";
+import { countText, QUESTIONS } from "@/lib/format";
 import { waitingLines } from "@/lib/full-reassessment";
 import { answersText, coverageText, MASTERY_STATE_LABELS, percentText } from "@/lib/mastery-labels";
 import { useRequireUser } from "@/lib/session";
@@ -80,6 +82,10 @@ function Profile({ profile }: { profile: SkillProfile }) {
         }
       />
 
+      <Suspense fallback={null}>
+        <TrainingDone examId={profile.exam.id} />
+      </Suspense>
+
       <ul className="profile-summary" aria-label="ملخص">
         <li>
           <strong>{`${summary.assessed} / ${summary.skills}`}</strong>
@@ -111,11 +117,14 @@ function Profile({ profile }: { profile: SkillProfile }) {
       ) : null}
 
       {summary.assessed > 0 ? (
-        <p>
+        <div className="row">
           <Link href={`/exams/${profile.exam.id}/training`} className="btn">
             {profile.gaps.length > 0 ? "تدرّب على فجواتك" : "ابدأ التدريب"} <Icon name="arrow" />
           </Link>
-        </p>
+          <Link href={`/exams/${profile.exam.id}/mistakes`} className="btn btn--ghost">
+            <Icon name="book" /> مراجعة أخطائي
+          </Link>
+        </div>
       ) : null}
 
       {summary.assessed > 0 ? <ReDiagnosticCard examId={profile.exam.id} /> : null}
@@ -237,6 +246,31 @@ function ReDiagnosticCard({ examId }: { examId: string }) {
             ? "ابدأ إعادة التشخيص"
             : "التفاصيل"}
       </Link>
+    </section>
+  );
+}
+
+function TrainingDone({ examId }: { examId: string }) {
+  const sessionId = useSearchParams().get("trained");
+  const session = useQuery({
+    queryKey: ["finished-training", sessionId],
+    queryFn: () => getSession(sessionId ?? ""),
+    enabled: sessionId !== null,
+  });
+  if (!sessionId || !session.data || session.data.examId !== examId) return null;
+  const answered = session.data.progress?.answered ?? 0;
+  return (
+    <section className="notice notice--success training-done" role="status">
+      <strong>{`أنهيت جلسة التدريب: ${countText(answered, QUESTIONS)}.`}</strong>
+      <p>مستواك في كل مهارة أدناه محدَّث بإجاباتك. راجع ما أخطأت فيه قبل جلستك القادمة.</p>
+      <div className="row">
+        <Link href={`/exams/${examId}/mistakes`} className="btn btn--small">
+          مراجعة أخطائي
+        </Link>
+        <Link href={`/exams/${examId}/training`} className="btn btn--ghost btn--small">
+          جلسة تدريب جديدة
+        </Link>
+      </div>
     </section>
   );
 }

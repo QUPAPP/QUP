@@ -45,6 +45,11 @@ export const grantEntitlementBody = z.strictObject({
 });
 export type GrantEntitlementBody = z.output<typeof grantEntitlementBody>;
 
+export const studentLookupQuery = z.strictObject({
+  identifier: z.string().trim().min(3).max(320),
+});
+export type StudentLookupQuery = z.output<typeof studentLookupQuery>;
+
 /** Only the plan: the price comes from the plan, the student from the session. */
 export const checkoutBody = z.strictObject({ planId: uuidParam });
 export type CheckoutBody = z.output<typeof checkoutBody>;

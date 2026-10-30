@@ -9,6 +9,7 @@ import { useSingleFlight } from "@/components/admin/use-single-flight";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { isApiError } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { daysText } from "@/lib/full-reassessment";
 import { answersText } from "@/lib/mastery-labels";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
@@ -107,12 +108,12 @@ function LevelBoundaries({ userId, setting }: { userId: string; setting: Setting
       <h2 id="levels-heading">حدود المستوى التشخيصي</h2>
       <p className="small muted">
         أقل نسبة أداء في التشخيص المصغّر يبدأ عندها كل مستوى. يسري التغيير على التشخيصات الجديدة فقط؛
-        نتائج التشخيصات السابقة تبقى كما هي.
+        نتائج التشخيصات السابقة تبقى كما هي. يبدأ أدنى مستوى من 0، ويزيد كل حد عن الذي قبله.
       </p>
       <p className="small">
         {setting.version === 0
           ? "القيم الحالية هي الافتراضية (لم يُحفظ أي تغيير بعد)."
-          : `النسخة ${setting.version} — آخر تعديل ${new Date(setting.updatedAt ?? "").toLocaleString("ar-SA")}`}
+          : `النسخة ${setting.version} — آخر تعديل ${formatDateTime(setting.updatedAt ?? "")}`}
       </p>
       {save.isError ? <ErrorNotice error={save.error} /> : null}
       {save.isSuccess ? (
@@ -174,9 +175,7 @@ function LevelBoundaries({ userId, setting }: { userId: string; setting: Setting
                   {(version.value as LevelsValue).map((band) => band.fromPercentage).join(" · ")}
                 </span>
                 {version.updatedAt ? (
-                  <span className="small muted">
-                    {new Date(version.updatedAt).toLocaleString("ar-SA")}
-                  </span>
+                  <span className="small muted">{formatDateTime(version.updatedAt)}</span>
                 ) : null}
               </span>
             </li>
@@ -232,7 +231,7 @@ function ReDiagnosticGate({ userId, setting }: { userId: string; setting: Settin
       <p className="small">
         {setting.version === 0
           ? "القيم الحالية هي الافتراضية (7 أيام و30 إجابة)."
-          : `النسخة ${setting.version} — آخر تعديل ${new Date(setting.updatedAt ?? "").toLocaleString("ar-SA")}`}
+          : `النسخة ${setting.version} — آخر تعديل ${formatDateTime(setting.updatedAt ?? "")}`}
       </p>
       {save.isError ? <ErrorNotice error={save.error} /> : null}
       {save.isSuccess ? (
@@ -291,9 +290,7 @@ function ReDiagnosticGate({ userId, setting }: { userId: string; setting: Settin
                     {`${daysText(value.cooldownDays)} · ${answersText(value.minTrainingAttempts)}`}
                   </span>
                   {version.updatedAt ? (
-                    <span className="small muted">
-                      {new Date(version.updatedAt).toLocaleString("ar-SA")}
-                    </span>
+                    <span className="small muted">{formatDateTime(version.updatedAt)}</span>
                   ) : null}
                 </span>
               </li>

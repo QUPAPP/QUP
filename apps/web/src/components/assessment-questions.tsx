@@ -15,7 +15,7 @@ import {
   skipItem,
   submitAnswer,
 } from "@/lib/api";
-import { correctOptions } from "@/lib/diagnostics";
+import { correctOptions, optionIndexForKey, optionLetter } from "@/lib/diagnostics";
 
 const PERCENT = 100;
 
@@ -130,7 +130,10 @@ function Question({
       kind === "ANSWER"
         ? submitAnswer(sessionId, item.id, selected, idempotencyKey, multiple)
         : skipItem(sessionId, item.id, idempotencyKey),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["assessment-history"] }),
+    onSuccess: (result, kind) => {
+      void queryClient.invalidateQueries({ queryKey: ["assessment-history"] });
+      if (kind === "SKIP") onNext(result.next.type === "COMPLETED");
+    },
   });
   const outcome = submit.data;
   const locked = submit.isPending || outcome !== undefined;
@@ -150,6 +153,45 @@ function Question({
     setSelected((keys) =>
       multiple ? (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]) : [key],
     );
+
+  const options = item.question.options;
+  const canSubmit = selected.length > 0 && !locked;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("textarea, select, input:not([type=radio]):not([type=checkbox])")) return;
+      if (event.key === "Enter") {
+        if (target?.closest("button, a")) return;
+        if (outcome) {
+          event.preventDefault();
+          nextRef.current?.click();
+        } else if (canSubmit) {
+          event.preventDefault();
+          submit.mutate("ANSWER");
+        }
+        return;
+      }
+      if (locked) return;
+      const index = optionIndexForKey(event.key, options.length);
+      const option = index === null ? undefined : options[index];
+      if (!option) return;
+      event.preventDefault();
+      toggle(option.key);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  const correctKeys = outcome?.review?.correctOptionKeys;
+  const optionState = (key: string): string => {
+    if (!outcome) return "";
+    if (correctKeys?.includes(key)) return " option--correct";
+    if (!selected.includes(key)) return "";
+    if (outcome.result.isCorrect === true) return " option--correct";
+    if (outcome.result.isCorrect === false) return " option--wrong";
+    return "";
+  };
 
   const position = progress.answered + 1;
   return (
@@ -181,8 +223,8 @@ function Question({
           <RichContent content={item.question.stem} />
         </legend>
         {multiple ? <p className="small muted">يمكن اختيار أكثر من إجابة.</p> : null}
-        {item.question.options.map((option) => (
-          <label key={option.key} className="option">
+        {options.map((option, index) => (
+          <label key={option.key} className={`option${optionState(option.key)}`}>
             <input
               type={multiple ? "checkbox" : "radio"}
               name="answer"
@@ -190,15 +232,19 @@ function Question({
               checked={selected.includes(option.key)}
               onChange={() => toggle(option.key)}
             />
-            <span>
+            <span className="option__content">
               <RichContent content={option.content} />
             </span>
-            <span className="option-key" dir="ltr">
-              {option.key}
-            </span>
+            <span className="option-key">{optionLetter(index)}</span>
           </label>
         ))}
       </fieldset>
+      {locked ? null : (
+        <p className="question-shortcuts small muted">
+          اختصار: اضغط <kbd>1</kbd>–<kbd>{options.length}</kbd> أو الحرف للاختيار، ثم{" "}
+          <kbd>Enter</kbd> للتأكيد.
+        </p>
+      )}
 
       {submit.isError ? <ErrorNotice error={submit.error} /> : null}
       {outcome ? <Feedback isCorrect={outcome.result.isCorrect} /> : null}
@@ -279,9 +325,7 @@ function Review({
             <span>
               <RichContent content={option.content} />
             </span>
-            <span className="option-key" dir="ltr">
-              {option.key}
-            </span>
+            <span className="option-key">{optionLetter(options.indexOf(option))}</span>
           </li>
         ))}
       </ul>

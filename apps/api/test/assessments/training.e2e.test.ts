@@ -309,4 +309,65 @@ describe("adaptive training", () => {
     const response = await answer(student, sessionId, item.item?.id ?? "", CORRECT);
     expect(response.json()).not.toHaveProperty("review");
   });
+  it("lists wrong training answers with their review, and only for the student with access", async () => {
+    const exam = await liveExam(10);
+    const [verbal] = exam.skillIds;
+    const student = await register("train-mistakes");
+    const outsider = await register("train-mistakes-outsider");
+    await grantAccess(student, exam.examId);
+    await gapOn(student, exam.examId, verbal ?? "");
+    const sessionId = await started(student, exam);
+
+    const empty = await call(student.token, "GET", `/exams/${exam.examId}/mistakes`);
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json()).toEqual({ items: [] });
+
+    const first = await current(student, sessionId);
+    await answer(student, sessionId, first.item?.id ?? "", WRONG);
+    const second = await current(student, sessionId);
+    await answer(student, sessionId, second.item?.id ?? "", CORRECT);
+
+    const listed = await call(student.token, "GET", `/exams/${exam.examId}/mistakes`);
+    expect(listed.statusCode).toBe(200);
+    const { items } = listed.json<{
+      items: {
+        skillName: string | null;
+        chosenKeys: string[];
+        correctOptionKeys: string[];
+        correctedLater: boolean;
+        question: { options: { key: string; isCorrect?: boolean }[] };
+      }[];
+    }>();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      skillName: "VERBAL-S1",
+      chosenKeys: [WRONG],
+      correctOptionKeys: [CORRECT],
+      correctedLater: false,
+    });
+    expect(items[0]?.question.options.every((o) => !("isCorrect" in o))).toBe(true);
+
+    const denied = await call(outsider.token, "GET", `/exams/${exam.examId}/mistakes`);
+    expect(denied.statusCode).toBe(403);
+    expect(errorCode(denied)).toBe("TRAINING_REQUIRES_ACCESS");
+    expect((await call(null, "GET", `/exams/${exam.examId}/mistakes`)).statusCode).toBe(401);
+  });
+
+  it("never lists wrong answers given in a diagnostic", async () => {
+    const exam = await liveExam(3);
+    const student = await register("train-mistakes-diag");
+    await grantAccess(student, exam.examId);
+    const session = await call(
+      student.token,
+      "POST",
+      `/exams/${exam.examId}/assessments/mini-diagnostic`,
+    );
+    const sessionId = session.json<{ id: string }>().id;
+    await call(student.token, "POST", `/assessments/${sessionId}/start`);
+    const item = await current(student, sessionId);
+    await answer(student, sessionId, item.item?.id ?? "", WRONG);
+
+    const listed = await call(student.token, "GET", `/exams/${exam.examId}/mistakes`);
+    expect(listed.json()).toEqual({ items: [] });
+  });
 });

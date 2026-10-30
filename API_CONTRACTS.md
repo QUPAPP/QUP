@@ -528,6 +528,20 @@ one at a time; every other session route applies (`/assessments/:id`, `start`, `
   `complete` ends it early: an unanswered item keeps no attempt and gives no evidence.
 - Questions already given to the student in the exam are never chosen again.
 
+### Mistakes review
+
+```text
+GET /exams/:examId/mistakes     the caller's wrong training answers, newest first (at most 50)
+```
+
+- Paid like training: `403 TRAINING_REQUIRES_ACCESS`.
+- One entry per question (its latest wrong answer):
+  `{ questionVersionId, answeredAt, correctedLater, skillName|null, question, chosenKeys,
+  correctOptionKeys, explanation }`. `question` is the student view (no `isCorrect`).
+  `correctedLater` is true when the same question was answered correctly afterwards.
+- Only `ADAPTIVE_TRAINING` attempts are listed: the answer key it returns is the one the training
+  review already showed. Diagnostic answers never appear.
+
 ## Mastery/Dashboard
 
 ```text
@@ -625,6 +639,7 @@ POST  /admin/plans/:id/activate         DRAFT → ACTIVE, audited
 POST  /admin/plans/:id/retire           → RETIRED, audited; existing entitlements are kept
 POST  /admin/entitlements               { studentId, examId, durationDays|null } manual grant, audited
 POST  /admin/entitlements/:id/revoke    idempotent, audited
+GET   /admin/students/lookup?identifier=  exact email or E.164 phone → { student, entitlements }
 ```
 - Money is `{ amountMinor, currency }`: an integer count of minor units (halalas), never a float.
   SAR only; an offered plan costs at least 100 (1.00 SAR). Price and duration are frozen once ACTIVE.
@@ -640,7 +655,7 @@ POST  /admin/entitlements/:id/revoke    idempotent, audited
 - Full refund at Stream ⇒ payment REFUNDED, entitlement REVOKED. Partial refund ⇒ logged, access kept.
 - Errors: `PLAN_NOT_AVAILABLE` (404), `ALREADY_ENTITLED` (409), `CHECKOUT_SUPERSEDED` (409),
   `IDEMPOTENCY_KEY_REUSED` (422), `PLAN_NOT_SELLABLE` (422), `INVALID_PLAN_TRANSITION` (422),
-  `PLAN_CODE_TAKEN` (409), `PAYMENT_NOT_FOUND` (404, also for another student's payment),
+  `PLAN_CODE_TAKEN` (409), `STUDENT_NOT_FOUND` (404, also for a partial identifier), `PAYMENT_NOT_FOUND` (404, also for another student's payment),
   `PAYMENTS_NOT_CONFIGURED` (503), `PAYMENT_PROVIDER_UNAVAILABLE` (503, nothing was charged),
   `WEBHOOK_SIGNATURE_INVALID` (401).
 - Webhook responses: 200 acknowledges (including events that are not ours); 503 asks Stream to retry.

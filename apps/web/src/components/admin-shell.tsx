@@ -66,6 +66,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <small>صلاحيات إدارية</small>
               </span>
             </span>
+            <span className="header-sign-out">
+              <SignOutButton tone="light" />
+            </span>
           </div>
         </header>
         <nav className="mobile-nav mobile-nav--scroll" aria-label="تنقل الإدارة على الجوال">

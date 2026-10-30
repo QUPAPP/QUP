@@ -70,9 +70,18 @@ const wholeNumber = z
   .transform(normalizeDigits)
   .refine((value) => /^\d{1,4}$/.test(value), "عدد صحيح");
 
+const MAX_COOLDOWN_DAYS = 365;
+const MAX_TRAINING_ATTEMPTS = 1000;
+
 export const gateFormSchema = z.object({
-  cooldownDays: wholeNumber,
-  minTrainingAttempts: wholeNumber,
+  cooldownDays: wholeNumber.refine(
+    (value) => Number(value) <= MAX_COOLDOWN_DAYS,
+    "من 0 إلى 365 يومًا",
+  ),
+  minTrainingAttempts: wholeNumber.refine(
+    (value) => Number(value) <= MAX_TRAINING_ATTEMPTS,
+    "من 0 إلى 1000 إجابة",
+  ),
 });
 export type GateFormInput = z.input<typeof gateFormSchema>;
 export type GateForm = z.output<typeof gateFormSchema>;

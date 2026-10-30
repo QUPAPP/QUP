@@ -8,6 +8,7 @@ import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { type AiRunStatus, getAiStatus, listAiRuns } from "@/lib/ai-api";
 import { AI_STATUS_LABELS, AI_TASK_LABELS } from "@/lib/ai-assist";
+import { formatDateTime } from "@/lib/format";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 
 const PAGE_SIZE = 50;
@@ -73,9 +74,7 @@ function AiRuns({ userId }: { userId: string }) {
               <li key={run.id} className="audit-entry">
                 <div className="audit-entry__head">
                   <strong>{AI_TASK_LABELS[run.task] ?? run.task}</strong>
-                  <span className="small muted">
-                    {new Date(run.createdAt).toLocaleString("ar-SA")}
-                  </span>
+                  <span className="small muted">{formatDateTime(run.createdAt)}</span>
                 </div>
                 <span className="small">
                   {`${AI_STATUS_LABELS[run.status]}${run.errorCode ? ` · ${run.errorCode}` : ""} · ${run.latencyMs} ملي ثانية · المحاولات ${run.attempts}`}

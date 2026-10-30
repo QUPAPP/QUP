@@ -32,6 +32,13 @@ const BY_CODE: Record<string, string> = {
   SERVICE_UNAVAILABLE: "الخدمة غير متاحة مؤقتًا. حاول بعد قليل.",
   FORBIDDEN: "ليس لديك صلاحية لهذا الإجراء.",
   CROSS_SITE_REQUEST: "رُفض الطلب لأنه لم يصدر من صفحات QUP. أعد تحميل الصفحة وحاول مرة أخرى.",
+  PLAN_NOT_FOUND: "لم نجد هذه الباقة.",
+  PLAN_CODE_TAKEN: "رمز الباقة مستخدم من قبل. اختر رمزًا آخر.",
+  PLAN_NOT_DRAFT: "لا يمكن تعديل باقة معروضة للبيع؛ أنشئ باقة جديدة بالسعر الجديد.",
+  INVALID_PLAN_TRANSITION: "لا يمكن نقل الباقة إلى هذه الحالة من حالتها الحالية.",
+  PLAN_NOT_SELLABLE: "لا يمكن عرض هذه الباقة للبيع بهذا السعر أو بهذه العملة.",
+  STUDENT_NOT_FOUND: "لم نجد حسابًا بهذا البريد أو الرقم. تأكد من كتابته كما سجّل به الطالب.",
+  ENTITLEMENT_NOT_FOUND: "لم نجد هذا الاشتراك.",
   // Admin: exams and taxonomy.
   EXAM_NOT_FOUND: "لم نجد هذا الاختبار.",
   EXAM_IDENTIFIER_TAKEN: "رمز الاختبار أو رابطه مستخدم من قبل. اختر غيره.",
@@ -84,7 +91,7 @@ const BY_CODE: Record<string, string> = {
   // Admin: settings.
   SETTING_NOT_FOUND: "لم نجد هذا الإعداد.",
   SETTING_VALUE_INVALID:
-    "القيم لا تستوفي شروط هذا الإعداد: يبدأ أدنى مستوى من 0، وتزيد الحدود من مستوى إلى الذي يليه.",
+    "القيم لا تستوفي شروط هذا الإعداد. راجع الحدود الموضحة تحت كل حقل ثم احفظ.",
   SETTING_VERSION_CONFLICT:
     "حفظ شخص آخر نسخة أحدث من هذا الإعداد قبل لحظات. حدّثنا القيم المعروضة؛ راجعها ثم احفظ من جديد.",
 };
@@ -101,7 +108,7 @@ const MINOR_UNITS_PER_RIYAL = 100;
 /** Display only: 19900 → "199 ر.س". The amount charged is the server's. */
 export function formatPrice(amountMinor: number, currency: string): string {
   const amount = amountMinor / MINOR_UNITS_PER_RIYAL;
-  return new Intl.NumberFormat("ar-SA", {
+  return new Intl.NumberFormat("ar-SA-u-nu-latn", {
     style: "currency",
     currency,
     maximumFractionDigits: amountMinor % MINOR_UNITS_PER_RIYAL === 0 ? 0 : 2,

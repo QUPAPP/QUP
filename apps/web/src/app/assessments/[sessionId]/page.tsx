@@ -52,7 +52,10 @@ export default function AssessmentPage() {
           key={sessionId}
           sessionId={sessionId}
           completion={{
-            href: completionHref({ id: data.id, examId: data.examId, type }),
+            href:
+              type === "ADAPTIVE_TRAINING"
+                ? `${completionHref({ id: data.id, examId: data.examId, type })}?trained=${data.id}`
+                : completionHref({ id: data.id, examId: data.examId, type }),
             label: COMPLETION_LABELS[type],
           }}
           endLabel={type === "ADAPTIVE_TRAINING" ? "إنهاء التدريب" : undefined}

@@ -57,7 +57,7 @@ export default function AccountPage() {
             >
               {revoke.isPending ? "جارٍ إنهاء الجلسات…" : "تسجيل الخروج من الأجهزة الأخرى"}
             </button>
-            <SignOutButton />
+            <SignOutButton tone="light" />
           </section>
         </div>
       ) : null}

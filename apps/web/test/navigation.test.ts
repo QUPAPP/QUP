@@ -49,6 +49,7 @@ describe("admin navigation", () => {
   });
   it("keeps a taxonomy version under the exams and taxonomy item", () => {
     expect(isActivePath("/admin/taxonomy-versions/version-id", "/admin/exams")).toBe(true);
+    expect(isActivePath("/admin/blueprints/blueprint-id", "/admin/exams")).toBe(true);
     expect(isActivePath("/admin/taxonomy-versions/version-id", "/dashboard")).toBe(false);
   });
 });

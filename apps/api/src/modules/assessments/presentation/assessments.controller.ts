@@ -204,6 +204,24 @@ export class AssessmentsController {
     return { ...toSessionView(session), resumed: !created };
   }
 
+  @Get("exams/:examId/mistakes")
+  @ApiOperation({
+    summary:
+      "The student's latest wrong training answers, with the correct option and explanation.",
+  })
+  async trainingMistakes(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+  ) {
+    const mistakes = await this.assessments.trainingMistakes(principal.userId, examId);
+    return {
+      items: mistakes.map((mistake) => ({
+        ...mistake,
+        answeredAt: mistake.answeredAt.toISOString(),
+      })),
+    };
+  }
+
   @Post("exams/:examId/assessments/full-diagnostic")
   @ApiOperation({
     summary: "Start the paid full diagnostic, or resume the open one (201 new, 200 resumed).",

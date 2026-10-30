@@ -16,6 +16,7 @@ import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { isApiError, type Me } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { ADMIN_PERMISSIONS, hasPermission } from "@/lib/permissions";
 import {
   getQuestion,
@@ -127,7 +128,7 @@ function VersionDetails({
       </Link>
       <PageHeading
         title={`النسخة ${version.versionNumber}${code ? ` من ${code}` : ""}`}
-        description={`آخر تعديل ${new Date(version.updatedAt).toLocaleString("ar-SA")}`}
+        description={`آخر تعديل ${formatDateTime(version.updatedAt)}`}
         action={<StatusBadge status={archived ? "ARCHIVED" : version.status} />}
       />
 
@@ -218,9 +219,7 @@ function VersionDetails({
               <li key={`${review.createdAt}-${review.decision}`} className="admin-row review-entry">
                 <span className="admin-row__main">
                   <strong>{DECISION_LABEL[review.decision]}</strong>
-                  <span className="small muted">
-                    {new Date(review.createdAt).toLocaleString("ar-SA")}
-                  </span>
+                  <span className="small muted">{formatDateTime(review.createdAt)}</span>
                   {review.notes ? (
                     <span className="review-entry__notes">{review.notes}</span>
                   ) : null}

@@ -1,6 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 
 import type { ActorContext } from "../../../common/actor.js";
+import {
+  type DirectoryEntry,
+  USER_DIRECTORY,
+  type UserDirectory,
+} from "../../auth/auth.contract.js";
 import { CATALOG_LOOKUP, type CatalogLookup } from "../../catalog/catalog.contract.js";
 import type { ExamAccess } from "../billing.contract.js";
 import { EntitlementNotFound, ExamNotFound, StudentNotFound } from "../domain/billing.errors.js";
@@ -23,6 +28,7 @@ export class EntitlementsService implements ExamAccess {
   constructor(
     @Inject(BILLING_STORE) private readonly store: BillingStore,
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
+    @Inject(USER_DIRECTORY) private readonly directory: UserDirectory,
   ) {}
 
   async accessTo(studentId: string, examId: string): Promise<AccessStatus> {
@@ -36,6 +42,14 @@ export class EntitlementsService implements ExamAccess {
 
   listFor(studentId: string): Promise<Entitlement[]> {
     return this.store.entitlementsFor(studentId);
+  }
+
+  async lookupStudent(
+    identifier: string,
+  ): Promise<{ student: DirectoryEntry; entitlements: Entitlement[] }> {
+    const student = await this.directory.findByIdentifier(identifier);
+    if (!student) throw new StudentNotFound();
+    return { student, entitlements: await this.store.entitlementsFor(student.id) };
   }
 
   async grantByAdmin(

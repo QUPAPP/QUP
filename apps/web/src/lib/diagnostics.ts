@@ -65,3 +65,24 @@ export function correctOptions<T extends { key: string; content: RichContent }>(
 ): T[] {
   return options.filter((option) => correctKeys.includes(option.key));
 }
+
+const OPTION_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+const LATIN_OPTION_KEYS = "abcdefgh";
+const ARABIC_KEYBOARD_LETTERS = ["أ", "ب", "ج", "د", "ه", "و", "ز", "ح"];
+const ARABIC_DIGITS = "١٢٣٤٥٦٧٨";
+
+export function optionLetter(index: number): string {
+  return OPTION_LETTERS[index] ?? String(index + 1);
+}
+
+export function optionIndexForKey(key: string, optionCount: number): number | null {
+  const normalized = key === "ا" || key === "إ" || key === "آ" ? "أ" : key.toLowerCase();
+  const candidates = [
+    "12345678".indexOf(normalized),
+    ARABIC_DIGITS.indexOf(normalized),
+    normalized.length === 1 ? LATIN_OPTION_KEYS.indexOf(normalized) : -1,
+    ARABIC_KEYBOARD_LETTERS.indexOf(normalized),
+  ];
+  const index = candidates.find((candidate) => candidate >= 0);
+  return index !== undefined && index < optionCount ? index : null;
+}

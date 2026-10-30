@@ -909,8 +909,12 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background:
-      linear-gradient(0deg, rgb(6 26 51 / 92%) 0%, rgb(6 26 51 / 45%) 55%, rgb(6 26 51 / 35%) 100%);
+    background: linear-gradient(
+      0deg,
+      rgb(6 26 51 / 92%) 0%,
+      rgb(6 26 51 / 45%) 55%,
+      rgb(6 26 51 / 35%) 100%
+    );
   }
   :where(.auth-story__content) {
     position: relative;
@@ -1873,12 +1877,6 @@
     align-items: center;
     color: var(--color-blue);
   }
-  :where(.exam-code) {
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-  }
   :where(.exam-card-body) {
     display: flex;
     flex-direction: column;
@@ -2098,7 +2096,7 @@
     position: relative;
   }
   :where(.password-field input) {
-    padding-inline-end: 3rem;
+    padding-inline-start: 3rem;
   }
   :where(.password-toggle) {
     position: absolute;
@@ -2201,7 +2199,7 @@
     border-radius: 0.5rem;
     background: var(--color-surface);
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 700;
   }
   :where(.badge) {
@@ -2507,7 +2505,10 @@
     :where(.workspace-greeting > div, .workspace-plans, .user-chip__name) {
       display: none;
     }
-    :where(.workspace-breadcrumb > span:not(.workspace-greeting__brand), .workspace-breadcrumb > .icon) {
+    :where(
+        .workspace-breadcrumb > span:not(.workspace-greeting__brand),
+        .workspace-breadcrumb > .icon
+      ) {
       display: none;
     }
     :where(.workspace-content) {
@@ -3149,6 +3150,47 @@
     border-radius: var(--radius-small);
     background: var(--color-surface);
   }
+  :where(.option__content) {
+    flex: 1;
+  }
+  :where(.option--correct) {
+    border-color: var(--color-success);
+    background: var(--color-success-surface);
+    box-shadow: inset 0 0 0 1px var(--color-success);
+  }
+  :where(.option--correct .option-key) {
+    background: var(--color-success);
+    color: var(--color-white);
+  }
+  :where(.option--wrong) {
+    border-color: var(--color-danger);
+    background: var(--color-danger-surface);
+    box-shadow: inset 0 0 0 1px var(--color-danger);
+  }
+  :where(.option--wrong .option-key) {
+    background: var(--color-danger);
+    color: var(--color-white);
+  }
+  :where(.question-shortcuts) {
+    margin: 0;
+  }
+  :where(.question-shortcuts kbd) {
+    display: inline-block;
+    min-width: 1.4rem;
+    padding: 0 0.35rem;
+    border: 1px solid var(--color-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 0.35rem;
+    background: var(--color-white);
+    font-family: inherit;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+  @media (pointer: coarse) {
+    :where(.question-shortcuts) {
+      display: none;
+    }
+  }
   :where(.question-end) {
     display: flex;
     flex-direction: column;
@@ -3265,7 +3307,309 @@
   :where(li:has(.mastery-badge--gap) .profile-bar span) {
     background: var(--color-danger);
   }
-  :where(li:has(.mastery-badge--developing) .profile-bar span, li:has(.mastery-badge--uncertain) .profile-bar span) {
+  :where(
+    li:has(.mastery-badge--developing) .profile-bar span,
+    li:has(.mastery-badge--uncertain) .profile-bar span
+  ) {
     background: var(--color-gold);
+  }
+}
+
+@layer components {
+  :where(.mistake-filters) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  :where(.chip-group) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  :where(.chip) {
+    padding: 0.4rem 0.95rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    background: var(--color-white);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color var(--motion-fast),
+      border-color var(--motion-fast),
+      color var(--motion-fast);
+  }
+  :where(.chip:hover) {
+    border-color: var(--color-blue);
+  }
+  :where(.chip[aria-pressed="true"]) {
+    border-color: var(--color-navy);
+    background: var(--color-navy);
+    color: var(--color-white);
+  }
+  :where(.chip:focus-visible) {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+  :where(.check-field) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  :where(.check-field input) {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+  :where(.mistake-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.mistake-card__meta) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  :where(.mistake-card__meta .mastery-badge) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  :where(.mistake-card__meta .icon) {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+  :where(.mistake-card__stem) {
+    color: var(--color-navy);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.9;
+  }
+  :where(.mistake-options) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.option--static) {
+    cursor: default;
+  }
+  :where(.option--static:hover) {
+    border-color: var(--color-border-strong);
+    background: var(--color-white);
+  }
+  :where(.option--static.option--correct:hover) {
+    border-color: var(--color-success);
+    background: var(--color-success-surface);
+  }
+  :where(.option--static.option--wrong:hover) {
+    border-color: var(--color-danger);
+    background: var(--color-danger-surface);
+  }
+  :where(.mistake-tag) {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+  :where(.option--correct .mistake-tag) {
+    color: var(--color-success);
+  }
+  :where(.option--wrong .mistake-tag) {
+    color: var(--color-danger);
+  }
+  :where(.mistake-explanation) {
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+  }
+  :where(.mistake-explanation summary) {
+    color: var(--color-blue);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  :where(.mistake-explanation[open] summary) {
+    margin-bottom: 0.6rem;
+  }
+}
+
+@layer components {
+  :where(.section-head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  :where(.inline-field) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  :where(.inline-field .field__input) {
+    width: auto;
+    min-width: 12rem;
+  }
+  :where(.admin-row--stacked) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  :where(.admin-row__line) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  :where(.plan-figure) {
+    color: var(--color-navy);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.status-badge--retired, .status-badge--revoked, .status-badge--expired) {
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+  :where(.lookup-form) {
+    display: flex;
+    gap: 0.75rem;
+  }
+  :where(.lookup-form .field__input) {
+    flex: 1;
+  }
+  :where(.student-card) {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+  }
+  :where(.student-card > div) {
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 40rem) {
+    :where(.lookup-form) {
+      flex-direction: column;
+    }
+  }
+}
+
+@layer components {
+  :where(fieldset.mistake-filters) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+}
+
+@layer components {
+  :where(.btn:disabled, .btn[aria-disabled="true"]) {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  :where(.sign-out--light) {
+    width: auto;
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-danger);
+    font-weight: 600;
+  }
+  :where(.sign-out--light:hover) {
+    color: var(--color-danger);
+    background: var(--color-danger-surface);
+    border-color: var(--color-danger);
+  }
+  :where(.header-sign-out) {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    :where(.workspace-content) {
+      padding-bottom: 1.5rem;
+    }
+    :where(.workspace-footer) {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+    :where(.header-sign-out) {
+      display: block;
+    }
+    :where(.header-sign-out .sign-out) {
+      padding: 0.45rem 0.7rem;
+      font-size: 0.78rem;
+    }
+  }
+}
+
+@layer components {
+  :where(.training-done) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  :where(.training-done p) {
+    margin: 0;
+  }
+}
+
+@layer components {
+  :where(.exam-card-foot .btn) {
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+@layer components {
+  :where(.readiness-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.readiness-item) {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  :where(.readiness-item > span:last-child) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  :where(.readiness-item__mark) {
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+  :where(.readiness-item__mark .icon) {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+  :where(.readiness-item--done .readiness-item__mark) {
+    background: var(--color-success-surface);
+    color: var(--color-success);
+  }
+  :where(.readiness-item--missing .readiness-item__mark) {
+    background: var(--color-danger-surface);
+    color: var(--color-danger);
   }
 }

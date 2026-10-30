@@ -8,6 +8,7 @@ import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
 import { type FullReassessmentResult, getFullReassessmentResult, getSession } from "@/lib/api";
 import { DIAGNOSTIC_TITLES, SESSION_TITLES } from "@/lib/diagnostics";
+import { formatDate } from "@/lib/format";
 import { accuracyText, changeText } from "@/lib/full-reassessment";
 import { useRequireUser } from "@/lib/session";
 
@@ -67,7 +68,7 @@ function Comparison({ result }: { result: FullReassessmentResult }) {
           <li>
             <strong>{accuracyText(previous.correct, previous.total)}</strong>
             <span>
-              {`${PREVIOUS_TITLES[previous.type] ?? "القياس السابق"} — ${new Date(previous.completedAt).toLocaleDateString("ar-SA")}`}
+              {`${PREVIOUS_TITLES[previous.type] ?? "القياس السابق"} — ${formatDate(previous.completedAt)}`}
             </span>
           </li>
         ) : null}

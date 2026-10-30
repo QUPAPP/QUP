@@ -21,7 +21,10 @@ import {
   listTaxonomyVersions,
   updateExam,
 } from "@/lib/admin-api";
+import { listAdminPlans } from "@/lib/billing-admin-api";
+import { countText, formatDate, QUESTIONS } from "@/lib/format";
 import { ADMIN_PERMISSIONS, hasPermission } from "@/lib/permissions";
+import { listQuestions } from "@/lib/question-api";
 
 export default function AdminExamPage() {
   const { examId } = useParams<{ examId: string }>();
@@ -32,6 +35,8 @@ export default function AdminExamPage() {
           userId={me.user.id}
           examId={examId}
           canManageBlueprints={hasPermission(me, ADMIN_PERMISSIONS.blueprintsManage)}
+          canReadQuestions={hasPermission(me, ADMIN_PERMISSIONS.questionsCreate)}
+          canManageBilling={hasPermission(me, ADMIN_PERMISSIONS.billingManage)}
         />
       )}
     </AdminGate>
@@ -43,9 +48,17 @@ interface ExamAdminProps {
   examId: string;
   /** Only decides whether the section shows; the API checks blueprints.manage itself. */
   canManageBlueprints: boolean;
+  canReadQuestions: boolean;
+  canManageBilling: boolean;
 }
 
-function ExamAdmin({ userId, examId, canManageBlueprints }: ExamAdminProps) {
+function ExamAdmin({
+  userId,
+  examId,
+  canManageBlueprints,
+  canReadQuestions,
+  canManageBilling,
+}: ExamAdminProps) {
   // The API has no single-exam admin route; exams number in the single digits (PRD §4).
   const exams = useQuery({ queryKey: ["admin-exams", userId], queryFn: listAdminExams });
   const exam = exams.data?.items.find((item) => item.id === examId);
@@ -79,7 +92,15 @@ function ExamAdmin({ userId, examId, canManageBlueprints }: ExamAdminProps) {
       </main>
     );
   }
-  return <ExamDetails userId={userId} exam={exam} canManageBlueprints={canManageBlueprints} />;
+  return (
+    <ExamDetails
+      userId={userId}
+      exam={exam}
+      canManageBlueprints={canManageBlueprints}
+      canReadQuestions={canReadQuestions}
+      canManageBilling={canManageBilling}
+    />
+  );
 }
 
 const NEXT_STATUSES: Record<ExamStatus, { status: ExamStatus; label: string; note: string }[]> = {
@@ -109,10 +130,14 @@ function ExamDetails({
   userId,
   exam,
   canManageBlueprints,
+  canReadQuestions,
+  canManageBilling,
 }: {
   userId: string;
   exam: AdminExam;
   canManageBlueprints: boolean;
+  canReadQuestions: boolean;
+  canManageBilling: boolean;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -136,6 +161,19 @@ function ExamDetails({
         description={`الرمز ${exam.code} · الرابط ${exam.slug}`}
         action={<StatusBadge status={exam.status} />}
       />
+
+      {exam.status !== "ARCHIVED" ? (
+        <ReadinessCard
+          userId={userId}
+          examId={exam.id}
+          publishedVersionId={
+            versions.data?.items.find((version) => version.status === "PUBLISHED")?.id ?? null
+          }
+          versionsLoaded={versions.isSuccess}
+          canReadQuestions={canReadQuestions}
+          canManageBilling={canManageBilling}
+        />
+      ) : null}
 
       <section className="card stack" aria-labelledby="status-heading">
         <h2 id="status-heading">حالة الاختبار</h2>
@@ -175,9 +213,7 @@ function ExamDetails({
               <li key={version.id} className="admin-row">
                 <Link href={`/admin/taxonomy-versions/${version.id}`} className="admin-row__main">
                   <strong dir="ltr">{version.versionCode}</strong>
-                  <span className="small muted">
-                    أُنشئت {new Date(version.createdAt).toLocaleDateString("ar-SA")}
-                  </span>
+                  <span className="small muted">أُنشئت {formatDate(version.createdAt)}</span>
                 </Link>
                 <StatusBadge status={version.status} />
                 <Icon name="chevron" />
@@ -213,5 +249,100 @@ function ExamDetails({
         />
       </section>
     </main>
+  );
+}
+
+type Check = { label: string; state: "done" | "missing" | "unknown"; detail: string };
+
+function ReadinessCard({
+  userId,
+  examId,
+  publishedVersionId,
+  versionsLoaded,
+  canReadQuestions,
+  canManageBilling,
+}: {
+  userId: string;
+  examId: string;
+  publishedVersionId: string | null;
+  versionsLoaded: boolean;
+  canReadQuestions: boolean;
+  canManageBilling: boolean;
+}) {
+  const questions = useQuery({
+    queryKey: ["admin-exam-question-count", userId, publishedVersionId],
+    queryFn: () =>
+      listQuestions({
+        limit: 1,
+        offset: 0,
+        status: "PUBLISHED",
+        taxonomyVersionId: publishedVersionId ?? "",
+      }),
+    enabled: canReadQuestions && publishedVersionId !== null,
+  });
+  const plans = useQuery({
+    queryKey: ["admin-plans", userId],
+    queryFn: listAdminPlans,
+    enabled: canManageBilling,
+  });
+  if (!versionsLoaded) return null;
+
+  const published = questions.data?.page.total ?? null;
+  const activePlans =
+    plans.data?.items.filter((plan) => plan.examId === examId && plan.status === "ACTIVE").length ??
+    null;
+  const checks: Check[] = [
+    {
+      label: "تصنيف منشور",
+      state: publishedVersionId ? "done" : "missing",
+      detail: publishedVersionId
+        ? "الشجرة منشورة وتُبنى عليها الأسئلة والقياس."
+        : "انشر نسخة من التصنيف أولًا.",
+    },
+    {
+      label: "أسئلة منشورة",
+      state: published === null ? "unknown" : published > 0 ? "done" : "missing",
+      detail:
+        published === null
+          ? "تظهر بعد نشر التصنيف."
+          : `${countText(published, QUESTIONS)} منشورة على النسخة الحالية. التشخيص والتدريب يحتاجان أسئلة كافية لكل مهارة.`,
+    },
+    {
+      label: "باقة معروضة للبيع",
+      state: activePlans === null ? "unknown" : activePlans > 0 ? "done" : "missing",
+      detail:
+        activePlans === null
+          ? "تُدار من «الباقات والاشتراكات»."
+          : activePlans > 0
+            ? "يستطيع الطالب الاشتراك بعد التشخيص المصغّر."
+            : "بدونها يرى الطالب نتيجته المبدئية ولا يجد ما يشترك فيه.",
+    },
+  ];
+
+  return (
+    <section className="card stack" aria-labelledby="readiness-heading">
+      <h2 id="readiness-heading">جاهزية الاختبار للطلاب</h2>
+      <ul className="readiness-list">
+        {checks.map((check) => (
+          <li key={check.label} className={`readiness-item readiness-item--${check.state}`}>
+            <span className="readiness-item__mark" aria-hidden="true">
+              {check.state === "done" ? <Icon name="check" /> : <Icon name="close" />}
+            </span>
+            <span>
+              <strong>{check.label}</strong>
+              <span className="visually-hidden">
+                {check.state === "done" ? " — مكتمل" : check.state === "missing" ? " — ناقص" : ""}
+              </span>
+              <span className="small muted">{check.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {canManageBilling ? (
+        <Link href="/admin/billing" className="text-link">
+          الباقات والاشتراكات <Icon name="chevron" />
+        </Link>
+      ) : null}
+    </section>
   );
 }

@@ -52,9 +52,7 @@ export function PlanOffers({ examId }: { examId: string }) {
     return (
       <div className="notice notice--success" role="status">
         <strong>اشتراكك في هذا الاختبار مفعّل.</strong>
-        <p>
-          التشخيص الكامل وملف المهارات والتدريب وإعادة القياس متاحة لك الآن من مساحتك.
-        </p>
+        <p>التشخيص الكامل وملف المهارات والتدريب وإعادة القياس متاحة لك الآن من مساحتك.</p>
       </div>
     );
   if (plans.data.items.length === 0)

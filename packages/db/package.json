@@ -18,6 +18,7 @@
     "check": "drizzle-kit check",
     "migrate": "tsx src/migrate.ts",
     "verify": "tsx src/verify.ts",
+    "seed:demo": "tsx src/seed-demo.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

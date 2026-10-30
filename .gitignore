@@ -30,3 +30,6 @@ Thumbs.db
 
 # Private local storage for uploads (import originals); never committed.
 var/
+
+# Local code-graph output
+graphify-out/
