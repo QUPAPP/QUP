@@ -57,3 +57,43 @@ export class AiNoSkills extends DomainError {
     super("The question's taxonomy has no active skills to suggest.");
   }
 }
+
+/** The product owner has not turned student explanations on (OPEN_QUESTIONS.md #18). */
+export class AiStudentExplanationsOff extends DomainError {
+  readonly code = "AI_STUDENT_EXPLANATIONS_OFF";
+  readonly kind = "UNAVAILABLE";
+
+  constructor() {
+    super("Personalised explanations are not available.");
+  }
+}
+
+/** Explanations are for questions the student got wrong in training, after answering. */
+export class AiMistakeNotFound extends DomainError {
+  readonly code = "MISTAKE_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("You have no wrong training answer on this question.");
+  }
+}
+
+/** A student's daily allowance of personalised explanations is used up. */
+export class AiDailyLimitReached extends DomainError {
+  readonly code = "AI_DAILY_LIMIT_REACHED";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor(readonly limit: number) {
+    super(`You can ask for ${limit} personalised explanations a day.`);
+  }
+}
+
+/** The node to draft a question for is not an active skill or subskill of the version. */
+export class AiNodeNotFound extends DomainError {
+  readonly code = "AI_NODE_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The skill is not part of this taxonomy version.");
+  }
+}

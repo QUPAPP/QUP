@@ -19,14 +19,19 @@ const links: { href: string; title: string; icon: IconName }[] = [
   { href: "/account", title: "حسابي", icon: "user" },
 ];
 
+const SESSION_RUNNER_PATH = /^\/assessments\/[^/]+\/?$/;
+
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { data: me } = useMe();
   const user = me?.user;
   if (!isWorkspacePath(path)) return children;
   const name = firstName(user?.displayName);
+  // While a question session runs, the phone shows the question only: one stray
+  // tap on the tab bar should not pull a student out mid-exam.
+  const inSession = SESSION_RUNNER_PATH.test(path);
   return (
-    <div className="workspace">
+    <div className={`workspace${inSession ? " workspace--focus" : ""}`}>
       <aside className="sidebar" aria-label="القائمة الرئيسية">
         <Brand href="/dashboard" tone="light" />
         <nav className="sidebar-nav" aria-label="التنقل الرئيسي">

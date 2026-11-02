@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
+import { MistakeTutor } from "@/components/mistake-tutor";
 import { PageHeading } from "@/components/page-heading";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -138,7 +139,7 @@ function MistakeList({ examId, items }: { examId: string; items: TrainingMistake
       ) : (
         <ol className="mistake-list">
           {shown.map((item) => (
-            <MistakeCard key={item.questionVersionId} item={item} />
+            <MistakeCard key={item.questionVersionId} examId={examId} item={item} />
           ))}
         </ol>
       )}
@@ -146,7 +147,7 @@ function MistakeList({ examId, items }: { examId: string; items: TrainingMistake
   );
 }
 
-function MistakeCard({ item }: { item: TrainingMistake }) {
+function MistakeCard({ examId, item }: { examId: string; item: TrainingMistake }) {
   return (
     <li className="card mistake-card stack">
       <div className="mistake-card__meta">
@@ -184,6 +185,7 @@ function MistakeCard({ item }: { item: TrainingMistake }) {
           <RichContent content={item.explanation} />
         </details>
       ) : null}
+      <MistakeTutor examId={examId} questionVersionId={item.questionVersionId} />
     </li>
   );
 }

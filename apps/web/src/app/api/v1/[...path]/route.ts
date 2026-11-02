@@ -4,6 +4,7 @@ import {
   forwardedRequestHeaders,
   forwardedResponseHeaders,
   isCrossSiteWrite,
+  upstreamTimeoutMs,
   upstreamUrl,
 } from "@/lib/api-proxy";
 
@@ -14,7 +15,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const UPSTREAM_TIMEOUT_MS = 30_000;
 const DEFAULT_DEV_API_URL = "http://localhost:3000";
 const NO_CONTENT = 204;
 
@@ -69,7 +69,7 @@ async function proxy(
       ...(hasBody ? { body: await request.arrayBuffer() } : {}),
       redirect: "manual",
       cache: "no-store",
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      signal: AbortSignal.timeout(upstreamTimeoutMs(path)),
     });
   } catch {
     // The API is down or slow: answer in its own error shape rather than a bare 500.

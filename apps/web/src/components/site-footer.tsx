@@ -20,6 +20,7 @@ export function SiteFooter() {
           <Link href="/login">تسجيل الدخول</Link>
           <a href="/#how-it-works">كيف يعمل</a>
           <a href="/#questions">أسئلة شائعة</a>
+          <Link href="/tools/weighted-score">حاسبة النسبة الموزونة</Link>
         </nav>
       </div>
       <div className="footer-bottom">

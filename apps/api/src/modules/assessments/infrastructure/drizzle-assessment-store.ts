@@ -239,10 +239,28 @@ export class DrizzleAssessmentStore implements AssessmentStore {
     return row?.attempts ?? 0;
   }
 
+  async chosenKeys(sessionId: string): Promise<Map<string, string[]>> {
+    const rows = await this.db
+      .select({
+        itemId: questionAttempts.assessmentItemId,
+        answer: questionAttempts.submittedAnswer,
+      })
+      .from(questionAttempts)
+      .innerJoin(assessmentItems, eq(assessmentItems.id, questionAttempts.assessmentItemId))
+      .where(eq(assessmentItems.sessionId, sessionId));
+    return new Map(
+      rows.map((row) => [
+        row.itemId,
+        (row.answer as { optionKeys?: string[] } | null)?.optionKeys ?? [],
+      ]),
+    );
+  }
+
   async trainingMistakes(
     studentId: string,
     examId: string,
     limit: number,
+    questionVersionId: string | null = null,
   ): Promise<TrainingMistake[]> {
     const rows = await this.db.execute<{
       question_version_id: string;
@@ -276,6 +294,7 @@ export class DrizzleAssessmentStore implements AssessmentStore {
           AND s.type = 'ADAPTIVE_TRAINING'
           AND a.result_type = 'ANSWERED'
           AND a.is_correct = false
+          AND (${questionVersionId}::uuid IS NULL OR i.question_version_id = ${questionVersionId}::uuid)
         ORDER BY i.question_version_id, a.finalized_at DESC
       ) latest
       ORDER BY answered_at DESC, question_version_id

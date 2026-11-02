@@ -19,8 +19,10 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: "3000"
-      # Requests arrive through the web container, which forwards the client address.
-      TRUST_PROXY: "true"
+      # Requests arrive from the web container, which names the student's
+      # address and proves it with PROXY_SHARED_SECRET. "true" is refused (C4).
+      TRUST_PROXY: "false"
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?set PROXY_SHARED_SECRET in .env (openssl rand -hex 32)}
       # Plain http://localhost cannot carry a Secure cookie in every browser.
       # Local runs only — a deployed API keeps the production default (true).
       SESSION_COOKIE_SECURE: "false"
@@ -34,6 +36,7 @@ services:
       dockerfile: Dockerfile.web
     environment:
       API_INTERNAL_URL: http://api:3000
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?set PROXY_SHARED_SECRET in .env (openssl rand -hex 32)}
     ports:
       - "3001:3000"
     depends_on:

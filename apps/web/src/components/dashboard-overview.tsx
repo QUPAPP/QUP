@@ -128,6 +128,9 @@ export function StandingCard({ progress }: { progress: ExamProgress }) {
           <Link href={`/exams/${exam.id}/mistakes`} className="text-link">
             مراجعة أخطائي <Icon name="chevron" />
           </Link>
+          <Link href={`/exams/${exam.id}/mock-exam`} className="text-link">
+            اختبار محاكي <Icon name="chevron" />
+          </Link>
         </div>
       </div>
     </section>

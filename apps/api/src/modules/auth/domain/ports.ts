@@ -63,6 +63,9 @@ export interface AuthStore {
   /** Grants a role and audits it. Returns false when the user already held it. */
   grantRole(userId: string, role: RoleCode, actor: ActorContext): Promise<boolean>;
   findProfile(userId: string): Promise<UserProfile | null>;
+  findCredentialsById(userId: string): Promise<StoredCredentials | null>;
+  updateDisplayName(userId: string, displayName: string | null): Promise<UserProfile | null>;
+  updatePasswordHash(userId: string, passwordHash: string, at: Date): Promise<void>;
   loadAccess(userId: string): Promise<UserAccess>;
   recordLogin(userId: string, at: Date): Promise<void>;
 

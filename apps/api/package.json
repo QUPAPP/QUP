@@ -17,6 +17,7 @@
     "perf": "vitest run --config vitest.perf.config.ts --reporter=verbose --silent=false"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@fastify/cookie": "11.1.2",
     "@fastify/helmet": "13.1.1",
     "@nestjs/common": "12.0.4",

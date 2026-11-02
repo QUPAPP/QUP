@@ -151,6 +151,28 @@ export class DrizzleAuthStore implements AuthStore {
     return row ?? null;
   }
 
+  async findCredentialsById(userId: string): Promise<StoredCredentials | null> {
+    const [row] = await this.db
+      .select(credentialColumns)
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async updateDisplayName(userId: string, displayName: string | null): Promise<UserProfile | null> {
+    const [row] = await this.db
+      .update(users)
+      .set({ displayName })
+      .where(eq(users.id, userId))
+      .returning(profileColumns);
+    return row ?? null;
+  }
+
+  async updatePasswordHash(userId: string, passwordHash: string, at: Date): Promise<void> {
+    await this.db.update(users).set({ passwordHash, updatedAt: at }).where(eq(users.id, userId));
+  }
+
   async loadAccess(userId: string): Promise<UserAccess> {
     const rows = await this.db
       .select({ role: roles.code, permission: permissions.code })

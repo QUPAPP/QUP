@@ -5,6 +5,7 @@ import {
   forwardedResponseHeaders,
   isCrossSiteWrite,
   upstreamPath,
+  upstreamTimeoutMs,
   upstreamUrl,
 } from "../src/lib/api-proxy";
 
@@ -136,5 +137,17 @@ describe("cross-site writes (C4, CSRF defence in depth)", () => {
       origin: "https://qupedu.com",
     });
     expect(isCrossSiteWrite("POST", behindProxy)).toBe(false);
+  });
+});
+
+describe("how long the proxy waits", () => {
+  it("gives AI routes the time a model needs and everything else the usual limit", () => {
+    expect(upstreamTimeoutMs(["admin", "ai", "question-drafts"])).toBe(120_000);
+    expect(upstreamTimeoutMs(["admin", "question-versions", "v1", "ai", "explanation-draft"])).toBe(
+      120_000,
+    );
+    expect(upstreamTimeoutMs(["exams", "e1", "mistakes", "q1", "ai-explanation"])).toBe(120_000);
+    expect(upstreamTimeoutMs(["exams", "e1", "mistakes"])).toBe(30_000);
+    expect(upstreamTimeoutMs(["admin", "aims"])).toBe(30_000);
   });
 });

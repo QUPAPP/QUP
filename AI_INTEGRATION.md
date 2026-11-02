@@ -51,13 +51,52 @@ Provider adapters can support OpenAI/Anthropic/Google/local/future providers wit
   the author applies in the editor; review is unchanged. Nothing reaches students (#18).
 - **Record:** `ai_runs` keeps task, prompt and schema versions, provider, model, status, attempts,
   latency, tokens and error code. Output is kept for successes only, never the prompt.
-- **Not yet:**
-  - error classification;
-  - question generation;
+- **Not yet (see V1.1 for what has since landed):**
   - import structuring;
   - an evaluation dataset.
 
 Assumptions: OPEN_QUESTIONS.md #19a.
+
+## V1.1 (2026-11-02): Claude, question drafts, student explanations
+
+- **Provider:** `AI_PROVIDER=anthropic` runs every task on Claude through the official
+  `@anthropic-ai/sdk` (`modules/ai/infrastructure/anthropic-provider.ts`).
+  - Settings: `ANTHROPIC_API_KEY` (required with this provider), `AI_MODEL` (default
+    `claude-opus-5-5`) and `AI_EFFORT` (`low|medium|high`, default `medium`).
+  - The SDK's own retries are off; the gateway still owns attempts and timeouts.
+  - A refusal or a `max_tokens` stop is a provider error, never output.
+  - Prompts carry only the task's system prompt and escaped data; validation and grounding are
+    unchanged.
+- **Other vendors (2026-11-02):** an adapter for the OpenAI Chat Completions protocol
+  (`modules/ai/infrastructure/openai-compatible-provider.ts`, plain `fetch`, no SDK) runs the same
+  tasks on other vendors.
+  - Presets: `grok` (xAI), `openai`, `deepseek`, `groq`, `openrouter` and `gemini` (Google's
+    OpenAI-compatible endpoint).
+  - `openai-compatible` works with any other server at `AI_BASE_URL`, such as a local Ollama.
+  - Each needs `AI_API_KEY` and `AI_MODEL`. `AI_BASE_URL` overrides a preset's address.
+  - An HTTP error, an empty answer or a `length` cut-off is a provider error, never output.
+  - Prompts, validation and grounding are the same as with Claude.
+- **Timeouts:** with a real provider each attempt gets 45 seconds by default (15 with `fake`). The
+  web proxy waits up to 120 seconds on AI routes and 30 seconds on every other route.
+- **`draft_question` (`question-v1`):** an author picks a skill, a difficulty and optional notes,
+  and gets one SINGLE_CHOICE **draft**. Endpoint: `POST /admin/ai/question-drafts`, web page
+  `/admin/questions/generate`.
+  - The draft is saved with `sourceType=AI_DRAFT` and a PRIMARY mapping to the chosen skill.
+  - It passes the same content checks as a hand-written draft, and then the normal review and
+    publish flow. Nothing generated reaches students unreviewed.
+  - Up to 15 existing stems in the exam are sent as "avoid" examples.
+  - Grounding rejects duplicate option keys and duplicate option texts.
+- **`explain_mistake` (`mistake-v1`):** explains a student's wrong answer.
+  - It is grounded on the approved answer and explanation, and rejected if it names another
+    answer (`ANSWER_MISMATCH`).
+  - It returns a typed `errorType` (Error Classification below), an explanation and a tip. The
+    error type is shown as a hint only; mastery never reads it.
+  - Endpoint: `POST /exams/:examId/mistakes/:questionVersionId/ai-explanation`. It is only
+    available for a question the student actually answered wrongly.
+  - The answer is cached per mistake (the latest successful run since that answer), and each
+    student is capped at 30 runs a day.
+  - **Off by default:** `AI_STUDENT_EXPLANATIONS=true` turns it on (#18).
+    `GET /me/ai-features` tells the web app whether to show the button.
 
 ## Structured Output
 

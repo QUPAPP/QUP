@@ -33,6 +33,7 @@ export default function LoginPage() {
     <AuthLayout>
       <form
         className="auth-form"
+        method="post"
         noValidate
         onSubmit={form.handleSubmit((values) => signIn.mutate(values))}
       >

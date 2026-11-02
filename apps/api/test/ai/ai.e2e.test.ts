@@ -170,7 +170,7 @@ describe("AI assistance for authors", () => {
     expect(status.json()).toEqual({
       enabled: true,
       provider: "fake",
-      tasks: ["suggest_question_metadata", "draft_explanation"],
+      tasks: ["suggest_question_metadata", "draft_explanation", "draft_question"],
     });
   });
 
@@ -271,6 +271,47 @@ describe("AI assistance for authors", () => {
     expect(submitted.statusCode).toBe(409);
     expect(errorCode(submitted)).toBe("AI_REQUIRES_DRAFT");
     expect(await runsOf(versionId)).toEqual([]);
+  });
+
+  it("writes a new question for a skill and saves it as the author's draft", async () => {
+    const response = await call(app, manager.token, "POST", "/admin/ai/question-drafts", {
+      taxonomyVersionId: taxonomy.versionId,
+      nodeId: taxonomy.verbsId,
+      difficulty: "HARD",
+      instructions: "أفعال الحركة",
+    });
+    expect(response.statusCode, response.payload).toBe(201);
+    const { question } = response.json<{ question: { versionId: string } }>();
+    const version = await call(
+      app,
+      manager.token,
+      "GET",
+      `/admin/question-versions/${question.versionId}`,
+    );
+    expect(version.statusCode).toBe(200);
+    expect(version.json()).toMatchObject({
+      status: "DRAFT",
+      difficulty: 0.75,
+      sourceType: "AI_DRAFT",
+      mappings: [{ skillId: null, subskillId: taxonomy.verbsId, role: "PRIMARY" }],
+    });
+    const options = version.json<{ options: { isCorrect: boolean }[] }>().options;
+    expect(options).toHaveLength(4);
+    expect(options.filter((option) => option.isCorrect)).toHaveLength(1);
+
+    const unknown = await call(app, manager.token, "POST", "/admin/ai/question-drafts", {
+      taxonomyVersionId: taxonomy.versionId,
+      nodeId: draftId,
+      difficulty: "EASY",
+    });
+    expect(unknown.statusCode).toBe(404);
+    expect(errorCode(unknown)).toBe("AI_NODE_NOT_FOUND");
+    const forbidden = await call(app, student, "POST", "/admin/ai/question-drafts", {
+      taxonomyVersionId: taxonomy.versionId,
+      nodeId: taxonomy.verbsId,
+      difficulty: "EASY",
+    });
+    expect(forbidden.statusCode).toBe(403);
   });
 
   it("lists recent runs for admins without their output", async () => {

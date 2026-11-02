@@ -3507,7 +3507,7 @@
 }
 
 @layer components {
-  :where(fieldset.mistake-filters) {
+  :where(fieldset.mistake-filters, fieldset.chip-group, fieldset.row) {
     margin: 0;
     padding: 0;
     border: 0;
@@ -3611,5 +3611,254 @@
   :where(.readiness-item--missing .readiness-item__mark) {
     background: var(--color-danger-surface);
     color: var(--color-danger);
+  }
+}
+
+/* AI tutor: a personalised explanation of a student's own mistake. */
+@layer components {
+  :where(.tutor) {
+    padding: var(--space-4);
+    border: 1px solid color-mix(in srgb, var(--color-blue) 25%, transparent);
+    border-radius: var(--radius-small);
+    background: var(--color-blue-surface);
+  }
+  :where(.tutor > p) {
+    margin: 0;
+  }
+  :where(.tutor__title) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 700;
+    color: var(--color-blue-strong);
+  }
+  :where(.tutor__tip) {
+    padding-inline-start: var(--space-3);
+    border-inline-start: 3px solid var(--color-gold);
+  }
+  :where(.tutor__trigger) {
+    align-self: flex-start;
+    gap: var(--space-2);
+  }
+}
+
+/* Reporting a problem in a question. */
+@layer components {
+  :where(.report-question) {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-3);
+  }
+  :where(.report-question > summary) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    list-style: none;
+  }
+  :where(.report-question > summary::-webkit-details-marker) {
+    display: none;
+  }
+  :where(.report-question > summary:hover, .report-question[open] > summary) {
+    color: var(--color-text);
+  }
+  :where(.report-question__form) {
+    margin-top: var(--space-3);
+  }
+  :where(.report-question__form > .btn) {
+    align-self: flex-start;
+  }
+  :where(.report-question__done) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+}
+
+/* Weighted admission percentage calculator (public tool). */
+@layer components {
+  :where(.page--narrow) {
+    max-width: 60rem;
+    margin-inline: auto;
+  }
+  :where(.calculator) {
+    display: grid;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  @media (min-width: 52rem) {
+    :where(.calculator) {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+  }
+  :where(.calculator__fields) {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  }
+  :where(.calculator__custom > summary) {
+    cursor: pointer;
+    color: var(--color-blue-strong);
+    margin-bottom: var(--space-3);
+  }
+  :where(.calculator__result) {
+    display: grid;
+    gap: var(--space-4);
+    position: sticky;
+    top: var(--space-6);
+  }
+  :where(.calculator__result > h2) {
+    margin: 0;
+  }
+  :where(.calculator__score) {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1);
+    margin: 0;
+    font-family: var(--font-heading);
+    color: var(--color-navy);
+  }
+  :where(.calculator__score strong) {
+    font-size: 3rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.calculator__parts) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-1);
+  }
+  :where(.calculator__parts li) {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--color-border);
+    padding-block: var(--space-1);
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.calculator__cta) {
+    padding: var(--space-4);
+    border-radius: var(--radius-small);
+    background: var(--color-gold-surface);
+  }
+  :where(.calculator__cta .btn) {
+    align-self: flex-start;
+  }
+}
+
+/* ---------- Mock exam ---------- */
+@layer components {
+  :where(.exam-clock) {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-white);
+    box-shadow: var(--shadow-sm);
+  }
+  :where(.exam-clock strong) {
+    color: var(--color-navy);
+    font-size: 1.35rem;
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.exam-clock--low) {
+    border-color: var(--color-danger);
+    background: var(--color-danger-surface);
+  }
+  :where(.exam-clock--low strong) {
+    color: var(--color-danger);
+  }
+  :where(.question-end--confirm) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+  }
+  :where(.rules-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.rules-list li) {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    line-height: 1.8;
+  }
+  :where(.rules-list .icon) {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-block-start: 0.35rem;
+    color: var(--color-blue);
+  }
+  :where(.skill-score) {
+    display: grid;
+    grid-template-columns: minmax(8rem, 1fr) minmax(6rem, 2fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  :where(.skill-score__bar) {
+    display: block;
+    height: 0.55rem;
+  }
+  :where(.skill-score__bar .progress__bar) {
+    display: block;
+  }
+  :where(.outcome-tag) {
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  :where(.outcome-tag--correct) {
+    background: var(--color-success-surface);
+    color: var(--color-success);
+  }
+  :where(.outcome-tag--incorrect) {
+    background: var(--color-danger-surface);
+    color: var(--color-danger);
+  }
+  :where(.outcome-tag--not_answered) {
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+  @media (max-width: 40rem) {
+    :where(.skill-score) {
+      grid-template-columns: 1fr auto;
+    }
+    :where(.skill-score__bar) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+}
+
+/* A running question session: the phone shows the question, not the tab bar. */
+@layer components {
+  :where(.workspace--focus .mobile-nav) {
+    display: none;
+  }
+  :where(.workspace--focus .workspace-content) {
+    padding-bottom: 1.5rem;
+  }
+}
+@layer components {
+  :where(.progress__bar--weak) {
+    background: var(--color-danger);
   }
 }

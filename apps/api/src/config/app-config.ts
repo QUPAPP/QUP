@@ -26,6 +26,36 @@ const ONE_DAY_IN_MINUTES = 1_440;
 /** Below this an AI call cannot answer at all; above it an author gives up waiting. */
 const MIN_AI_TIMEOUT_MS = 100;
 const MAX_AI_TIMEOUT_MS = 120_000;
+const FAKE_AI_TIMEOUT_MS = 15_000;
+/** A real model thinks before it answers; a full question draft can take most of this. */
+const REAL_AI_TIMEOUT_MS = 45_000;
+const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
+
+/**
+ * Vendors reached through the OpenAI Chat Completions protocol, by their
+ * public API address. `openai-compatible` is any other one, at AI_BASE_URL.
+ */
+const OPENAI_COMPATIBLE_URLS = {
+  grok: "https://api.x.ai/v1",
+  openai: "https://api.openai.com/v1",
+  deepseek: "https://api.deepseek.com/v1",
+  groq: "https://api.groq.com/openai/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+  gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
+  "openai-compatible": null,
+} as const;
+type OpenAiCompatibleKind = keyof typeof OPENAI_COMPATIBLE_URLS;
+
+const AI_PROVIDERS = [
+  "fake",
+  "anthropic",
+  "disabled",
+  ...(Object.keys(OPENAI_COMPATIBLE_URLS) as OpenAiCompatibleKind[]),
+] as const;
+
+function isOpenAiCompatible(provider: string): provider is OpenAiCompatibleKind {
+  return Object.hasOwn(OPENAI_COMPATIBLE_URLS, provider);
+}
 const MAX_AI_ATTEMPTS = 5;
 /** More proxies than this in front of the API is a misconfiguration, not a topology. */
 const MAX_PROXY_HOPS = 5;
@@ -118,18 +148,32 @@ const envSchema = z.object({
   IMPORT_STORAGE_DIR: z.string().min(1).default("var/imports"),
 
   /**
-   * AI assistance for authors (AI_INTEGRATION.md). `fake` is the deterministic
-   * test provider; real providers wait for OPEN_QUESTIONS.md #17. Defaults to
-   * `fake` outside production and `disabled` in production.
+   * AI assistance (AI_INTEGRATION.md). `fake` is the deterministic test
+   * provider; `anthropic` calls Claude; the others speak the OpenAI Chat
+   * Completions protocol (see OPENAI_COMPATIBLE_URLS). Defaults to `fake`
+   * outside production and `disabled` in production.
    */
-  AI_PROVIDER: z.enum(["fake", "disabled"]).optional(),
-  /** Per attempt; the attempt is aborted when it runs out. */
-  AI_TIMEOUT_MS: z.coerce
-    .number()
-    .int()
-    .min(MIN_AI_TIMEOUT_MS)
-    .max(MAX_AI_TIMEOUT_MS)
-    .default(15_000),
+  AI_PROVIDER: z.enum(AI_PROVIDERS).optional(),
+  ANTHROPIC_API_KEY: optionalSecret,
+  /** The key of whichever provider is chosen; Claude also accepts ANTHROPIC_API_KEY. */
+  AI_API_KEY: optionalSecret,
+  /** Overrides a preset's address; required for `openai-compatible` (e.g. a local Ollama). */
+  AI_BASE_URL: z.url().optional(),
+  /** The model every task runs on. Claude defaults to DEFAULT_CLAUDE_MODEL; others must name one. */
+  AI_MODEL: z.string().trim().min(1).optional(),
+  /** Claude's effort level: these tasks are short, structured answers. */
+  AI_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),
+  /**
+   * Students may ask for a personalised explanation of a wrong answer
+   * (OPEN_QUESTIONS.md #18). Off until the product owner turns it on.
+   */
+  AI_STUDENT_EXPLANATIONS: booleanFlag.default(false),
+  /**
+   * Per attempt; the attempt is aborted when it runs out. Defaults to
+   * FAKE_AI_TIMEOUT_MS for the test provider and REAL_AI_TIMEOUT_MS for a
+   * real model, which thinks before it answers.
+   */
+  AI_TIMEOUT_MS: z.coerce.number().int().min(MIN_AI_TIMEOUT_MS).max(MAX_AI_TIMEOUT_MS).optional(),
   /** Attempts for output that is not valid JSON, breaks the schema or fails its check. */
   AI_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(MAX_AI_ATTEMPTS).default(2),
 });
@@ -152,7 +196,49 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   if (env.NODE_ENV === "production" && env.AI_PROVIDER === "fake") {
     problems.push("AI_PROVIDER: the fake provider is for development and tests only");
   }
+  const provider = env.AI_PROVIDER;
+  if (provider === "anthropic" && (env.ANTHROPIC_API_KEY ?? env.AI_API_KEY) === undefined) {
+    problems.push("ANTHROPIC_API_KEY: required when AI_PROVIDER=anthropic (AI_API_KEY also works)");
+  }
+  if (provider !== undefined && isOpenAiCompatible(provider)) {
+    // A local server such as Ollama may need no key; every hosted preset does.
+    if (provider !== "openai-compatible" && env.AI_API_KEY === undefined) {
+      problems.push(`AI_API_KEY: required when AI_PROVIDER=${provider}`);
+    }
+    if (env.AI_MODEL === undefined) {
+      problems.push(`AI_MODEL: required when AI_PROVIDER=${provider} (the provider's model id)`);
+    }
+    if (provider === "openai-compatible" && env.AI_BASE_URL === undefined) {
+      problems.push("AI_BASE_URL: required when AI_PROVIDER=openai-compatible");
+    }
+  }
   return problems;
+}
+
+export type AiProviderConfig =
+  | { kind: "fake" }
+  | { kind: "anthropic"; apiKey: string; model: string; effort: "low" | "medium" | "high" }
+  | { kind: "openai-compatible"; name: string; baseUrl: string; apiKey: string; model: string };
+
+/** null: AI is off and its routes answer AI_UNAVAILABLE. */
+function aiProvider(env: z.infer<typeof envSchema>): AiProviderConfig | null {
+  const kind = env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "disabled" : "fake");
+  if (kind === "fake") return { kind };
+  if (kind === "disabled") return null;
+  if (kind === "anthropic") {
+    const apiKey = env.ANTHROPIC_API_KEY ?? env.AI_API_KEY;
+    if (apiKey === undefined) return null;
+    return { kind, apiKey, model: env.AI_MODEL ?? DEFAULT_CLAUDE_MODEL, effort: env.AI_EFFORT };
+  }
+  const baseUrl = env.AI_BASE_URL ?? OPENAI_COMPATIBLE_URLS[kind];
+  if (baseUrl === null || env.AI_MODEL === undefined) return null;
+  return {
+    kind: "openai-compatible",
+    name: kind,
+    baseUrl,
+    apiKey: env.AI_API_KEY ?? "",
+    model: env.AI_MODEL,
+  };
 }
 
 export type AppConfig = ReturnType<typeof toAppConfig>;
@@ -210,12 +296,11 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
       storageDir: env.IMPORT_STORAGE_DIR,
     },
     ai: {
-      /** null: AI is off and its routes answer AI_UNAVAILABLE. */
-      provider:
-        (env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "disabled" : "fake")) === "fake"
-          ? ("fake" as const)
-          : null,
-      timeoutMs: env.AI_TIMEOUT_MS,
+      provider: aiProvider(env),
+      studentExplanations: env.AI_STUDENT_EXPLANATIONS,
+      timeoutMs:
+        env.AI_TIMEOUT_MS ??
+        (aiProvider(env)?.kind === "fake" ? FAKE_AI_TIMEOUT_MS : REAL_AI_TIMEOUT_MS),
       maxAttempts: env.AI_MAX_ATTEMPTS,
     },
   } as const;

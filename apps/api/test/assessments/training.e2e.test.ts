@@ -210,6 +210,22 @@ describe("adaptive training", () => {
     expect((await decisionsOf(sessionId))[1]?.reason_codes?.[0]).toBe("CONTINUE_TARGET");
   });
 
+  it("stops choosing new questions once the student's access ends", async () => {
+    const exam = await liveExam(10);
+    const student = await register("train-expired");
+    await grantAccess(student, exam.examId);
+    const sessionId = await started(student, exam);
+    const first = await current(student, sessionId);
+    await answer(student, sessionId, first.item?.id ?? "", CORRECT);
+
+    await e2eSql`
+      UPDATE entitlements SET ends_at = now() - interval '1 minute'
+      WHERE student_id = ${student.id} AND exam_id = ${exam.examId}`;
+    const after = await call(student.token, "GET", `/assessments/${sessionId}/current-item`);
+    expect(after.statusCode).toBe(403);
+    expect(errorCode(after)).toBe("TRAINING_REQUIRES_ACCESS");
+  });
+
   it("creates one item when the next question is asked for twice at once", async () => {
     const exam = await liveExam(5);
     const student = await register("train-race");

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SessionHistoryEntry, SessionStatus, SessionType } from "@/lib/api";
-import { completionHref, isRunnable } from "@/lib/diagnostics";
+import { COMPLETION_LABELS, completionHref, isRunnable } from "@/lib/diagnostics";
 import { countText, formatDate, QUESTIONS } from "@/lib/format";
 import { EmptyState } from "./empty-state";
 import { Icon } from "./icon";
@@ -82,10 +82,7 @@ export function AssessmentHistory({ items }: { items: SessionHistoryEntry[] }) {
                   className="btn btn--ghost btn--small"
                   href={completionHref({ ...session, type: session.type })}
                 >
-                  {session.type === "MINI_DIAGNOSTIC" || session.type === "SKILL_REASSESSMENT"
-                    ? "عرض النتيجة"
-                    : "ملف مهاراتي"}{" "}
-                  <Icon name="chevron" />
+                  {COMPLETION_LABELS[session.type]} <Icon name="chevron" />
                 </Link>
               ) : session.status === "CREATED" || session.status === "IN_PROGRESS" ? (
                 <Link className="btn btn--small" href={`/assessments/${session.id}`}>

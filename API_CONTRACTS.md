@@ -33,6 +33,8 @@ POST /auth/register
 POST /auth/login
 POST /auth/logout
 GET  /auth/me
+PATCH /auth/me
+POST /auth/password
 POST /auth/sessions/revoke
 ```
 
@@ -42,6 +44,10 @@ POST /auth/sessions/revoke
   Unknown account and wrong password both return `401 INVALID_CREDENTIALS`.
 - `logout`: `204`, clears the cookie. `sessions/revoke`: signs out every *other* session, `204`.
 - `me`: `{ user, roles, permissions }`.
+- `PATCH me`: `{ displayName }` — trimmed, at most 80 characters; blank clears it. `200 { user }`.
+- `password`: `{ currentPassword, newPassword }` — new password follows the registration policy.
+  A wrong current password returns `422 CURRENT_PASSWORD_INCORRECT`. `204`; every other session is
+  signed out, the current one stays. Rate-limited like login.
 - No OTP/verification (OPEN_QUESTIONS.md #6).
 
 Errors: `VALIDATION_FAILED` (400, with `details: [{ path, message }]`), `INVALID_CREDENTIALS` (401),
@@ -542,6 +548,44 @@ GET /exams/:examId/mistakes     the caller's wrong training answers, newest firs
 - Only `ADAPTIVE_TRAINING` attempts are listed: the answer key it returns is the one the training
   review already showed. Diagnostic answers never appear.
 
+### Mock exam
+
+```text
+POST /exams/:examId/assessments/mock-exam      start or resume (201 new, 200 resumed)
+GET  /assessments/:sessionId/mock-result       the finished exam reviewed
+```
+
+- Paid: `403 MOCK_EXAM_REQUIRES_ACCESS`. Assumptions: OPEN_QUESTIONS.md #19c.
+- The questions follow the full-diagnostic blueprint at `MOCK_EXAM_DEFAULTS.questionCount`. Questions
+  the student has seen before may return.
+- One clock: `GET /assessments/:id` and `POST /assessments/:id/start` include
+  `deadline` (ISO).
+  - After the deadline, `current-item` returns `item: null` and the session is completed.
+  - An answer submitted after the deadline gets `409 MOCK_EXAM_TIME_UP`.
+- No feedback while it runs: `result.isCorrect` is `null` and there is no `review`.
+  `POST /assessments/:id/complete` hands it in early.
+- `mock-result` (only once completed): `{ correct, answered, total, skills: [{ skillId, skillName,
+  correct, total }] (weakest first), startedAt, completedAt, review: [{ ordinal, skillName,
+  outcome: CORRECT|INCORRECT|NOT_ANSWERED, question, chosenKeys, correctOptionKeys, explanation }] }`.
+  It returns `409 ASSESSMENT_NOT_COMPLETED` before then.
+
+### Question reports
+
+```text
+POST /assessments/:sessionId/items/:itemId/reports     student; 201 new, 200 already open
+GET  /admin/question-reports?status&limit&offset       questions.review
+POST /admin/question-reports/:id/close                 questions.review
+```
+
+- Report body: `{ reason: WRONG_ANSWER|UNCLEAR_QUESTION|TYPO|OTHER, note? (≤500) }`.
+  - A student can only report an item that was shown to them in their own session; otherwise
+    `404 ASSESSMENT_ITEM_NOT_FOUND`.
+  - Each student has at most one open report per question version.
+- List: `{ items: [{ id, questionId, questionVersionId, stemPreview, reason, note, status,
+  reporter, resolutionNote, createdAt, resolvedAt }], openCount, page }`.
+- Close body: `{ status: RESOLVED|DISMISSED, note }`. Errors: `404 QUESTION_REPORT_NOT_FOUND`;
+  `409 QUESTION_REPORT_CLOSED`.
+
 ## Mastery/Dashboard
 
 ```text
@@ -712,8 +756,8 @@ POST /admin/question-versions/:id/ai/explanation-draft       questions.create
 GET  /admin/ai/runs?limit&offset                             ai.manage
 ```
 
-- `status`: `{ enabled, provider: "fake" | null, tasks: ["suggest_question_metadata",
-  "draft_explanation"] | [] }`.
+- `status`: `{ enabled, provider: "fake" | "anthropic" | null, tasks: ["suggest_question_metadata",
+  "draft_explanation", "draft_question"] | [] }`.
 - `metadata-suggestion` reads the version's **saved** content: `{ suggestion: { skillId | null,
   subskillId | null, nodeName, difficulty: 0.25 | 0.5 | 0.75, rationale } }`. The node is always an
   active node of the version's taxonomy.
@@ -730,7 +774,28 @@ GET  /admin/ai/runs?limit&offset                             ai.manage
   - `503 AI_TIMEOUT`.
 
   Every run that reached the provider is recorded in `ai_runs`, whatever its outcome.
-- Rate limit: `AI_RATE_LIMIT_PER_MINUTE` (20) per IP across both POST routes, then `429`.
+- Rate limit: `AI_RATE_LIMIT_PER_MINUTE` (20) per IP across all AI POST routes, then `429`.
+
+Added in V1.1 (AI_INTEGRATION.md; OPEN_QUESTIONS.md #19b):
+
+```text
+POST /admin/ai/question-drafts                                    questions.create
+GET  /me/ai-features                                              student
+POST /exams/:examId/mistakes/:questionVersionId/ai-explanation    student
+```
+
+- `question-drafts` body: `{ taxonomyVersionId, nodeId, difficulty: EASY|MEDIUM|HARD,
+  instructions? (≤500) }`.
+  - Returns `201 { question: { questionId, versionId } }`: a new draft for the normal review flow.
+  - Fails with `404 AI_NODE_NOT_FOUND` when the node is not an active skill or subskill.
+- `ai-features`: `{ mistakeExplanations: boolean }`.
+- `ai-explanation`: `{ explanation: { errorType, explanation, tip, cached } }`.
+  - `errorType` is one of CONCEPTUAL_ERROR, CALCULATION_ERROR, MISREAD_QUESTION, PREREQUISITE_GAP
+    or UNKNOWN.
+  - Errors:
+    - `503 AI_STUDENT_EXPLANATIONS_OFF`;
+    - `404 MISTAKE_NOT_FOUND` when the caller never answered that question wrongly;
+    - `422 AI_DAILY_LIMIT_REACHED` after 30 runs in a day.
 
 ## Internal Application Services
 

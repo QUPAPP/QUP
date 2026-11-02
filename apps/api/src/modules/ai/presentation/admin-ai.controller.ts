@@ -1,5 +1,16 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SUGGESTED_DIFFICULTIES } from "@qup/ai-gateway";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 
@@ -19,6 +30,16 @@ const runsQuery = z.strictObject({
   offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
 });
 type RunsQuery = z.output<typeof runsQuery>;
+
+const INSTRUCTIONS_MAX = 500;
+
+const questionDraftBody = z.strictObject({
+  taxonomyVersionId: z.uuid(),
+  nodeId: z.uuid(),
+  difficulty: z.enum(SUGGESTED_DIFFICULTIES),
+  instructions: z.string().trim().max(INSTRUCTIONS_MAX).optional(),
+});
+type QuestionDraftBody = z.output<typeof questionDraftBody>;
 
 const uuid = new ZodValidationPipe(uuidParam);
 
@@ -52,6 +73,22 @@ export class AdminAiController {
   @ApiOperation({ summary: "Draft an explanation of a draft's saved answer key." })
   async draftExplanation(@Param("id", uuid) versionId: string, @Req() request: FastifyRequest) {
     return { draft: await this.assistant.draftExplanation(versionId, actorFrom(request)) };
+  }
+
+  @Post("ai/question-drafts")
+  @AiEndpoint()
+  @ApiOperation({
+    summary: "Write a new question for a skill with AI and save it as the author's DRAFT.",
+  })
+  async draftQuestion(
+    @Body(new ZodValidationPipe(questionDraftBody)) body: QuestionDraftBody,
+    @Req() request: FastifyRequest,
+  ) {
+    const created = await this.assistant.draftQuestion(
+      { ...body, instructions: body.instructions || null },
+      actorFrom(request),
+    );
+    return { question: created };
   }
 
   @Get("ai/runs")

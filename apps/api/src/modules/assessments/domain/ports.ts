@@ -150,7 +150,15 @@ export interface AssessmentStore {
   askedQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
   /** Question versions the student answered (not skipped) in this exam, any session. */
   answeredQuestionVersionIds(studentId: string, examId: string): Promise<string[]>;
-  trainingMistakes(studentId: string, examId: string, limit: number): Promise<TrainingMistake[]>;
+  /** The options chosen on each answered item of the session, by item id. */
+  chosenKeys(sessionId: string): Promise<Map<string, string[]>>;
+  /** The latest wrong training answer per question, newest first; optionally one question only. */
+  trainingMistakes(
+    studentId: string,
+    examId: string,
+    limit: number,
+    questionVersionId?: string | null,
+  ): Promise<TrainingMistake[]>;
   /** Answered (not skipped) attempts in the student's sessions of a type, recorded after `since`. */
   answeredAttemptsSince(
     studentId: string,

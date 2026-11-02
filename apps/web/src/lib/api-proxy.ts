@@ -59,6 +59,20 @@ export function upstreamPath(segments: readonly string[]): string | null {
   return `/api/v1/${segments.join("/")}`;
 }
 
+const UPSTREAM_TIMEOUT_MS = 30_000;
+/**
+ * AI routes wait on a model that thinks before it answers, up to the API's
+ * own AI_TIMEOUT_MS on each of its attempts; the API, not this proxy, decides
+ * when they give up.
+ */
+const AI_UPSTREAM_TIMEOUT_MS = 120_000;
+const AI_ROUTE = /(^|\/)ai(\/|-|$)/;
+
+/** How long the proxy waits for the API on this path. */
+export function upstreamTimeoutMs(segments: readonly string[]): number {
+  return AI_ROUTE.test(segments.join("/")) ? AI_UPSTREAM_TIMEOUT_MS : UPSTREAM_TIMEOUT_MS;
+}
+
 export function upstreamUrl(
   baseUrl: string,
   segments: readonly string[],

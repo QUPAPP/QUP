@@ -11,6 +11,7 @@ import { BlueprintsService } from "./application/blueprints.service.js";
 import { DiagnosticSessions } from "./application/diagnostic-sessions.service.js";
 import { FullReassessmentService } from "./application/full-reassessment.service.js";
 import { StudentDashboardService } from "./application/student-dashboard.service.js";
+import { STUDENT_ITEMS, STUDENT_MISTAKES } from "./assessments.contract.js";
 import { ASSESSMENT_STORE, BLUEPRINT_STORE } from "./domain/ports.js";
 import { DrizzleAssessmentStore } from "./infrastructure/drizzle-assessment-store.js";
 import { DrizzleBlueprintStore } from "./infrastructure/drizzle-blueprint-store.js";
@@ -46,7 +47,10 @@ import { MeController } from "./presentation/me.controller.js";
     BlueprintsService,
     StudentDashboardService,
     { provide: ASSESSMENT_STORE, useClass: DrizzleAssessmentStore },
+    { provide: STUDENT_MISTAKES, useExisting: AssessmentsService },
+    { provide: STUDENT_ITEMS, useExisting: AssessmentsService },
     { provide: BLUEPRINT_STORE, useClass: DrizzleBlueprintStore },
   ],
+  exports: [STUDENT_MISTAKES, STUDENT_ITEMS],
 })
 export class AssessmentsModule {}

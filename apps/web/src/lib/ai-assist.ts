@@ -56,6 +56,7 @@ export const AI_ERROR_MESSAGES = {
   AI_TIMEOUT: "استغرق الطلب وقتًا أطول من المسموح. جرّب مرة أخرى.",
   AI_REQUIRES_DRAFT: "المساعدة متاحة للمسودات فقط.",
   AI_NO_SKILLS: "لا توجد مهارات نشطة في نسخة التصنيف لاقتراح إحداها.",
+  AI_NODE_NOT_FOUND: "هذه المهارة ليست ضمن نسخة التصنيف المختارة.",
   RATE_LIMITED: "طلبات كثيرة خلال دقيقة. انتظر قليلًا ثم جرّب.",
 } as const;
 
@@ -70,6 +71,8 @@ export function aiErrorMessage(error: unknown): string | null {
 export const AI_TASK_LABELS: Record<string, string> = {
   suggest_question_metadata: "اقتراح المهارة والصعوبة",
   draft_explanation: "مسودة شرح",
+  draft_question: "توليد سؤال",
+  explain_mistake: "شرح خطأ طالب",
 };
 
 export const AI_STATUS_LABELS: Record<AiRunStatus, string> = {

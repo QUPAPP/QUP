@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AI_RUN_STATUSES, type AiRunStatus } from "@qup/ai-gateway";
 import { type Database, tables } from "@qup/db";
-import { count, desc, gte } from "drizzle-orm";
+import { and, count, desc, eq, gte } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { AiRunEntry, AiRunStore, StoredAiRun } from "../domain/ports.js";
@@ -72,5 +72,46 @@ export class DrizzleAiRunStore implements AiRunStore {
     >;
     for (const row of rows) counts[row.status] = row.runs;
     return counts;
+  }
+
+  async latestOutput(query: {
+    task: string;
+    promptVersion: string;
+    requestedBy: string;
+    subjectType: string;
+    subjectId: string;
+    since: Date;
+  }): Promise<unknown | null> {
+    const [row] = await this.db
+      .select({ output: aiRuns.output })
+      .from(aiRuns)
+      .where(
+        and(
+          eq(aiRuns.task, query.task),
+          eq(aiRuns.promptVersion, query.promptVersion),
+          eq(aiRuns.requestedBy, query.requestedBy),
+          eq(aiRuns.subjectType, query.subjectType),
+          eq(aiRuns.subjectId, query.subjectId),
+          eq(aiRuns.status, "SUCCEEDED"),
+          gte(aiRuns.createdAt, query.since),
+        ),
+      )
+      .orderBy(desc(aiRuns.createdAt))
+      .limit(1);
+    return row?.output ?? null;
+  }
+
+  async countByRequesterSince(task: string, requestedBy: string, since: Date): Promise<number> {
+    const [row] = await this.db
+      .select({ runs: count() })
+      .from(aiRuns)
+      .where(
+        and(
+          eq(aiRuns.task, task),
+          eq(aiRuns.requestedBy, requestedBy),
+          gte(aiRuns.createdAt, since),
+        ),
+      );
+    return row?.runs ?? 0;
   }
 }

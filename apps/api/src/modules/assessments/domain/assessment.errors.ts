@@ -321,3 +321,22 @@ export class ReassessmentInProgress extends DomainError {
     this.details = { sessionId };
   }
 }
+
+export class MockExamRequiresAccess extends DomainError {
+  readonly code = "MOCK_EXAM_REQUIRES_ACCESS";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("The timed mock exam is part of this exam's package.");
+  }
+}
+
+/** The mock exam's clock ran out; the session is now complete. */
+export class MockExamTimeUp extends DomainError {
+  readonly code = "MOCK_EXAM_TIME_UP";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("Time is up for this mock exam. Your answers so far were kept.");
+  }
+}

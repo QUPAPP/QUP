@@ -13,6 +13,7 @@ const sections = [
   { href: "/#how-it-works", title: "كيف يعمل" },
   { href: "/#report", title: "مساحتك" },
   { href: "/#questions", title: "أسئلة شائعة" },
+  { href: "/tools/weighted-score", title: "حاسبة الموزونة" },
 ];
 
 export function SiteHeader() {

@@ -240,6 +240,63 @@ describe("sessions", () => {
   });
 });
 
+describe("account", () => {
+  it("updates the display name and clears it when blank", async () => {
+    const { token } = await registerStudent();
+    const update = (displayName: string) =>
+      app.inject({
+        method: "PATCH",
+        url: "/api/v1/auth/me",
+        cookies: { [COOKIE]: token },
+        payload: { displayName },
+      });
+
+    const named = await update("  سارة  ");
+    expect(named.statusCode).toBe(200);
+    expect(named.json<{ user: { displayName: string } }>().user.displayName).toBe("سارة");
+    expect((await me(token)).json<{ user: { displayName: string } }>().user.displayName).toBe(
+      "سارة",
+    );
+
+    const cleared = await update(" ");
+    expect(cleared.json<{ user: { displayName: string | null } }>().user.displayName).toBeNull();
+  });
+
+  it("changes the password, signs out other devices, and keeps this one", async () => {
+    const email = e2eEmail("password");
+    const { token: laptop } = await registerStudent(email);
+    const phone = (await login(email)).cookies.find((c) => c.name === COOKIE)?.value ?? "";
+    const change = (currentPassword: string, newPassword: string) =>
+      app.inject({
+        method: "POST",
+        url: "/api/v1/auth/password",
+        cookies: { [COOKIE]: laptop },
+        payload: { currentPassword, newPassword },
+      });
+
+    const wrong = await change("not the password", "a brand new passphrase");
+    expect(wrong.statusCode).toBe(422);
+    expect(errorCode(wrong)).toBe("CURRENT_PASSWORD_INCORRECT");
+
+    expect((await change(PASSWORD, "short")).statusCode).toBe(400);
+
+    expect((await change(PASSWORD, "a brand new passphrase")).statusCode).toBe(204);
+    expect((await me(laptop)).statusCode).toBe(200);
+    expect((await me(phone)).statusCode).toBe(401);
+    expect((await login(email)).statusCode).toBe(401);
+    expect((await login(email, "a brand new passphrase")).statusCode).toBe(200);
+  });
+
+  it("requires a session", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/v1/auth/me",
+      payload: { displayName: "x" },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+});
+
 // OPEN_QUESTIONS.md #14 (decided 2026-09-22): only ADMIN publishes.
 describe("permissions", () => {
   const publish = (token?: string) =>

@@ -49,3 +49,12 @@ export class PermissionDenied extends DomainError {
     super("You do not have permission to perform this action.");
   }
 }
+
+export class CurrentPasswordIncorrect extends DomainError {
+  readonly code = "CURRENT_PASSWORD_INCORRECT";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("The current password is incorrect.");
+  }
+}

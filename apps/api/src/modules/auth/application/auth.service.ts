@@ -5,7 +5,12 @@ import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
 import { isPermission } from "../../rbac/permissions.js";
-import { AccountDisabled, InvalidCredentials, NotAuthenticated } from "../domain/auth.errors.js";
+import {
+  AccountDisabled,
+  CurrentPasswordIncorrect,
+  InvalidCredentials,
+  NotAuthenticated,
+} from "../domain/auth.errors.js";
 import { parseSignInIdentifier } from "../domain/identifiers.js";
 import {
   AUTH_STORE,
@@ -25,6 +30,11 @@ export interface RegisterCommand {
   phone?: string | undefined;
   password: string;
   displayName?: string | undefined;
+}
+
+export interface ChangePasswordCommand {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface LoginCommand {
@@ -158,6 +168,26 @@ export class AuthService {
       roles: [...principal.roles].sort(),
       permissions: [...principal.permissions].sort(),
     };
+  }
+
+  async updateProfile(principal: Principal, displayName: string | null): Promise<UserProfile> {
+    const user = await this.store.updateDisplayName(principal.userId, displayName);
+    if (!user) throw new NotAuthenticated();
+    this.logger.info({ userId: principal.userId }, "Profile updated");
+    return user;
+  }
+
+  async changePassword(principal: Principal, command: ChangePasswordCommand): Promise<void> {
+    const credentials = await this.store.findCredentialsById(principal.userId);
+    if (!credentials) throw new NotAuthenticated();
+    if (!(await this.hasher.verify(credentials.passwordHash, command.currentPassword))) {
+      throw new CurrentPasswordIncorrect();
+    }
+    const passwordHash = await this.hasher.hash(command.newPassword);
+    const now = this.clock.now();
+    await this.store.updatePasswordHash(principal.userId, passwordHash, now);
+    await this.store.revokeOtherSessions(principal.userId, principal.sessionId, now);
+    this.logger.info({ userId: principal.userId }, "Password changed");
   }
 
   private async findCredentials(rawIdentifier: string): Promise<StoredCredentials | null> {

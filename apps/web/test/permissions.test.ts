@@ -60,6 +60,7 @@ describe("permissions", () => {
     expect(adminNavItems(contentManager).map((item) => item.href)).toEqual([
       "/admin/questions",
       "/admin/imports",
+      "/admin/question-reports",
     ]);
     expect(adminNavItems(null)).toEqual([]);
   });

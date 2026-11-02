@@ -5,6 +5,7 @@ import { AuthService } from "../../src/modules/auth/application/auth.service.js"
 import { hashSessionToken } from "../../src/modules/auth/application/session-tokens.js";
 import {
   AccountDisabled,
+  CurrentPasswordIncorrect,
   InvalidCredentials,
   NotAuthenticated,
 } from "../../src/modules/auth/domain/auth.errors.js";
@@ -41,6 +42,9 @@ function fakeStore(overrides: Partial<AuthStore> = {}): AuthStore {
       status: "ACTIVE",
       createdAt: NOW,
     }),
+    findCredentialsById: async () => null,
+    updateDisplayName: unexpected,
+    updatePasswordHash: unexpected,
     loadAccess: async () => ({ roles: ["STUDENT"], permissions: [] }),
     recordLogin: async () => {},
     createSession: async () => "session-1",
@@ -197,5 +201,43 @@ describe("authenticate", () => {
 
     const principal = await auth.authenticate("token");
     expect([...principal.permissions]).toEqual(["questions.publish"]);
+  });
+});
+
+describe("changePassword", () => {
+  const principal = {
+    userId: "user-1",
+    sessionId: "session-1",
+    roles: ["STUDENT"],
+    permissions: new Set<never>(),
+  };
+
+  it("refuses a wrong current password without touching anything", async () => {
+    const auth = service(
+      fakeStore({ findCredentialsById: async () => credentials("ACTIVE") }),
+      fakeHasher("correct horse battery"),
+    );
+    await expect(
+      auth.changePassword(principal, { currentPassword: "guess", newPassword: "new passphrase" }),
+    ).rejects.toBeInstanceOf(CurrentPasswordIncorrect);
+  });
+
+  it("stores the new hash and signs out every other session", async () => {
+    const update = vi.fn(async () => {});
+    const revoke = vi.fn(async () => 2);
+    const auth = service(
+      fakeStore({
+        findCredentialsById: async () => credentials("ACTIVE"),
+        updatePasswordHash: update,
+        revokeOtherSessions: revoke,
+      }),
+      fakeHasher("correct horse battery"),
+    );
+    await auth.changePassword(principal, {
+      currentPassword: "correct horse battery",
+      newPassword: "new passphrase",
+    });
+    expect(update).toHaveBeenCalledWith("user-1", "hash(new passphrase)", NOW);
+    expect(revoke).toHaveBeenCalledWith("user-1", "session-1", NOW);
   });
 });

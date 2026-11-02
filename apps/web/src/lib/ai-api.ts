@@ -55,6 +55,20 @@ export const requestExplanationDraft = (versionId: string) =>
     { method: "POST" },
   );
 
+export type DraftDifficulty = "EASY" | "MEDIUM" | "HARD";
+
+/** Writes a new question for a skill and saves it as the author's draft. */
+export const requestQuestionDraft = (body: {
+  taxonomyVersionId: string;
+  nodeId: string;
+  difficulty: DraftDifficulty;
+  instructions?: string;
+}) =>
+  api<{ question: { questionId: string; versionId: string } }>("/admin/ai/question-drafts", {
+    method: "POST",
+    body,
+  });
+
 export const listAiRuns = (page: { limit: number; offset: number }) =>
   api<{
     items: AiRun[];

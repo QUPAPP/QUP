@@ -67,9 +67,14 @@ function QuestionBank({ userId }: { userId: string }) {
         title="بنك الأسئلة"
         description="اكتب السؤال، أرسله للمراجعة، ثم يُنشر بعد اعتماده. كل تعديل بعد النشر يكون في نسخة جديدة."
         action={
-          <Link href="/admin/questions/new" className="btn">
-            <Icon name="plus" /> سؤال جديد
-          </Link>
+          <div className="row">
+            <Link href="/admin/questions/generate" className="btn btn--ghost">
+              <Icon name="spark" /> توليد بالذكاء الاصطناعي
+            </Link>
+            <Link href="/admin/questions/new" className="btn">
+              <Icon name="plus" /> سؤال جديد
+            </Link>
+          </div>
         }
       />
 

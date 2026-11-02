@@ -95,13 +95,100 @@ describe("configuration", () => {
 
   it("uses the test AI provider outside production and none in production", () => {
     expect(loadConfig({ DATABASE_URL: VALID_URL }).ai).toEqual({
-      provider: "fake",
+      provider: { kind: "fake" },
+      studentExplanations: false,
       timeoutMs: 15_000,
       maxAttempts: 2,
     });
     expect(loadConfig({ DATABASE_URL: VALID_URL }).rateLimit.aiPerMinute).toBe(20);
     expect(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }).ai.provider).toBeNull();
     expect(loadConfig({ DATABASE_URL: VALID_URL, AI_PROVIDER: "disabled" }).ai.provider).toBeNull();
+  });
+
+  it("runs Claude when asked, with a key, on the configured model and effort", () => {
+    const config = loadConfig({
+      DATABASE_URL: VALID_URL,
+      ...PRODUCTION,
+      AI_PROVIDER: "anthropic",
+      ANTHROPIC_API_KEY: "sk-ant-test-key",
+      AI_EFFORT: "low",
+      AI_STUDENT_EXPLANATIONS: "true",
+    });
+    expect(config.ai.provider).toEqual({
+      kind: "anthropic",
+      apiKey: "sk-ant-test-key",
+      model: "claude-opus-5-5",
+      effort: "low",
+    });
+    expect(config.ai.studentExplanations).toBe(true);
+  });
+
+  it("gives a real model more time per attempt than the test provider", () => {
+    const claude = loadConfig({
+      DATABASE_URL: VALID_URL,
+      AI_PROVIDER: "anthropic",
+      ANTHROPIC_API_KEY: "sk-ant-test-key",
+    });
+    expect(claude.ai.timeoutMs).toBe(45_000);
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_URL,
+        AI_PROVIDER: "anthropic",
+        AI_API_KEY: "sk-ant-test-key",
+        AI_TIMEOUT_MS: "20000",
+      }).ai,
+    ).toMatchObject({
+      provider: { kind: "anthropic", apiKey: "sk-ant-test-key" },
+      timeoutMs: 20_000,
+    });
+  });
+
+  it("runs Grok and other OpenAI-compatible providers at their public address", () => {
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_URL,
+        ...PRODUCTION,
+        AI_PROVIDER: "grok",
+        AI_API_KEY: "xai-test-key",
+        AI_MODEL: "grok-test-model",
+      }).ai.provider,
+    ).toEqual({
+      kind: "openai-compatible",
+      name: "grok",
+      baseUrl: "https://api.x.ai/v1",
+      apiKey: "xai-test-key",
+      model: "grok-test-model",
+    });
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_URL,
+        AI_PROVIDER: "openai-compatible",
+        AI_BASE_URL: "http://localhost:11434/v1",
+        AI_MODEL: "llama-test",
+      }).ai.provider,
+    ).toMatchObject({
+      name: "openai-compatible",
+      baseUrl: "http://localhost:11434/v1",
+      apiKey: "",
+    });
+  });
+
+  it("refuses an OpenAI-compatible provider without its key, model or address", () => {
+    expect(loadExpectingFailure({ DATABASE_URL: VALID_URL, AI_PROVIDER: "grok" }).problems).toEqual(
+      [expect.stringMatching(/^AI_API_KEY/), expect.stringMatching(/^AI_MODEL/)],
+    );
+    expect(
+      loadExpectingFailure({
+        DATABASE_URL: VALID_URL,
+        AI_PROVIDER: "openai-compatible",
+        AI_MODEL: "m",
+      }).problems,
+    ).toEqual([expect.stringMatching(/^AI_BASE_URL/)]);
+  });
+
+  it("refuses Claude without an API key, naming the variable only", () => {
+    const error = loadExpectingFailure({ DATABASE_URL: VALID_URL, AI_PROVIDER: "anthropic" });
+    expect(error.problems.some((p) => p.startsWith("ANTHROPIC_API_KEY"))).toBe(true);
   });
 
   it("refuses the test AI provider in production (OPEN_QUESTIONS #17)", () => {

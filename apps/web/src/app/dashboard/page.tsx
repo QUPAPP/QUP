@@ -130,27 +130,29 @@ export default function DashboardPage() {
         {user && !identity.isError && history.isSuccess ? (
           <AssessmentHistory items={history.data.items} />
         ) : null}
-        <nav className="pagination" aria-label="صفحات سجل الجلسات">
-          <button
-            type="button"
-            className="btn btn--ghost btn--small"
-            disabled={offset === 0 || history.isFetching}
-            onClick={() => setOffset((value) => Math.max(0, value - PAGE_SIZE))}
-          >
-            السابق
-          </button>
-          <span className="small" aria-live="polite">
-            الصفحة {Math.floor(offset / PAGE_SIZE) + 1}
-          </span>
-          <button
-            type="button"
-            className="btn btn--ghost btn--small"
-            disabled={!history.data?.page.hasMore || history.isFetching || history.isError}
-            onClick={() => setOffset((value) => value + PAGE_SIZE)}
-          >
-            التالي
-          </button>
-        </nav>
+        {offset > 0 || history.data?.page.hasMore ? (
+          <nav className="pagination" aria-label="صفحات سجل الجلسات">
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              disabled={offset === 0 || history.isFetching}
+              onClick={() => setOffset((value) => Math.max(0, value - PAGE_SIZE))}
+            >
+              السابق
+            </button>
+            <span className="small" aria-live="polite">
+              الصفحة {Math.floor(offset / PAGE_SIZE) + 1}
+            </span>
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              disabled={!history.data?.page.hasMore || history.isFetching || history.isError}
+              onClick={() => setOffset((value) => value + PAGE_SIZE)}
+            >
+              التالي
+            </button>
+          </nav>
+        ) : null}
       </section>
     </main>
   );

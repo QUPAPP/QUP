@@ -18,6 +18,7 @@ import { BillingModule } from "./modules/billing/billing.module.js";
 import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { ContentImportModule } from "./modules/content-import/content-import.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
+import { QuestionReportsModule } from "./modules/question-reports/question-reports.module.js";
 import { QuestionsModule } from "./modules/questions/questions.module.js";
 import { PermissionsGuard } from "./modules/rbac/require-permissions.js";
 import { SettingsModule } from "./modules/settings/settings.module.js";
@@ -45,6 +46,7 @@ export class AppModule {
         AnalyticsModule,
         AuditModule,
         QuestionsModule,
+        QuestionReportsModule,
         BillingModule,
         HealthModule,
         SettingsModule,

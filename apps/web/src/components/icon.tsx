@@ -24,7 +24,10 @@ export type IconName =
   | "layers"
   | "trend"
   | "settings"
-  | "shield";
+  | "shield"
+  | "spark"
+  | "calculator"
+  | "alert";
 
 const paths: Record<IconName, ReactNode> = {
   arrow: (
@@ -124,6 +127,24 @@ const paths: Record<IconName, ReactNode> = {
     </>
   ),
   shield: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Zm-3 9 2 2 4-4" />,
+  spark: (
+    <>
+      <path d="M12 3v4m0 10v4M3 12h4m10 0h4" />
+      <path d="m12 8 1.5 2.5L16 12l-2.5 1.5L12 16l-1.5-2.5L8 12l2.5-1.5L12 8Z" />
+    </>
+  ),
+  calculator: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M12 4 3 20h18L12 4Z" />
+      <path d="M12 10v4m0 3h.01" />
+    </>
+  ),
 };
 
 export function Icon({ name, className = "" }: { name: IconName; className?: string }) {

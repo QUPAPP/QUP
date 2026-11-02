@@ -58,3 +58,15 @@ export const PRELIMINARY_RESULT_DEFAULTS: PreliminaryResultConfig = Object.freez
 
 /** Bounds a client-reported response time; recorded, never scored in V1 (ADAPTIVE_ENGINE.md §11). */
 export const MAX_RECORDED_RESPONSE_TIME_MS = 3_600_000;
+
+/**
+ * Timed mock exam (assumed, awaiting the product owner): Qiyas sections give
+ * 25 minutes for 24 questions, so each question carries 62.5 seconds of the
+ * session's single clock. 48 questions is two sections; an exam's active
+ * FULL_DIAGNOSTIC blueprint sets the domain weights.
+ */
+export const MOCK_EXAM_DEFAULTS = Object.freeze({
+  questionCount: 48,
+  targetDifficulty: MINI_DIAGNOSTIC_DEFAULTS.targetDifficulty,
+  secondsPerQuestion: 62.5,
+});

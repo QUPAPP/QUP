@@ -222,3 +222,20 @@ export const aiRunStatusEnum = pgEnum("ai_run_status", [
   "TIMED_OUT",
   "FAILED",
 ]);
+
+/* -------------------------------------------------------------------------- */
+
+/** Why a student reported a question. */
+export const questionReportReasonEnum = pgEnum("question_report_reason", [
+  "WRONG_ANSWER",
+  "UNCLEAR_QUESTION",
+  "TYPO",
+  "OTHER",
+]);
+
+/** A report is open until a reviewer resolves (fixed) or dismisses (not a problem) it. */
+export const questionReportStatusEnum = pgEnum("question_report_status", [
+  "OPEN",
+  "RESOLVED",
+  "DISMISSED",
+]);

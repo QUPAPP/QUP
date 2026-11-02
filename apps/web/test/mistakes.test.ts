@@ -14,6 +14,7 @@ function mistake(id: string, skillName: string | null, correctedLater: boolean):
     correctedLater,
     skillName,
     question: {
+      questionVersionId: id,
       questionType: "SINGLE_CHOICE",
       stem: text("س"),
       options: [

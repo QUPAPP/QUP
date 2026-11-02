@@ -1,5 +1,7 @@
 import type { AiCompletion, AiCompletionRequest, AiProvider } from "./provider.js";
 import { correctKeys, type ExplanationDraftInput } from "./tasks/explanation.js";
+import type { MistakeExplanationInput } from "./tasks/mistake-explanation.js";
+import type { QuestionDraftInput } from "./tasks/question-draft.js";
 import type {
   MetadataSuggestion,
   MetadataSuggestionInput,
@@ -66,6 +68,30 @@ function draftExplanation(input: ExplanationDraftInput, wrong: boolean) {
   };
 }
 
+function explainMistake(input: MistakeExplanationInput, wrong: boolean) {
+  const keys = correctKeys(input.question);
+  const wrongKey = input.question.options.find((option) => !option.isCorrect)?.key ?? "?";
+  return {
+    correctOptionKeys: wrong ? [wrongKey] : keys,
+    errorType: "UNKNOWN",
+    explanation: `${LABEL}: اخترت (${input.chosenKeys.join("، ")}) والإجابة الصحيحة (${keys.join("، ")}).`,
+    tip: input.skillName ? `راجع مهارة «${input.skillName}».` : "أعد قراءة السؤال ببطء.",
+  };
+}
+
+function draftQuestion(input: QuestionDraftInput, wrong: boolean) {
+  const text = (n: number) => `خيار ${n} لمهارة ${input.skillName}`;
+  return {
+    stem: `${LABEL}: سؤال تجريبي في «${input.skillName}» بصعوبة ${input.difficulty}.`,
+    options: [1, 2, 3, 4].map((n, i) => ({
+      key: ["A", "B", "C", "D"][i],
+      text: wrong ? text(1) : text(n),
+    })),
+    correctOptionKey: "A",
+    explanation: `${LABEL}: الخيار الأول هو الصحيح. اكتب الشرح الحقيقي قبل المراجعة.`,
+  };
+}
+
 /**
  * A deterministic stand-in for a model (AI_INTEGRATION.md "Evaluation"): the
  * same request always gets the same answer, computed from the task's input.
@@ -102,6 +128,10 @@ export class FakeAiProvider implements AiProvider {
         return suggestMetadata(request.input as MetadataSuggestionInput, wrong);
       case "draft_explanation":
         return draftExplanation(request.input as ExplanationDraftInput, wrong);
+      case "explain_mistake":
+        return explainMistake(request.input as MistakeExplanationInput, wrong);
+      case "draft_question":
+        return draftQuestion(request.input as QuestionDraftInput, wrong);
       default:
         throw new Error(`The fake provider has no answer for ${request.task}`);
     }

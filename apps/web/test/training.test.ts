@@ -33,7 +33,7 @@ describe("adaptive training", () => {
 
   it("runs in the same session runner and ends on the skill profile", () => {
     expect(isRunnable("ADAPTIVE_TRAINING")).toBe(true);
-    expect(isRunnable("MOCK_EXAM")).toBe(false);
+    expect(isRunnable("PRACTICE")).toBe(false);
     expect(SESSION_TITLES.ADAPTIVE_TRAINING).toBe("التدريب التكيفي");
     expect(completionHref({ id: "s1", examId: "e1", type: "ADAPTIVE_TRAINING" })).toBe(
       "/exams/e1/profile",

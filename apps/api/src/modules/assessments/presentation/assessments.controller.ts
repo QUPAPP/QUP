@@ -33,7 +33,7 @@ import { toPreliminaryResultView } from "./assessments.views.js";
 
 const uuid = new ZodValidationPipe(uuidParam);
 
-function toSessionView(session: Session, progress?: SessionProgress) {
+function toSessionView(session: Session, progress?: SessionProgress, deadline?: Date | null) {
   return {
     id: session.id,
     examId: session.examId,
@@ -42,6 +42,8 @@ function toSessionView(session: Session, progress?: SessionProgress) {
     startedAt: session.startedAt?.toISOString() ?? null,
     completedAt: session.completedAt?.toISOString() ?? null,
     ...(progress ? { progress: { answered: progress.finalized, total: progress.total } } : {}),
+    // Timed sessions only: when the clock runs out (server time).
+    ...(deadline ? { deadline: deadline.toISOString() } : {}),
   };
 }
 
@@ -190,6 +192,36 @@ export class AssessmentsController {
     };
   }
 
+  @Post("exams/:examId/assessments/mock-exam")
+  @ApiOperation({
+    summary: "Start a paid timed mock exam, or resume the open one (201 new, 200 resumed).",
+  })
+  async startMockExam(
+    @CurrentPrincipal() principal: Principal,
+    @Param("examId", uuid) examId: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const { session, created } = await this.assessments.startMockExam(principal.userId, examId);
+    reply.status(created ? HttpStatus.CREATED : HttpStatus.OK);
+    return { ...toSessionView(session), resumed: !created };
+  }
+
+  @Get("assessments/:sessionId/mock-result")
+  @ApiOperation({
+    summary: "A finished mock exam: score, per-skill results and every question reviewed.",
+  })
+  async mockResult(
+    @CurrentPrincipal() principal: Principal,
+    @Param("sessionId", uuid) sessionId: string,
+  ) {
+    const result = await this.assessments.mockResult(principal.userId, sessionId);
+    return {
+      ...result,
+      startedAt: result.startedAt?.toISOString() ?? null,
+      completedAt: result.completedAt?.toISOString() ?? null,
+    };
+  }
+
   @Post("exams/:examId/assessments/training")
   @ApiOperation({
     summary: "Start paid adaptive training, or resume the open session (201 new, 200 resumed).",
@@ -242,7 +274,7 @@ export class AssessmentsController {
   @Get("assessments/:sessionId")
   async get(@CurrentPrincipal() principal: Principal, @Param("sessionId", uuid) sessionId: string) {
     const { session, progress } = await this.assessments.get(principal.userId, sessionId);
-    return toSessionView(session, progress);
+    return toSessionView(session, progress, this.assessments.deadlineOf(session, progress));
   }
 
   @Post("assessments/:sessionId/start")
@@ -251,7 +283,9 @@ export class AssessmentsController {
     @CurrentPrincipal() principal: Principal,
     @Param("sessionId", uuid) sessionId: string,
   ) {
-    return toSessionView(await this.assessments.start(principal.userId, sessionId));
+    await this.assessments.start(principal.userId, sessionId);
+    // Read back with progress so a mock exam's clock is in the first response.
+    return this.get(principal, sessionId);
   }
 
   @Get("assessments/:sessionId/current-item")

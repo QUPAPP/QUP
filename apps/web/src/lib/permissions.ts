@@ -50,8 +50,14 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
   {
     href: "/admin/imports",
     title: "استيراد الأسئلة",
-    icon: "plus",
+    icon: "layers",
     permission: ADMIN_PERMISSIONS.questionsCreate,
+  },
+  {
+    href: "/admin/question-reports",
+    title: "بلاغات الأسئلة",
+    icon: "flag",
+    permission: ADMIN_PERMISSIONS.questionsReview,
   },
   {
     href: "/admin/billing",
@@ -62,7 +68,7 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
   {
     href: "/admin/settings",
     title: "الإعدادات",
-    icon: "compass",
+    icon: "settings",
     permission: ADMIN_PERMISSIONS.settingsManage,
   },
   {
@@ -80,13 +86,13 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
   {
     href: "/admin/adaptive-decisions",
     title: "قرارات التدريب",
-    icon: "compass",
+    icon: "target",
     permission: ADMIN_PERMISSIONS.auditView,
   },
   {
     href: "/admin/ai",
     title: "الذكاء الاصطناعي",
-    icon: "check",
+    icon: "spark",
     permission: ADMIN_PERMISSIONS.aiManage,
   },
 ];

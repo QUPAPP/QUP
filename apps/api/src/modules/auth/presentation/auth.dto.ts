@@ -62,3 +62,26 @@ export const loginBody = z.strictObject({
 });
 
 export type LoginBody = z.output<typeof loginBody>;
+
+export const updateProfileBody = z.strictObject({
+  displayName: z
+    .string()
+    .trim()
+    .max(MAX_DISPLAY_NAME_LENGTH)
+    .transform((value) => value || null),
+});
+
+export type UpdateProfileBody = z.output<typeof updateProfileBody>;
+
+export const changePasswordBody = z.strictObject({
+  currentPassword: z
+    .string()
+    .min(1)
+    .refine(
+      (value) => passwordLength(value) <= PASSWORD_MAX_LENGTH,
+      `must be at most ${PASSWORD_MAX_LENGTH} characters`,
+    ),
+  newPassword,
+});
+
+export type ChangePasswordBody = z.output<typeof changePasswordBody>;

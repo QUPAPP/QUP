@@ -16,6 +16,7 @@ import {
 import {
   FULL_DIAGNOSTIC_DEFAULTS,
   MINI_DIAGNOSTIC_DEFAULTS,
+  MOCK_EXAM_DEFAULTS,
   SCORING_VERSION,
 } from "../domain/assessment-config.js";
 import {
@@ -33,7 +34,11 @@ import {
 } from "../domain/ports.js";
 
 /** The sessions planned up front from a diagnostic recipe. */
-export type DiagnosticKind = "MINI_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "FULL_REASSESSMENT";
+export type DiagnosticKind =
+  | "MINI_DIAGNOSTIC"
+  | "FULL_DIAGNOSTIC"
+  | "FULL_REASSESSMENT"
+  | "MOCK_EXAM";
 
 /** How each diagnostic is planned (PRD §7–§8, OPEN_QUESTIONS.md #9a, #10, #12g). */
 interface Diagnostic {
@@ -47,6 +52,8 @@ interface Diagnostic {
   reusesSeenQuestions: boolean;
   /** One completed session ends this kind for good; null when it may be taken again. */
   alreadyCompleted: ((sessionId: string) => Error) | null;
+  /** The blueprint's question count applies; false keeps the kind's own size. */
+  sizeFromBlueprint: boolean;
 }
 
 const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
@@ -57,6 +64,7 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     continuesEvidence: false,
     reusesSeenQuestions: false,
     alreadyCompleted: (sessionId) => new MiniDiagnosticAlreadyCompleted(sessionId),
+    sizeFromBlueprint: true,
   },
   FULL_DIAGNOSTIC: {
     type: "FULL_DIAGNOSTIC",
@@ -65,6 +73,7 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     continuesEvidence: true,
     reusesSeenQuestions: false,
     alreadyCompleted: (sessionId) => new FullDiagnosticAlreadyCompleted(sessionId),
+    sizeFromBlueprint: true,
   },
   // The whole exam measured again with the full diagnostic's recipe, so the
   // two compare; its gate is checked by FullReassessmentService.
@@ -75,6 +84,18 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     continuesEvidence: false,
     reusesSeenQuestions: true,
     alreadyCompleted: null,
+    sizeFromBlueprint: true,
+  },
+  // A timed practice exam with the full diagnostic's domain weights; it may be
+  // taken again, unseen questions first.
+  MOCK_EXAM: {
+    type: "MOCK_EXAM",
+    blueprintType: "FULL_DIAGNOSTIC",
+    defaults: MOCK_EXAM_DEFAULTS,
+    continuesEvidence: false,
+    reusesSeenQuestions: true,
+    alreadyCompleted: null,
+    sizeFromBlueprint: false,
   },
 };
 
@@ -118,7 +139,9 @@ export class DiagnosticSessions {
       kind.blueprintType,
       taxonomy.taxonomyVersionId,
     );
-    const size = blueprint?.questionCount ?? kind.defaults.questionCount;
+    const size =
+      (kind.sizeFromBlueprint ? blueprint?.questionCount : undefined) ??
+      kind.defaults.questionCount;
     const domainWeights = blueprint
       ? effectiveDomainWeights(taxonomy.domains, blueprint.domainWeights)
       : null;

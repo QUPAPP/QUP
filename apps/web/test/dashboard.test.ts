@@ -23,9 +23,14 @@ describe("student dashboard", () => {
       "أكمل التدريب التكيفي",
     ],
     [
-      { type: "RESUME_SESSION", sessionId: "s2", sessionType: "MOCK_EXAM" },
+      { type: "RESUME_SESSION", sessionId: "s2", sessionType: "PRACTICE" },
       "/assessments/s2",
       "أكمل جلستك",
+    ],
+    [
+      { type: "RESUME_SESSION", sessionId: "s3", sessionType: "MOCK_EXAM" },
+      "/assessments/s3",
+      "أكمل الاختبار المحاكي",
     ],
     [{ type: "START_MINI_DIAGNOSTIC" }, "/exams/e1/diagnostic", "ابدأ التشخيص المصغّر"],
     [{ type: "SUBSCRIBE" }, "/subscriptions", "اشترك لتكمل رحلتك"],

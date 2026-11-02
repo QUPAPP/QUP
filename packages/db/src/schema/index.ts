@@ -11,6 +11,7 @@ export * from "./adaptive.js";
 export * from "./ai.js";
 export * from "./assessment.js";
 export * from "./billing.js";
+export * from "./feedback.js";
 export * from "./identity.js";
 export * from "./imports.js";
 export * from "./mastery.js";

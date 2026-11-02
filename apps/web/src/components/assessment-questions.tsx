@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { MistakeTutor } from "@/components/mistake-tutor";
+import { ReportQuestion } from "@/components/report-question";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
 import {
@@ -11,25 +13,44 @@ import {
   type CurrentItem,
   completeSession,
   getCurrentItem,
+  isApiError,
   type SubmitResult,
   skipItem,
   submitAnswer,
 } from "@/lib/api";
-import { correctOptions, optionIndexForKey, optionLetter } from "@/lib/diagnostics";
+import {
+  correctOptions,
+  formatCountdown,
+  optionIndexForKey,
+  optionLetter,
+} from "@/lib/diagnostics";
 
 const PERCENT = 100;
+const TICK_MS = 1000;
+/** The clock turns red for the last five minutes. */
+const LOW_TIME_MS = 5 * 60 * 1000;
 
 export function AssessmentQuestions({
   sessionId,
+  examId,
   completion,
   endLabel,
+  deadline,
 }: {
   sessionId: string;
+  /** The session's exam: training reviews offer an explanation of a wrong answer. */
+  examId?: string;
   /** Where the student goes once every item is finalized, and the button that says so. */
   completion: { href: string; label: string };
   /** Training: the student may stop at any time with a button saying this. */
   endLabel?: string;
+  /**
+   * Mock exam: the session's clock. Answers move straight on with no
+   * feedback, and the exam is handed in when the clock runs out.
+   */
+  deadline?: string;
 }) {
+  const examMode = deadline !== undefined;
   const completedHref = completion.href;
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -53,20 +74,76 @@ export function AssessmentQuestions({
 
   return (
     <>
+      {deadline ? (
+        <ExamClock
+          deadline={deadline}
+          onTimeUp={() => queryClient.invalidateQueries({ queryKey })}
+        />
+      ) : null}
       <Question
         // A new question starts from a clean slate: no selection, no feedback.
         key={item.id}
         sessionId={sessionId}
+        examId={examId}
         item={item}
         progress={current.data.progress}
         completedLabel={completion.label}
         focusOnMount={item.id !== firstItemId.current}
+        examMode={examMode}
         onNext={(completed) =>
           completed ? router.replace(completedHref) : queryClient.invalidateQueries({ queryKey })
         }
+        onTimeUp={() => router.replace(completedHref)}
       />
-      {endLabel ? <EndSession sessionId={sessionId} label={endLabel} href={completedHref} /> : null}
+      {endLabel ? (
+        <EndSession
+          sessionId={sessionId}
+          label={endLabel}
+          href={completedHref}
+          confirmation={
+            examMode
+              ? `بقي ${current.data.progress.total - current.data.progress.answered} سؤالًا دون إجابة، ولن تُحتسب. هل تريد التسليم الآن؟`
+              : undefined
+          }
+        />
+      ) : null}
     </>
+  );
+}
+
+/**
+ * The mock exam's countdown. The server owns the deadline; at zero the page
+ * asks again, the server closes the session, and the runner leaves for the result.
+ */
+function ExamClock({ deadline, onTimeUp }: { deadline: string; onTimeUp: () => void }) {
+  const end = useMemo(() => new Date(deadline).getTime(), [deadline]);
+  const [now, setNow] = useState(() => Date.now());
+  const remaining = end - now;
+  const expired = remaining <= 0;
+  const onTimeUpRef = useRef(onTimeUp);
+  onTimeUpRef.current = onTimeUp;
+
+  useEffect(() => {
+    if (expired) {
+      onTimeUpRef.current();
+      return;
+    }
+    const timer = window.setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [expired]);
+
+  return (
+    // A timer is not a live region: read on request, never announced every second.
+    <div
+      role="timer"
+      aria-label="الوقت المتبقي"
+      className={`exam-clock${remaining < LOW_TIME_MS ? " exam-clock--low" : ""}`}
+    >
+      <span className="small" aria-hidden="true">
+        الوقت المتبقي
+      </span>
+      <strong dir="ltr">{formatCountdown(remaining)}</strong>
+    </div>
   );
 }
 
@@ -75,16 +152,46 @@ function EndSession({
   sessionId,
   label,
   href,
+  confirmation,
 }: {
   sessionId: string;
   label: string;
   href: string;
+  /** Asked before ending, when ending early loses something. */
+  confirmation?: string;
 }) {
   const router = useRouter();
+  const [asking, setAsking] = useState(false);
   const end = useMutation({
     mutationFn: () => completeSession(sessionId),
     onSuccess: () => router.replace(href),
   });
+  if (asking) {
+    return (
+      <div className="question-end question-end--confirm" role="alertdialog" aria-label={label}>
+        <p className="small">{confirmation}</p>
+        {end.isError ? <ErrorNotice error={end.error} /> : null}
+        <div className="row">
+          <button
+            type="button"
+            className="btn btn--small"
+            disabled={end.isPending}
+            onClick={() => end.mutate()}
+          >
+            {end.isPending ? "جارٍ التسليم…" : "نعم، سلّم الآن"}
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost btn--small"
+            disabled={end.isPending}
+            onClick={() => setAsking(false)}
+          >
+            متابعة الحل
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="question-end">
       {end.isError ? <ErrorNotice error={end.error} /> : null}
@@ -92,7 +199,7 @@ function EndSession({
         type="button"
         className="btn btn--ghost btn--small"
         disabled={end.isPending}
-        onClick={() => end.mutate()}
+        onClick={() => (confirmation ? setAsking(true) : end.mutate())}
       >
         {end.isPending ? "جارٍ الإنهاء…" : label}
       </button>
@@ -102,21 +209,28 @@ function EndSession({
 
 interface QuestionProps {
   sessionId: string;
+  examId?: string;
   item: NonNullable<CurrentItem["item"]>;
   progress: CurrentItem["progress"];
   completedLabel: string;
   /** Moves keyboard and screen-reader focus to this question when it appears. */
   focusOnMount: boolean;
+  /** Mock exam: no feedback, the next question follows the answer at once. */
+  examMode: boolean;
   onNext: (completed: boolean) => void;
+  onTimeUp: () => void;
 }
 
 function Question({
   sessionId,
+  examId,
   item,
   progress,
   completedLabel,
   focusOnMount,
+  examMode,
   onNext,
+  onTimeUp,
 }: QuestionProps) {
   const queryClient = useQueryClient();
   const multiple = item.question.questionType === "MULTIPLE_CHOICE";
@@ -132,11 +246,15 @@ function Question({
         : skipItem(sessionId, item.id, idempotencyKey),
     onSuccess: (result, kind) => {
       void queryClient.invalidateQueries({ queryKey: ["assessment-history"] });
-      if (kind === "SKIP") onNext(result.next.type === "COMPLETED");
+      if (kind === "SKIP" || examMode) onNext(result.next.type === "COMPLETED");
+    },
+    onError: (error) => {
+      if (isApiError(error, "MOCK_EXAM_TIME_UP")) onTimeUp();
     },
   });
-  const outcome = submit.data;
-  const locked = submit.isPending || outcome !== undefined;
+  // In exam mode the answer is never judged on screen; the runner moves on instead.
+  const outcome = examMode ? undefined : submit.data;
+  const locked = submit.isPending || submit.data !== undefined;
 
   // The button that had focus disappears on both transitions; without these,
   // focus falls back to the page and a keyboard user starts again from the top.
@@ -201,7 +319,13 @@ function Question({
           <p className="small muted" id="question-heading" ref={headingRef} tabIndex={-1}>
             السؤال <strong>{position}</strong> من {progress.total}
           </p>
-          <span>{item.target ? `تدريب على: ${item.target.skillName}` : "خطوة نحو فهم مستواك"}</span>
+          <span>
+            {item.target
+              ? `تدريب على: ${item.target.skillName}`
+              : examMode
+                ? "اختبار محاكي"
+                : "خطوة نحو فهم مستواك"}
+          </span>
         </div>
         <div
           className="progress"
@@ -249,6 +373,9 @@ function Question({
       {submit.isError ? <ErrorNotice error={submit.error} /> : null}
       {outcome ? <Feedback isCorrect={outcome.result.isCorrect} /> : null}
       {outcome?.review ? <Review options={item.question.options} review={outcome.review} /> : null}
+      {outcome?.review && outcome.result.isCorrect === false && examId ? (
+        <MistakeTutor examId={examId} questionVersionId={item.question.questionVersionId} />
+      ) : null}
 
       <div className="question-footer">
         {outcome ? (
@@ -268,7 +395,11 @@ function Question({
               disabled={selected.length === 0 || submit.isPending}
               onClick={() => submit.mutate("ANSWER")}
             >
-              {submit.isPending ? "جارٍ الإرسال…" : "تأكيد الإجابة"}
+              {submit.isPending
+                ? "جارٍ الإرسال…"
+                : examMode && position === progress.total
+                  ? "تأكيد وإنهاء الاختبار"
+                  : "تأكيد الإجابة"}
             </button>
             <button
               type="button"
@@ -281,6 +412,7 @@ function Question({
           </>
         )}
       </div>
+      <ReportQuestion sessionId={sessionId} itemId={item.id} />
     </section>
   );
 }

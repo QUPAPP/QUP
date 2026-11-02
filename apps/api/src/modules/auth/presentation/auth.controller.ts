@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,7 +19,16 @@ import { CredentialEndpoint } from "../../../infrastructure/rate-limit/rate-limi
 import { AuthService, type ClientContext } from "../application/auth.service.js";
 import type { UserProfile } from "../domain/ports.js";
 import type { Principal } from "../domain/principal.js";
-import { type LoginBody, loginBody, type RegisterBody, registerBody } from "./auth.dto.js";
+import {
+  type ChangePasswordBody,
+  changePasswordBody,
+  type LoginBody,
+  loginBody,
+  type RegisterBody,
+  registerBody,
+  type UpdateProfileBody,
+  updateProfileBody,
+} from "./auth.dto.js";
 import { CurrentPrincipal } from "./current-principal.decorator.js";
 import { Public } from "./public.decorator.js";
 import { clearSessionCookie, setSessionCookie } from "./session-cookie.js";
@@ -43,7 +53,10 @@ function toPublicUser(user: UserProfile): PublicUser {
 }
 
 function clientContext(request: FastifyRequest): ClientContext {
-  return { userAgent: request.headers["user-agent"] ?? null, ipAddress: request.ip ?? null };
+  return {
+    userAgent: request.headers["user-agent"] ?? null,
+    ipAddress: request.clientAddress || request.ip || null,
+  };
 }
 
 /** API_CONTRACTS.md "Auth". */
@@ -112,5 +125,26 @@ export class AuthController {
   @ApiOperation({ summary: "Sign out every other device; the current session stays active." })
   async revokeOtherSessions(@CurrentPrincipal() principal: Principal): Promise<void> {
     await this.auth.revokeOtherSessions(principal);
+  }
+
+  @Patch("me")
+  @ApiOperation({ summary: "Update the signed-in user's display name." })
+  async updateProfile(
+    @CurrentPrincipal() principal: Principal,
+    @Body(new ZodValidationPipe(updateProfileBody)) body: UpdateProfileBody,
+  ): Promise<{ user: PublicUser }> {
+    const user = await this.auth.updateProfile(principal, body.displayName);
+    return { user: toPublicUser(user) };
+  }
+
+  @Post("password")
+  @CredentialEndpoint()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Change the password; every other session is signed out." })
+  async changePassword(
+    @CurrentPrincipal() principal: Principal,
+    @Body(new ZodValidationPipe(changePasswordBody)) body: ChangePasswordBody,
+  ): Promise<void> {
+    await this.auth.changePassword(principal, body);
   }
 }

@@ -50,8 +50,12 @@ the container disk is not durable: before relying on originals in production, mo
 storage there or replace the storage adapter with object storage (OPEN_QUESTIONS.md #16g).
 
 **AI assistance** is off in production by default (`AI_PROVIDER` unset means `disabled`), and the
-editor works without it. Do not set `AI_PROVIDER=fake` there: the API refuses to start with it. A
-real provider needs OPEN_QUESTIONS.md #17 and its own adapter first.
+editor works without it. Do not set `AI_PROVIDER=fake` there: the API refuses to start with it. To run
+it on Claude, set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`. For another vendor, set
+`AI_PROVIDER` to `grok`, `openai`, `deepseek`, `groq`, `openrouter`, `gemini` or `openai-compatible`
+(the last one also needs `AI_BASE_URL`), plus `AI_API_KEY` and `AI_MODEL`. `AI_MODEL` (default
+`claude-opus-5-5`) and `AI_EFFORT` (default `medium`) are optional. Student mistake explanations stay
+off until `AI_STUDENT_EXPLANATIONS=true` (OPEN_QUESTIONS.md #18, #19b).
 
 ### Environment — qup-web
 

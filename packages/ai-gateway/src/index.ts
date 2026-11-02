@@ -27,6 +27,19 @@ export {
   type ExplanationDraftInput,
 } from "./tasks/explanation.js";
 export {
+  ERROR_TYPES,
+  type ErrorType,
+  explainMistake,
+  type MistakeExplanation,
+  type MistakeExplanationInput,
+} from "./tasks/mistake-explanation.js";
+export {
+  DRAFT_OPTION_KEYS,
+  draftQuestion,
+  type QuestionDraft,
+  type QuestionDraftInput,
+} from "./tasks/question-draft.js";
+export {
   type MetadataNode,
   type MetadataSuggestion,
   type MetadataSuggestionInput,

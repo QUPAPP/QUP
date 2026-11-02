@@ -105,6 +105,8 @@ export interface AssessmentSession {
   type: SessionType;
   status: SessionStatus;
   progress?: { answered: number; total: number };
+  /** Mock exam only: when the clock runs out (ISO time). */
+  deadline?: string | null;
 }
 
 export interface SessionHistoryEntry extends AssessmentSession {
@@ -139,6 +141,7 @@ export interface CurrentItem {
     /** Training: the skill this question was chosen for. */
     target?: { skillName: string };
     question: {
+      questionVersionId: string;
       questionType: "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "TRUE_FALSE";
       stem: RichContent;
       options: { key: string; content: RichContent }[];
@@ -360,6 +363,39 @@ export const getReassessmentResult = (sessionId: string) =>
 export const startTraining = (examId: string) =>
   api<AssessmentSession>(`/exams/${examId}/assessments/training`, { method: "POST" });
 
+export const startMockExam = (examId: string) =>
+  api<AssessmentSession>(`/exams/${examId}/assessments/mock-exam`, { method: "POST" });
+
+export interface MockSkillResult {
+  skillId: string;
+  skillName: string;
+  correct: number;
+  total: number;
+}
+
+export interface MockReviewItem {
+  ordinal: number;
+  skillName: string | null;
+  outcome: "CORRECT" | "INCORRECT" | "NOT_ANSWERED";
+  question: NonNullable<CurrentItem["item"]>["question"];
+  chosenKeys: string[];
+  correctOptionKeys: string[];
+  explanation: RichContent | null;
+}
+
+export interface MockExamResult {
+  correct: number;
+  answered: number;
+  total: number;
+  skills: MockSkillResult[];
+  startedAt: string | null;
+  completedAt: string | null;
+  review: MockReviewItem[];
+}
+
+export const getMockResult = (sessionId: string) =>
+  api<MockExamResult>(`/assessments/${sessionId}/mock-result`);
+
 /** Ends a training session early; a diagnostic only once every item is answered. */
 export const completeSession = (sessionId: string) =>
   api<AssessmentSession>(`/assessments/${sessionId}/complete`, { method: "POST" });
@@ -405,6 +441,12 @@ export const getPayment = (paymentId: string) => api<Payment>(`/payments/${payme
 export const getExamAccess = (examId: string) => api<ExamAccess>(`/exams/${examId}/my-access`);
 
 export const revokeOtherSessions = () => api<void>("/auth/sessions/revoke", { method: "POST" });
+
+export const updateProfile = (body: { displayName: string }) =>
+  api<{ user: User }>("/auth/me", { method: "PATCH", body });
+
+export const changePassword = (body: { currentPassword: string; newPassword: string }) =>
+  api<void>("/auth/password", { method: "POST", body });
 
 export const getSkillProfile = (examId: string) =>
   api<SkillProfile>(`/exams/${examId}/skill-profile`);
