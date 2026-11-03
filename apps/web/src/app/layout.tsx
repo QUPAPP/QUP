@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans_Arabic, Noto_Kufi_Arabic } from "next/font/google";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -12,19 +11,13 @@ import "./globals.css";
 
 // UI_BRAND.md: Kufi for headings, a Sans for body and dense content. Plex
 // carries real 500/600 weights, so hierarchy does not lean on bold alone.
-const kufi = Noto_Kufi_Arabic({
-  subsets: ["arabic"],
-  weight: ["600", "700", "800"],
-  display: "swap",
-  variable: "--font-kufi",
-});
-
-const sansArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-sans-arabic",
-});
+// The fonts ship with the app instead of being fetched from Google at build
+// time, so a build never depends on reaching fonts.googleapis.com.
+import "@fontsource-variable/noto-kufi-arabic/wght.css";
+import "@fontsource/ibm-plex-sans-arabic/400.css";
+import "@fontsource/ibm-plex-sans-arabic/500.css";
+import "@fontsource/ibm-plex-sans-arabic/600.css";
+import "@fontsource/ibm-plex-sans-arabic/700.css";
 
 export const metadata: Metadata = {
   title: { default: "QUP — خطوتك تبدأ بفهم مستواك", template: "%s — QUP" },
@@ -40,12 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   await connection();
   return (
     // RTL first (AGENTS.md §9): direction is set once, at the root.
-    <html
-      lang="ar"
-      dir="rtl"
-      data-scroll-behavior="smooth"
-      className={`${kufi.variable} ${sansArabic.variable}`}
-    >
+    <html lang="ar" dir="rtl" data-scroll-behavior="smooth">
       <body>
         <Providers>
           <a href="#main-content" className="skip-link">

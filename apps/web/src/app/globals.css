@@ -31,8 +31,8 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-kufi), "Noto Kufi Arabic", system-ui, sans-serif;
-  --font-body: var(--font-sans-arabic), "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-heading: "Noto Kufi Arabic Variable", "Noto Kufi Arabic", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 
 :root {
