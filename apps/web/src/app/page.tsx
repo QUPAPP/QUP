@@ -1,59 +1,46 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Icon, type IconName } from "@/components/icon";
+import { Fold } from "@/components/fold";
+import { Icon } from "@/components/icon";
 import { SampleSkillMap } from "@/components/sample-skill-map";
 
 /** What sets QUP apart: product rules the platform enforces, not marketing numbers. */
-const principles: { icon: IconName; title: string; body: string }[] = [
+const principles: { title: string; body: string; earned?: boolean }[] = [
   {
-    icon: "target",
     title: "كل سؤال يقيس مهارة محددة",
-    body: "الأسئلة مربوطة بمهارات الاختبار، فتعرف بالضبط أي مهارة رفعت نتيجتك وأيها خذلتك.",
+    body: "فتعرف بالضبط أي مهارة رفعت نتيجتك وأيها خذلتك.",
   },
   {
-    icon: "compass",
     title: "تدريب يختار أسئلتك بسبب واضح",
-    body: "كل سؤال في التدريب مختار لمهارة تحتاجها الآن، ونعرض لك اسمها قبل أن تجيب.",
+    body: "كل سؤال مختار لمهارة تحتاجها الآن، ونعرض لك اسمها قبل أن تجيب.",
   },
   {
-    icon: "shield",
     title: "الإتقان يُثبت ولا يُفترض",
     body: "لا نعتبر المهارة متقنة لأن نسبتك ارتفعت؛ نؤكدها بإعادة قياس تنجح فيها.",
+    earned: true,
   },
 ];
 
-const steps: { icon: IconName; title: string; body: string; note: string }[] = [
+const steps: { title: string; body: string; note: string }[] = [
   {
-    icon: "compass",
     title: "التشخيص المصغّر",
     body: "أسئلة قليلة مختارة من أقسام الاختبار، تعطيك قراءة أولى لمستواك.",
     note: "مجاني",
   },
   {
-    icon: "layers",
     title: "ملف مهاراتك",
-    body: "كل مهارة بحالتها: متقنة، أو قيد التحسّن، أو فجوة تحتاج تركيزًا.",
+    body: "كل مهارة بحالتها: متقنة، أو جاهزة، أو فجوة تحتاج تركيزًا.",
     note: "ضمن الباقة",
   },
   {
-    icon: "target",
     title: "تدريب على الفواقد",
     body: "جلسات قصيرة تبدأ بأكبر فجوة عندك، وتنتقل معك كلما تحسّنت.",
     note: "ضمن الباقة",
   },
   {
-    icon: "flag",
     title: "إعادة القياس",
     body: "حين تصبح المهارة جاهزة، تثبت إتقانها بأسئلة جديدة عليك.",
     note: "ضمن الباقة",
   },
-];
-
-const dashboardAnswers = [
-  { title: "أين أنت الآن؟", body: "كم مهارة قيست، وكم منها متقنة." },
-  { title: "ما نقاط قوتك؟", body: "المهارات التي تثبت فيها مستواك." },
-  { title: "أين الفواقد؟", body: "مرتبة من الأحوج إلى التدريب." },
-  { title: "ماذا تفعل الآن؟", body: "خطوة واحدة واضحة، نختارها لك." },
 ];
 
 const questions = [
@@ -82,129 +69,69 @@ const questions = [
 export default function LandingPage() {
   return (
     <main id="main-content" className="home">
-      <section className="home-hero" aria-labelledby="home-title">
-        <Image
-          src="/brand/qup-mountain-journey.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="home-hero__photo"
-        />
-        <div className="home-hero__shade" aria-hidden="true" />
-        <div className="home-hero__inner">
-          <div className="home-hero__copy">
-            <p className="eyebrow eyebrow--on-dark">تشخيص · تدريب · إعادة قياس</p>
-            <h1 id="home-title">
-              أكثر من مجرد تدريب.
-              <span>نكتشف الفاقد، ونعالجه خطوة بخطوة.</span>
-            </h1>
-            <p className="home-hero__lead">
-              ابدأ بتشخيص مصغّر مجاني يحدد موقعك في كل مهارة، ثم تدرّب على ما تحتاجه فعلًا، لا على ما
-              تتقنه أصلًا.
-            </p>
-            <div className="home-hero__actions">
-              <Link href="/register" className="btn btn--gold btn--large">
-                ابدأ التشخيص المجاني <Icon name="arrow" />
-              </Link>
-              <a href="#how-it-works" className="btn btn--on-dark btn--large">
-                كيف يعمل
-              </a>
+      <section className="hero" aria-labelledby="home-title">
+        <div className="hero__copy">
+          <p className="eyebrow">القدرات · التحصيلي · STEP</p>
+          <h1 id="home-title">
+            أكثر من مجرد تدريب.
+            <span>نكتشف الفاقد، ونعالجه خطوة بخطوة.</span>
+          </h1>
+          <p className="hero__lead">
+            تشخيص مصغّر مجاني يحدد موقعك في كل مهارة، ثم تدريب على ما تحتاجه فعلًا، لا على ما تتقنه
+            أصلًا.
+          </p>
+          <div className="hero__actions">
+            <Link href="/register" className="btn btn--large">
+              ابدأ التشخيص المجاني <Icon name="arrow" />
+            </Link>
+            <a href="#how-it-works" className="text-link">
+              شاهد كيف يعمل
+            </a>
+          </div>
+          <p className="hero__assurance">
+            حساب مجاني <span aria-hidden="true">·</span> نتيجة فور إكمال التشخيص{" "}
+            <span aria-hidden="true">·</span> جلساتك محفوظة
+          </p>
+        </div>
+        <SampleSkillMap />
+      </section>
+
+      <section className="loop" id="how-it-works" aria-labelledby="loop-title">
+        <div className="loop__inner">
+          <div className="loop__head">
+            <div>
+              <p className="eyebrow">كيف يعمل</p>
+              <h2 id="loop-title">من أول سؤال إلى مهارة متقنة.</h2>
             </div>
-            <ul className="home-hero__assurance">
-              <li>
-                <Icon name="check" />
-                حساب مجاني
-              </li>
-              <li>
-                <Icon name="check" />
-                نتيجة فور إكمال التشخيص
-              </li>
-              <li>
-                <Icon name="check" />
-                جلساتك محفوظة
-              </li>
-            </ul>
+            <p>
+              دورة واحدة تتكرر لكل مهارة: نقيس، نرتّب، ندرّب، ثم نقيس مرة أخرى قبل أن نقول إنك
+              أتقنتها.
+            </p>
           </div>
-          <SampleSkillMap />
-        </div>
-      </section>
-
-      <section className="home-principles" id="why-qup" aria-labelledby="principles-title">
-        <div className="home-principles__intro">
-          <p className="eyebrow">لماذا QUP؟</p>
-          <h2 id="principles-title">
-            نتيجة واحدة لا تكفي.
-            <br />
-            تحتاج أن تعرف لماذا.
-          </h2>
-        </div>
-        <ul className="home-principles__list">
-          {principles.map((item) => (
-            <li key={item.title}>
-              <span className="glyph">
-                <Icon name={item.icon} />
-              </span>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="home-steps" id="how-it-works" aria-labelledby="steps-title">
-        <div className="home-section-head">
-          <p className="eyebrow">كيف يعمل</p>
-          <h2 id="steps-title">أربع خطوات، من أول سؤال إلى إتقان المهارة.</h2>
-        </div>
-        <ol className="home-steps__track">
-          {steps.map((step, index) => (
-            <li key={step.title}>
-              <div className="home-steps__marker">
-                <span className="home-steps__index">{index + 1}</span>
-                <Icon name={step.icon} />
-              </div>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
-              <span className="home-steps__note">{step.note}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="home-report" id="report" aria-labelledby="report-title">
-        <div className="home-report__copy">
-          <p className="eyebrow">مساحتك</p>
-          <h2 id="report-title">لوحة تجيبك عن أربعة أسئلة، كل مرة تدخل.</h2>
-          <dl className="home-report__answers">
-            {dashboardAnswers.map((item) => (
-              <div key={item.title}>
-                <dt>{item.title}</dt>
-                <dd>{item.body}</dd>
-              </div>
+          <ol className="loop__steps">
+            {steps.map((step, index) => (
+              <li key={step.title}>
+                <h3 className="loop__seg">
+                  <span className="loop__num">{index + 1}</span>
+                  {step.title}
+                  {index === steps.length - 1 ? <Fold /> : null}
+                </h3>
+                <p>{step.body}</p>
+                <span className="loop__note">{step.note}</span>
+              </li>
             ))}
-          </dl>
-          <Link href="/register" className="btn btn--large">
-            أنشئ حسابك <Icon name="arrow" />
-          </Link>
-        </div>
-        <div className="home-report__visual">
-          <Image
-            src="/brand/qup-mountain-journey-1200.webp"
-            alt=""
-            fill
-            sizes="(max-width: 900px) 100vw, 50vw"
-            className="home-report__photo"
-          />
-          <div className="home-report__panel">
-            <span className="sample-tag">مثال توضيحي</span>
-            <p className="home-report__panel-label">خطوتك التالية</p>
-            <strong>تدرّب على: استيعاب المقروء</strong>
-            <p className="home-report__panel-note">أكبر فجوة في ملفك الآن، وفيها 4 أسئلة تنتظرك.</p>
-            <span className="btn btn--gold btn--small" aria-hidden="true">
-              ابدأ التدريب <Icon name="arrow" />
-            </span>
-          </div>
+          </ol>
+          <ul className="principles" id="why-qup" aria-label="لماذا QUP">
+            {principles.map((item) => (
+              <li key={item.title}>
+                <h3>
+                  {item.earned ? <Fold /> : null}
+                  {item.title}
+                </h3>
+                <p>{item.body}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -232,8 +159,8 @@ export default function LandingPage() {
           <h2 id="closing-title">ابدأ بخطوة صغيرة، وارجع لهدفك الكبير.</h2>
           <p>التشخيص المصغّر مجاني، ونتيجته تظهر فور إكماله.</p>
         </div>
-        <Link href="/register" className="btn btn--gold btn--large">
-          ابدأ الآن <Icon name="arrow" />
+        <Link href="/register" className="btn btn--light btn--large">
+          ابدأ التشخيص المجاني <Icon name="arrow" />
         </Link>
       </section>
     </main>

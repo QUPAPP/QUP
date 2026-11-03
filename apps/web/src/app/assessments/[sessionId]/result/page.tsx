@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Icon } from "@/components/icon";
-import { PageHeading } from "@/components/page-heading";
 import { PlanOffers } from "@/components/plan-offers";
+import { SkillRow, StateWord } from "@/components/skill-row";
 import { ErrorNotice, Loading } from "@/components/status";
-import { getDashboard, getResult, getSession, type PreliminaryResult } from "@/lib/api";
+import { getDashboard, getResult, getSession } from "@/lib/api";
 import { nextStepLink } from "@/lib/next-step";
 import { useRequireUser } from "@/lib/session";
 
@@ -33,32 +33,100 @@ export default function ResultPage() {
     (entry) => entry.exam.id === session.data?.examId,
   );
   const next = examProgress ? nextStepLink(examProgress.nextStep, examProgress.exam.id) : null;
+  const subscribed = result.data?.nextStep === null;
   return (
-    <main id="main-content" className="page stack stack--loose">
-      <PageHeading
-        title="نتيجتك المبدئية"
-        description="بداية لفهم نقاط قوتك، وما يحتاج إلى مزيد من التركيز."
-        action={
-          <Link href="/dashboard" className="text-link">
-            جلساتي ونتائجي السابقة <Icon name="chevron" />
-          </Link>
-        }
-      />
+    <main id="main-content" className="page result">
       {result.isPending ? <Loading label="جارٍ حساب نتيجتك…" /> : null}
       {result.isError ? <ErrorNotice error={result.error} /> : null}
       {user && result.isSuccess ? (
         <>
-          <Summary result={result.data} />
-          {result.data.nextStep ? (
-            <section className="stack stack--loose">
-              <div>
-                <h2>خطوتك التالية</h2>
-                <p className="muted small">{result.data.nextStep.message}</p>
-              </div>
-              <p className="notice">
-                بعد الاشتراك تكمل التشخيص الكامل من حيث توقفت، وتُحسب إجاباتك هنا. الباقات المعروضة
-                أدناه تخص هذا الاختبار.
+          <section className="verdict" aria-labelledby="verdict-title">
+            <p className="eyebrow">نتيجتك المبدئية · التشخيص المصغّر</p>
+            <h1 id="verdict-title">{`مستواك التشخيصي: ${result.data.level.label}`}</h1>
+            <div className="verdict__row">
+              <p className="verdict__score">
+                <strong>
+                  {result.data.score.correct}
+                  <span>/{result.data.score.total}</span>
+                </strong>
+                <span>إجابة صحيحة</span>
               </p>
+              <p className="verdict__note">
+                قراءة أولية لأدائك في الأسئلة التي أجبت عنها، وليست درجة متوقعة في الاختبار الرسمي.
+              </p>
+            </div>
+            <div className="verdict__actions">
+              {subscribed && next ? (
+                <Link href={next.href} className="btn btn--large">
+                  {next.label} <Icon name="arrow" />
+                </Link>
+              ) : null}
+              {!subscribed ? (
+                <a href="#plans" className="btn btn--large">
+                  أكمل التشخيص الكامل <Icon name="arrow" />
+                </a>
+              ) : null}
+              {subscribed && session.data ? (
+                <Link href={`/exams/${session.data.examId}/profile`} className="text-link">
+                  ملف مهاراتي <Icon name="chevron" />
+                </Link>
+              ) : null}
+            </div>
+          </section>
+
+          <div className="result-pair">
+            <section className="panel" aria-labelledby="weak-title">
+              <div className="panel__head">
+                <h2 id="weak-title">تحتاج إلى تدريب</h2>
+              </div>
+              {result.data.weaknesses.length ? (
+                <ol className="skill-rows">
+                  {result.data.weaknesses.map((entry, index) => (
+                    <SkillRow
+                      key={entry.skill}
+                      rank={index + 1}
+                      name={entry.skill}
+                      state={<StateWord tone="gap">{entry.rating.label}</StateWord>}
+                    />
+                  ))}
+                </ol>
+              ) : (
+                <p className="panel__empty">لا تظهر نقاط ضعف ضمن النتيجة المبدئية المتاحة.</p>
+              )}
+            </section>
+            <section className="panel" aria-labelledby="strong-title">
+              <div className="panel__head">
+                <h2 id="strong-title">نقاط القوة</h2>
+              </div>
+              {result.data.strengths.length ? (
+                <ul className="skill-rows">
+                  {result.data.strengths.map((entry) => (
+                    <SkillRow
+                      key={entry.skill}
+                      name={entry.skill}
+                      state={<StateWord tone="ready">{entry.rating.label}</StateWord>}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p className="panel__empty">لم تظهر نقاط قوة كافية في الإجابات المقاسة بعد.</p>
+              )}
+              <p className="panel__foot">
+                الإتقان لا يُمنح من التشخيص المصغّر. يظهر الذهب على المهارة حين تثبتها بإعادة قياس.
+              </p>
+            </section>
+          </div>
+
+          {result.data.nextStep ? (
+            <section className="result-plans" id="plans" aria-labelledby="plans-title">
+              <div>
+                <h2 id="plans-title">خطوتك التالية</h2>
+                <p className="muted">{result.data.nextStep.message}</p>
+                <p className="muted small">
+                  بعد الاشتراك تكمل التشخيص الكامل من حيث توقفت، وتُحسب إجاباتك هنا. الباقات المعروضة
+                  تخص هذا الاختبار.
+                </p>
+              </div>
               {session.isError ? (
                 <ErrorNotice error={session.error} />
               ) : session.data ? (
@@ -67,88 +135,14 @@ export default function ResultPage() {
                 <Loading />
               )}
             </section>
-          ) : session.data ? (
-            <section className="notice notice--success stack">
-              <p>أنت مشترك في هذا الاختبار. تابع من حيث وصلت؛ رحلتك كلها في ملف مهاراتك.</p>
-              <div className="row">
-                {next ? (
-                  <Link href={next.href} className="btn">
-                    {next.label} <Icon name="arrow" />
-                  </Link>
-                ) : null}
-                <Link href={`/exams/${session.data.examId}/profile`} className="btn btn--ghost">
-                  ملف مهاراتي
-                </Link>
-              </div>
-            </section>
           ) : null}
         </>
       ) : null}
       <p>
-        <Link href="/exams" className="text-link">
-          العودة إلى الاختبارات <Icon name="arrow" />
+        <Link href="/dashboard" className="text-link text-link--back">
+          العودة إلى لوحتك <Icon name="arrow" />
         </Link>
       </p>
     </main>
-  );
-}
-
-function Summary({ result }: { result: PreliminaryResult }) {
-  return (
-    <>
-      <section className="result-overview" aria-label="ملخص النتيجة">
-        <div className="result-score">
-          <strong>{result.score.percentage}%</strong>
-          <p>{`الإجابات الصحيحة: ${result.score.correct} من ${result.score.total}`}</p>
-        </div>
-        <div>
-          <h2>خطوة أنجزتها، وصورة أوضح اكتشفتها.</h2>
-          <p>
-            المستوى التشخيصي: <span className="badge">{result.level.label}</span>
-          </p>
-          <p className="result-note">
-            هذه قراءة أولية لأدائك في التشخيص المصغّر، وليست درجة متوقعة في الاختبار الرسمي.
-          </p>
-        </div>
-      </section>
-      <div className="result-columns">
-        <section className="card stack">
-          <div className="row">
-            <Icon name="check" />
-            <h2>نقاط القوة</h2>
-          </div>
-          {result.strengths.length ? (
-            <ul className="list">
-              {result.strengths.map((entry) => (
-                <li className="list__item list__item--strength" key={entry.skill}>
-                  <span>{entry.skill}</span>
-                  <span>{entry.rating.label}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="small muted">لم تظهر نقاط قوة كافية في الإجابات المقاسة بعد.</p>
-          )}
-        </section>
-        <section className="card stack">
-          <div className="row">
-            <Icon name="compass" />
-            <h2>تحتاج إلى تدريب</h2>
-          </div>
-          {result.weaknesses.length ? (
-            <ul className="list">
-              {result.weaknesses.map((entry) => (
-                <li className="list__item list__item--weakness" key={entry.skill}>
-                  <span>{entry.skill}</span>
-                  <span>{entry.rating.label}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="small muted">لا تظهر نقاط ضعف ضمن النتيجة المبدئية المتاحة.</p>
-          )}
-        </section>
-      </div>
-    </>
   );
 }

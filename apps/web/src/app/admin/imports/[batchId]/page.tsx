@@ -93,7 +93,7 @@ function Import({ userId, batchId }: { userId: string; batchId: string }) {
   const imported = (current.totals?.imported ?? 0) > 0;
   return (
     <main id="main-content" className="page stack stack--loose">
-      <Link href="/admin/imports" className="text-link">
+      <Link href="/admin/imports" className="text-link text-link--back">
         كل الملفات <Icon name="arrow" />
       </Link>
       <PageHeading

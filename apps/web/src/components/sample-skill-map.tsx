@@ -1,50 +1,81 @@
-import type { CSSProperties } from "react";
 import type { MasteryState } from "@/lib/api";
-import { MASTERY_STATE_LABELS } from "@/lib/mastery-labels";
+import { Fold } from "./fold";
+import { SkillRow, StateWord } from "./skill-row";
+import { Tiles } from "./skill-tiles";
 
 /**
  * A static, clearly labelled example of the skill profile for the public
  * page. It mirrors the real profile's vocabulary but holds no student data.
  */
-const sample: { skill: string; share: number; state: MasteryState }[] = [
-  { skill: "الحساب", share: 0.91, state: "MASTERED" },
-  { skill: "الهندسة", share: 0.84, state: "READY_FOR_REASSESSMENT" },
-  { skill: "التناظر اللفظي", share: 0.58, state: "DEVELOPING" },
-  { skill: "استيعاب المقروء", share: 0.37, state: "GAP" },
+const sample: { skill: string; answered: number; correct: number; state: MasteryState }[] = [
+  { skill: "التناظر اللفظي", answered: 18, correct: 16, state: "MASTERED" },
+  { skill: "إكمال الجمل", answered: 12, correct: 9, state: "READY_FOR_REASSESSMENT" },
+  { skill: "استيعاب المقروء", answered: 6, correct: 3, state: "UNCERTAIN" },
+  { skill: "المتتاليات", answered: 9, correct: 3, state: "GAP" },
+  { skill: "الكسور والنسب", answered: 14, correct: 4, state: "GAP" },
 ];
 
-const PERCENT = 100;
+/** The rest of a 31-skill exam, so the tile row reads as a whole profile. */
+const sampleTiles: MasteryState[] = [
+  ...sample.map((row) => row.state),
+  ...Array<MasteryState>(3).fill("READY_FOR_REASSESSMENT"),
+  ...Array<MasteryState>(4).fill("DEVELOPING"),
+  ...Array<MasteryState>(4).fill("GAP"),
+  ...Array<MasteryState>(15).fill("UNASSESSED"),
+];
+
+function stateFor(state: MasteryState) {
+  switch (state) {
+    case "MASTERED":
+      return (
+        <>
+          <Fold />
+          <StateWord tone="earned">متقنة</StateWord>
+        </>
+      );
+    case "READY_FOR_REASSESSMENT":
+      return <StateWord tone="ready">جاهزة</StateWord>;
+    case "GAP":
+      return <StateWord tone="gap">فجوة</StateWord>;
+    default:
+      return (
+        <>
+          <Fold state="provisional" />
+          <StateWord tone="provisional">مبدئي</StateWord>
+        </>
+      );
+  }
+}
 
 export function SampleSkillMap() {
+  const measured = sampleTiles.filter((state) => state !== "UNASSESSED").length;
   return (
-    <figure className="sample-map" aria-labelledby="sample-map-title">
-      <div className="sample-map__head">
-        <div>
-          <p id="sample-map-title" className="sample-map__title">
-            خريطة مهاراتك
-          </p>
-          <p className="sample-map__sub">بعد التشخيص</p>
-        </div>
+    <figure className="sample-profile" aria-labelledby="sample-profile-title">
+      <div className="sample-profile__head">
+        <p id="sample-profile-title">ملف مهاراتك · القدرات العامة</p>
         <span className="sample-tag">مثال توضيحي</span>
       </div>
-      <ul className="sample-map__rows">
+      <ul className="skill-rows">
         {sample.map((row) => (
-          <li key={row.skill}>
-            <div className="sample-map__label">
-              <span>{row.skill}</span>
-              <bdi>{Math.round(row.share * PERCENT)}٪</bdi>
-            </div>
-            <span className="profile-bar" aria-hidden="true">
-              <span style={{ "--share": row.share } as CSSProperties} />
-            </span>
-            <span className={`mastery-badge mastery-badge--${row.state.toLowerCase()}`}>
-              {MASTERY_STATE_LABELS[row.state]}
-            </span>
-          </li>
+          <SkillRow
+            key={row.skill}
+            name={row.skill}
+            state={stateFor(row.state)}
+            meta={`${row.answered} سؤالاً`}
+            share={row.correct / row.answered}
+            figure={`${row.correct}/${row.answered}`}
+          />
         ))}
       </ul>
-      <figcaption className="sample-map__foot">
-        <strong>أولويتك:</strong> استيعاب المقروء
+      <figcaption className="sample-profile__foot">
+        <span>
+          <strong>{`${measured} من ${sampleTiles.length}`}</strong> مهارة قيست، واحدة منها أثبتّ
+          إتقانها
+        </span>
+        <Tiles
+          states={sampleTiles}
+          label="مثال: مهارة متقنة، 4 جاهزة، 5 قيد التحسّن، 6 فجوات، 15 لم تُقس"
+        />
       </figcaption>
     </figure>
   );

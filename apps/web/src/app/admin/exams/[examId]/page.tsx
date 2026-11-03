@@ -153,7 +153,7 @@ function ExamDetails({
 
   return (
     <main id="main-content" className="page stack stack--loose">
-      <Link href="/admin/exams" className="text-link">
+      <Link href="/admin/exams" className="text-link text-link--back">
         كل الاختبارات <Icon name="arrow" />
       </Link>
       <PageHeading

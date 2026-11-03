@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 import { EmptyState } from "@/components/empty-state";
-import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice } from "@/components/status";
 import { isApiError, startMockExam } from "@/lib/api";
@@ -48,20 +47,12 @@ export default function MockExamPage() {
       />
       <section className="card stack" aria-labelledby="rules-heading">
         <h2 id="rules-heading">قبل أن تبدأ</h2>
-        <ul className="rules-list">
-          <li>
-            <Icon name="clock" /> يبدأ العدّاد عند أول سؤال ولا يتوقف، حتى لو أغلقت الصفحة.
-          </li>
-          <li>
-            <Icon name="eye" /> لا تظهر صحة إجابتك أثناء الحل؛ تراجع كل سؤال وشرحه بعد التسليم.
-          </li>
-          <li>
-            <Icon name="arrow" /> بعد تأكيد الإجابة تنتقل للسؤال التالي، ويمكنك تخطي ما لا تعرفه.
-          </li>
-          <li>
-            <Icon name="flag" /> عند انتهاء الوقت يُسلَّم الاختبار تلقائيًا بما أجبت عنه.
-          </li>
-        </ul>
+        <ol className="rules-list">
+          <li>يبدأ العدّاد عند أول سؤال ولا يتوقف، حتى لو أغلقت الصفحة.</li>
+          <li>لا تظهر صحة إجابتك أثناء الحل؛ تراجع كل سؤال وشرحه بعد التسليم.</li>
+          <li>بعد تأكيد الإجابة تنتقل للسؤال التالي، ويمكنك تخطي ما لا تعرفه.</li>
+          <li>عند انتهاء الوقت يُسلَّم الاختبار تلقائيًا بما أجبت عنه.</li>
+        </ol>
         <p className="small muted">
           اختر وقتًا هادئًا ومكانًا بلا مقاطعات، وجهّز ورقة وقلمًا كما في الاختبار الحقيقي.
         </p>

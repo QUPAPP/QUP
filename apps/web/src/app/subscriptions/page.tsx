@@ -1,10 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
-import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { PlanOffers } from "@/components/plan-offers";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -25,23 +23,8 @@ export default function SubscriptionsPage() {
     <main id="main-content" className="page stack stack--loose">
       <PageHeading
         title="الباقات"
-        description="اختر اختبارك، وتعرّف على الباقات المتاحة له."
-        action={
-          <Link href="/exams" className="text-link">
-            ابدأ بالتشخيص المجاني <Icon name="chevron" />
-          </Link>
-        }
+        description="لكل اختبار اشتراك مستقل يشمل التشخيص الكامل وملف المهارات والتدريب وإعادة القياس. السعر والمدة من الباقة الحالية."
       />
-      <aside className="info-panel">
-        <Icon name="credit" />
-        <div>
-          <h2>باقة لكل هدف</h2>
-          <p>
-            كل اختبار له اشتراك مستقل يشمل التشخيص الكامل، وملف المهارات، والتدريب، وإعادة القياس.
-            السعر والمدة المعروضان هما تفاصيل الباقة الحالية.
-          </p>
-        </div>
-      </aside>
       {identity.isError ? (
         <ErrorNotice error={identity.error} />
       ) : exams.isPending ? (
@@ -61,8 +44,8 @@ export default function SubscriptionsPage() {
           icon="credit"
         />
       ) : null}
-      {user && exams.data && exams.data.items.length > 0 ? (
-        <div className="field">
+      {user && exams.data && exams.data.items.length > 1 ? (
+        <div className="field field--narrow">
           <label htmlFor="plan-exam" className="field__label">
             الاختبار
           </label>

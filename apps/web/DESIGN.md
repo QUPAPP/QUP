@@ -274,6 +274,29 @@ Questions use the focused page width, readable position metadata, restrained pro
 
 Loading uses a readable live status and quiet static skeleton lines. Errors use a labeled danger notice with a useful recovery action when available. Empty states pair an icon with a clear heading, short explanation and relevant next step. Not-found/error pages retain the same typography, spacious alignment and button states. Test hover contrast on both light and dark surroundings.
 
+## Revision 2026-11-03: content-led, no decoration
+
+The student workspace and public pages were reworked so the product, not ornament, carries the
+page. The rules below supersede anything above that conflicts with them.
+
+- **No photography in the product.** The mountain journey images stay in `public/brand/` for
+  campaigns, but no page uses them: the hero is flat navy with the sample skill map as its visual,
+  sign-in pages use a navy panel with real first steps, and the sidebar has no promo card.
+- **One next step.** The dashboard opens with the student's name, then a flat navy "next step"
+  band (`.next-step`): the API's step as the heading, one sentence on why
+  (`nextStepReason`), one gold button (`nextStepAction`) and at most two quiet text links. The
+  first visit shows only the free diagnostic, linked straight to it when one exam exists.
+- **Counts are a ruled row.** `.stat-row` (dashboard and skill profile) and `.profile-summary`
+  (results, mistakes, admin metrics) are one bordered row divided by hairlines. No icon tiles, no
+  rings.
+- **Repeated records are divided rows.** `.list__item`, history rows, gap lists and the exam
+  catalogue (`.exam-list`) use hairline separators; colour sits on the status text only.
+- **Headings carry no icons**, eyebrows are plain muted labels (gold only on navy), and cards are
+  flat (no default shadow, no glow pseudo-elements, no gradient bars).
+- **Shell.** Desktop: the sidebar holds navigation and, at its foot, the signed-in account and
+  sign-out; there is no greeting bar. Phones: a slim top bar (logo, avatar) and a bottom tab bar.
+  The admin header's sign-out becomes icon-only on phones.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -293,3 +316,15 @@ Loading uses a readable live status and quiet static skeleton lines. Errors use 
 - **Don't** resolve the QUP/معين naming relationship through an incidental UI change.
 - **Don't** replace meaningful empty/error/loading states with fictional data.
 - **Don't** use hidden controls or visual status styling as a substitute for backend authority.
+
+
+## Revision 2026-11-03 (b): visual identity "gold is earned"
+
+The full identity lives in the design-system artifact "هوية QUP البصرية". In code:
+
+- **Gold is earned.** `Fold` (`components/fold.tsx`) is the logo's 45° gold slab and the only gold in the product UI. Solid for MASTERED, a dashed outline for provisional evidence. It always sits beside a written state (`StateWord`). `.btn--gold` is gone; primary buttons are navy, and `.btn--light` is the primary action on a navy band.
+- **Two angles, two weights.** Horizontal and 45° only; heavy blocks and 1px rules. Radii tightened to 6/10/14px (`--radius-small`, `--radius`, `--radius-large`); `--radius-fold` is 2px.
+- **Measure, then state.** `SkillRow` puts the rank, name and written state together, then ten 45° ticks and the figure. `StandingTiles` draws one tile per skill split by domain, with a legend that names every count.
+- **Layout.** Dashboard: next step (navy card) beside where you stand, then ranked gaps beside strengths, then the session history. Home: promise beside a labelled sample profile, one four-segment loop, principles, FAQ, navy close. Result: verdict, score and the action first, then what to train beside what holds.
+- **Motion.** Ticks fill one by one, tiles grow in, figures count up once, and the fold slides in along its 45° edge. Nothing waits for scroll; reduced motion zeroes every token.
+- Removed: contour rings, the drawn journey route, and the scroll-driven section entrance.

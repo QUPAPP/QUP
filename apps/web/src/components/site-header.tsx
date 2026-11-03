@@ -37,7 +37,7 @@ export function SiteHeader() {
         </nav>
         <div className="site-header__actions">
           {me ? (
-            <Link href={homePath(me)} className="btn btn--gold btn--small">
+            <Link href={homePath(me)} className="btn btn--small">
               {hasAdminAccess(me) ? "لوحة الإدارة" : "مساحتي"} <Icon name="arrow" />
             </Link>
           ) : (
@@ -49,7 +49,7 @@ export function SiteHeader() {
               >
                 دخول
               </Link>
-              <Link href="/register" className="btn btn--gold btn--small">
+              <Link href="/register" className="btn btn--small">
                 ابدأ مجانًا <Icon name="arrow" />
               </Link>
             </>

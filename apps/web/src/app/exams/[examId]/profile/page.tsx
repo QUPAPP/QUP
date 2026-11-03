@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { type CSSProperties, Suspense } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { Fold } from "@/components/fold";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
+import { StandingTiles } from "@/components/skill-tiles";
 import { ErrorNotice, Loading } from "@/components/status";
 import {
   getFullReassessmentStatus,
@@ -86,24 +88,9 @@ function Profile({ profile }: { profile: SkillProfile }) {
         <TrainingDone examId={profile.exam.id} />
       </Suspense>
 
-      <ul className="profile-summary" aria-label="ملخص">
-        <li>
-          <strong>{`${summary.assessed} / ${summary.skills}`}</strong>
-          <span>مهارات قيست</span>
-        </li>
-        <li>
-          <strong>{summary.gaps}</strong>
-          <span>فجوات</span>
-        </li>
-        <li>
-          <strong>{summary.readyForReassessment}</strong>
-          <span>جاهزة لإعادة القياس</span>
-        </li>
-        <li>
-          <strong>{summary.mastered}</strong>
-          <span>متقنة</span>
-        </li>
-      </ul>
+      <section className="panel" aria-label="أين أنت الآن">
+        <StandingTiles summary={summary} domains={profile.domains} />
+      </section>
 
       {summary.assessed === 0 ? (
         <EmptyState
@@ -117,15 +104,15 @@ function Profile({ profile }: { profile: SkillProfile }) {
       ) : null}
 
       {summary.assessed > 0 ? (
-        <div className="row">
+        <div className="row action-row">
           <Link href={`/exams/${profile.exam.id}/training`} className="btn">
             {profile.gaps.length > 0 ? "تدرّب على فجواتك" : "ابدأ التدريب"} <Icon name="arrow" />
           </Link>
           <Link href={`/exams/${profile.exam.id}/mistakes`} className="btn btn--ghost">
-            <Icon name="book" /> مراجعة أخطائي
+            مراجعة أخطائي
           </Link>
           <Link href={`/exams/${profile.exam.id}/mock-exam`} className="btn btn--ghost">
-            <Icon name="clock" /> اختبار محاكي
+            اختبار محاكٍ
           </Link>
         </div>
       ) : null}
@@ -135,14 +122,19 @@ function Profile({ profile }: { profile: SkillProfile }) {
       {profile.gaps.length > 0 ? (
         <section className="card stack" aria-labelledby="gaps-heading">
           <h2 id="gaps-heading">الفجوات حسب الأولوية</h2>
-          <ol className="list">
-            {profile.gaps.map((gap) => (
-              <li key={gap.skillId} className="list__item list__item--weakness">
+          <ol className="rank-list">
+            {profile.gaps.map((gap, index) => (
+              <li key={gap.skillId}>
+                <span className="rank-list__index">{index + 1}</span>
                 <span>
-                  <strong>{gap.skillName}</strong>
+                  {gap.skillName}
                   <span className="small muted">{` · ${gap.domainName}`}</span>
                 </span>
-                <span className="small">{MASTERY_STATE_LABELS[gap.state]}</span>
+                {gap.state === "GAP" ? null : (
+                  <span className={`mastery-badge mastery-badge--${gap.state.toLowerCase()}`}>
+                    {MASTERY_STATE_LABELS[gap.state]}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
@@ -184,8 +176,8 @@ function Profile({ profile }: { profile: SkillProfile }) {
         </section>
       ))}
 
-      <Link href="/exams" className="text-link">
-        الاختبارات <Icon name="arrow" />
+      <Link href="/exams" className="text-link text-link--back">
+        كل الاختبارات <Icon name="arrow" />
       </Link>
     </main>
   );
@@ -196,6 +188,7 @@ function NodeRow({ node }: { node: ProfileNode }) {
     <div className="profile-node">
       <div className="profile-node__head">
         <strong>{node.name}</strong>
+        {node.state === "MASTERED" ? <Fold /> : null}
         <span className={`mastery-badge mastery-badge--${node.state.toLowerCase()}`}>
           {MASTERY_STATE_LABELS[node.state]}
         </span>
@@ -230,7 +223,7 @@ function ReDiagnosticCard({ examId }: { examId: string }) {
     <section className="card stack" aria-labelledby="rediagnostic-heading">
       <h2 id="rediagnostic-heading">إعادة التشخيص الشامل</h2>
       {state === "WAITING" ? (
-        <ul className="stack small">
+        <ul className="plain-list small">
           {waitingLines(status.data, new Date()).map((line) => (
             <li key={line}>{line}</li>
           ))}

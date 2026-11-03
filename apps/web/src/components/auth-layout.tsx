@@ -1,7 +1,11 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
-import { Icon } from "./icon";
+
+const firstSteps = [
+  { title: "أنشئ حسابك", body: "بالبريد أو برقم الجوال، بلا رسوم." },
+  { title: "التشخيص المصغّر", body: "أسئلة قليلة من أقسام الاختبار، مجانًا." },
+  { title: "نتيجتك المبدئية", body: "أبرز نقاط قوتك وما يحتاج إلى تدريب، فور الإكمال." },
+];
 
 export function AuthLayout({
   children,
@@ -13,52 +17,29 @@ export function AuthLayout({
   return (
     <main id="main-content" className="auth-layout">
       <aside className="auth-story">
-        <Image
-          src="/brand/qup-mountain-journey-1200.webp"
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 900px) 0px, 50vw"
-          className="auth-story__photo"
-        />
-        <div className="auth-story__shade" aria-hidden="true" />
-        <div className="auth-story__content">
-          <Brand tone="light" tagline={false} />
-          <div>
-            <h2>
-              {register ? (
-                <>
-                  بداية أوضح
-                  <span>لخطواتك القادمة.</span>
-                </>
-              ) : (
-                <>
-                  رحلتك محفوظة.
-                  <span>أكمل من حيث توقفت.</span>
-                </>
-              )}
-            </h2>
+        <Brand tone="light" tagline={false} />
+        <div className="auth-story__body">
+          <h2>{register ? "ثلاث خطوات إلى أول قراءة لمستواك." : "أكمل من حيث توقفت."}</h2>
+          {register ? (
+            <ol className="auth-story__steps">
+              {firstSteps.map((step, index) => (
+                <li key={step.title}>
+                  <span aria-hidden="true">{index + 1}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
             <p>
-              {register
-                ? "اكتشف مستواك بتشخيص مصغّر مجاني، وافهم نقاط قوتك وما يحتاج إلى تركيز."
-                : "جلساتك ونتائجك وملف مهاراتك في مكان واحد. ارجع وأكمل خطوتك التالية."}
+              جلساتك ونتائجك وملف مهاراتك محفوظة في حسابك. الإجابات التي أكدتها لا تضيع، والجلسة
+              المفتوحة تنتظرك من السؤال التالي.
             </p>
-          </div>
-          <ul className="auth-story__points">
-            <li>
-              <Icon name="check" />
-              التشخيص المصغّر مجاني
-            </li>
-            <li>
-              <Icon name="check" />
-              نتيجة مبدئية فور الإكمال
-            </li>
-            <li>
-              <Icon name="check" />
-              جلساتك محفوظة في حسابك
-            </li>
-          </ul>
+          )}
         </div>
+        <p className="auth-story__foot">خير معين لمستقبلك</p>
       </aside>
       <div className="auth-panel">
         <div className="auth-panel__brand">

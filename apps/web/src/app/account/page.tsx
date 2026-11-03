@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -29,11 +28,11 @@ export default function AccountPage() {
             <dl className="profile-facts">
               <div>
                 <dt>البريد الإلكتروني</dt>
-                <dd dir={user.email ? "ltr" : undefined}>{user.email ?? "غير مضاف"}</dd>
+                <dd>{user.email ? <bdi dir="ltr">{user.email}</bdi> : "غير مضاف"}</dd>
               </div>
               <div>
                 <dt>رقم الجوال</dt>
-                <dd dir={user.phone ? "ltr" : undefined}>{user.phone ?? "غير مضاف"}</dd>
+                <dd>{user.phone ? <bdi dir="ltr">{user.phone}</bdi> : "غير مضاف"}</dd>
               </div>
             </dl>
             <p className="small muted">
@@ -41,7 +40,6 @@ export default function AccountPage() {
             </p>
           </section>
           <section className="card stack account-security">
-            <Icon name="lock" />
             <h2>جلسات تسجيل الدخول</h2>
             <p className="small muted">
               إذا استخدمت جهازًا مشتركًا، يمكنك تسجيل الخروج من الأجهزة الأخرى مع إبقاء جلستك الحالية.

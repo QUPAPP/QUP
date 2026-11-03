@@ -31,8 +31,9 @@ Extract and faithfully reproduce ONLY the standalone Q symbol at the far LEFT of
   (sidebar, hero, footer, sign-in panel). Derived from `qup-logo-v2.png` by recolouring every
   non-gold pixel to white and keeping the original alpha; not regenerated or redrawn.
 - `public/brand/qup-mountain-journey.webp` (2172 px) and `qup-mountain-journey-1200.webp`
-  (1200 px): the hero photograph used on the home page, sign-in pages, dashboard banner and
-  sidebar card. WebP re-encodes of `qup-mountain-journey-v1.png`, an AI-generated image made for
+  (1200 px): formerly the hero photograph on the home page, sign-in pages, dashboard banner and
+  sidebar card. Since 2026-11-03 no page uses it: the owner asked for an interface that does not
+  look AI-made, and this is an AI-generated image. The files stay for reuse. WebP re-encodes of `qup-mountain-journey-v1.png`, an AI-generated image made for
   the 2026-10-19 reference redesign (not a photograph of a real student; its prompt was not
   recorded). The owner chose to keep it on 2026-10-27. Replace it with a licensed or commissioned
   photograph when one is available.

@@ -73,7 +73,7 @@ function QuestionDetails({ me, questionId }: { me: Me; questionId: string }) {
 
   return (
     <main id="main-content" className="page stack stack--loose">
-      <Link href="/admin/questions" className="text-link">
+      <Link href="/admin/questions" className="text-link text-link--back">
         بنك الأسئلة <Icon name="arrow" />
       </Link>
       <PageHeading

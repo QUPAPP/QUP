@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
 import { checkout, getExamAccess, listPlans, type PlanOffer } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { formatPrice } from "@/lib/messages";
 import { useCurrentUser } from "@/lib/session";
 import { EmptyState } from "./empty-state";
@@ -51,7 +52,11 @@ export function PlanOffers({ examId }: { examId: string }) {
   if (access.data.hasAccess)
     return (
       <div className="notice notice--success" role="status">
-        <strong>اشتراكك في هذا الاختبار مفعّل.</strong>
+        <strong>
+          {access.data.activeUntil
+            ? `اشتراكك في هذا الاختبار مفعّل حتى ${formatDate(access.data.activeUntil)}.`
+            : "اشتراكك في هذا الاختبار مفعّل بلا تاريخ انتهاء."}
+        </strong>
         <p>التشخيص الكامل وملف المهارات والتدريب وإعادة القياس متاحة لك الآن من مساحتك.</p>
       </div>
     );
@@ -74,9 +79,6 @@ export function PlanOffers({ examId }: { examId: string }) {
       <ul className="plan-grid">
         {plans.data.items.map((plan) => (
           <li key={plan.id} className="plan-card">
-            <span className="item-symbol">
-              <Icon name="credit" />
-            </span>
             <h3>{plan.name}</h3>
             <p className="plan-price">{formatPrice(plan.price.amountMinor, plan.price.currency)}</p>
             <p className="plan-duration">

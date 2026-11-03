@@ -149,7 +149,7 @@ export function WeightedScoreCalculator() {
         <div className="calculator__cta stack">
           <strong>تريد رفع درجة القدرات؟</strong>
           <span className="small">ابدأ بتشخيص مجاني يكشف المهارات التي تخسر فيها أكثر درجاتك.</span>
-          <Link href="/register" className="btn btn--gold">
+          <Link href="/register" className="btn">
             ابدأ التشخيص المجاني <Icon name="arrow" />
           </Link>
         </div>

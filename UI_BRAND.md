@@ -31,7 +31,7 @@ Usage guidance:
 - Gold ~15%
 - Supporting colors ~10%
 
-Gold للتأكيد والإنجاز والزخرفة، وليس للنصوص الطويلة على الأبيض.
+الذهب يُكتسب: يظهر فقط كطيّة على مهارة ثبت إتقانها، وفي الشعار. ليس للأزرار ولا للزخرفة ولا للنصوص.
 
 ## Logo Assets
 
@@ -123,7 +123,7 @@ Domain:
   dark side of the image, never over the figure.
 - The student and admin workspaces share a navy sidebar on the right; the active item has a gold
   marker. Content sits on the pale surface in white panels with navy-tinted shadows.
-- Gold marks the primary call to action and achievement only; long text stays navy or muted.
+- Gold is earned: it appears only as the fold on a skill the engine marked MASTERED, and in the logo. Buttons are navy (white on navy bands); long text stays navy or muted.
 - Public pages show no figures about the platform (students, questions, satisfaction) until real
   numbers exist. Any product illustration is labelled «مثال توضيحي».
 

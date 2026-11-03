@@ -16,7 +16,7 @@ export default function NewQuestionPage() {
     <AdminGate permission={ADMIN_PERMISSIONS.questionsCreate}>
       {(me) => (
         <main id="main-content" className="page stack stack--loose">
-          <Link href="/admin/questions" className="text-link">
+          <Link href="/admin/questions" className="text-link text-link--back">
             بنك الأسئلة <Icon name="arrow" />
           </Link>
           <PageHeading

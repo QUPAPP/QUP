@@ -123,7 +123,7 @@ function VersionDetails({
 
   return (
     <main id="main-content" className="page stack stack--loose">
-      <Link href={`/admin/questions/${version.questionId}`} className="text-link">
+      <Link href={`/admin/questions/${version.questionId}`} className="text-link text-link--back">
         {code ? `السؤال ${code}` : "صفحة السؤال"} <Icon name="arrow" />
       </Link>
       <PageHeading

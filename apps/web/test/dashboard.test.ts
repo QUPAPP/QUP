@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getDashboard, type NextStep } from "../src/lib/api";
-import { improvementText, nextStepLink } from "../src/lib/next-step";
+import {
+  improvementText,
+  nextStepAction,
+  nextStepLink,
+  nextStepReason,
+} from "../src/lib/next-step";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -45,6 +50,25 @@ describe("student dashboard", () => {
     [{ type: "ALL_MASTERED" }, "/exams/e1/profile", "أتقنت كل المهارات — ملف مهاراتي"],
   ])("links %j", (step, href, label) => {
     expect(nextStepLink(step, "e1")).toEqual({ href, label });
+  });
+
+  it.each<NextStep>([
+    { type: "RESUME_SESSION", sessionId: "s1", sessionType: "MINI_DIAGNOSTIC" },
+    { type: "START_MINI_DIAGNOSTIC" },
+    { type: "SUBSCRIBE" },
+    { type: "START_FULL_DIAGNOSTIC" },
+    { type: "REASSESS", skillId: "k1", skillName: "التناظر" },
+    { type: "START_FULL_REASSESSMENT" },
+    { type: "TRAIN", skillName: null },
+    { type: "ALL_MASTERED" },
+  ])("explains and names the action for %j", (step) => {
+    expect(nextStepReason(step).length).toBeGreaterThan(10);
+    expect(nextStepAction(step)).not.toBe("");
+  });
+
+  it("names the paid step by what it opens", () => {
+    expect(nextStepAction({ type: "SUBSCRIBE" })).toBe("عرض الباقات");
+    expect(nextStepAction({ type: "TRAIN", skillName: "الاستيعاب" })).toBe("ابدأ التدريب");
   });
 
   it("states improvement in percentage points", () => {

@@ -72,7 +72,7 @@ function VersionAdmin({ userId, versionId }: { userId: string; versionId: string
   return (
     <main id="main-content" className="page stack stack--loose">
       {examId ? (
-        <Link href={`/admin/exams/${examId}`} className="text-link">
+        <Link href={`/admin/exams/${examId}`} className="text-link text-link--back">
           {exam ? exam.nameAr : "صفحة الاختبار"} <Icon name="arrow" />
         </Link>
       ) : null}

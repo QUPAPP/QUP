@@ -23,7 +23,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="workspace workspace--admin">
       <aside className="sidebar" aria-label="قائمة الإدارة">
-        <Brand href="/admin" tone="light" />
+        <Brand href="/admin" tone="light" tagline={false} />
         <div className="sidebar-section-label">لوحة الإدارة</div>
         <nav className="sidebar-nav" aria-label="تنقل الإدارة">
           {items.map((item) => (
@@ -67,7 +67,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </span>
             </span>
             <span className="header-sign-out">
-              <SignOutButton tone="light" />
+              <SignOutButton tone="light" compact />
             </span>
           </div>
         </header>

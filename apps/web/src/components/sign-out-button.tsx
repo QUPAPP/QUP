@@ -6,7 +6,17 @@ import { logout } from "@/lib/api";
 import { ME_QUERY_KEY } from "@/lib/session";
 import { Icon } from "./icon";
 
-export function SignOutButton({ tone = "dark" }: { tone?: "dark" | "light" }) {
+/**
+ * `compact` keeps the label for screen readers but hides it on narrow screens,
+ * so a header button never breaks onto two lines.
+ */
+export function SignOutButton({
+  tone = "dark",
+  compact = false,
+}: {
+  tone?: "dark" | "light";
+  compact?: boolean;
+}) {
   const client = useQueryClient();
   const router = useRouter();
   const signOut = useMutation({
@@ -17,15 +27,22 @@ export function SignOutButton({ tone = "dark" }: { tone?: "dark" | "light" }) {
       router.replace("/");
     },
   });
+  const classes = [
+    "sign-out",
+    tone === "light" ? "sign-out--light" : "",
+    compact ? "sign-out--compact" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <button
       type="button"
-      className={tone === "light" ? "sign-out sign-out--light" : "sign-out"}
+      className={classes}
       onClick={() => signOut.mutate()}
       disabled={signOut.isPending}
     >
       <Icon name="logout" />
-      {signOut.isPending ? "جارٍ الخروج…" : "تسجيل الخروج"}
+      <span className="sign-out__label">{signOut.isPending ? "جارٍ الخروج…" : "تسجيل الخروج"}</span>
     </button>
   );
 }
