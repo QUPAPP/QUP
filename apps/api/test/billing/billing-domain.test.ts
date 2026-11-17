@@ -297,7 +297,24 @@ describe("payment configuration", () => {
       STREAM_API_BASE_URL: "http://stream.example.com",
     };
     expect(problems(env).join()).toContain("must use https in production");
-    expect(problems({ ...env, STREAM_API_BASE_URL: "https://stream.example.com" })).toEqual([]);
+    const returnUrls = {
+      PAYMENT_SUCCESS_URL: "https://qupedu.com/payment/return",
+      PAYMENT_FAILURE_URL: "https://qupedu.com/payment/return",
+    };
+    expect(
+      problems({ ...env, ...returnUrls, STREAM_API_BASE_URL: "https://stream.example.com" }),
+    ).toEqual([]);
+  });
+
+  it("needs the return pages in production, so the payer comes back to QUP", () => {
+    const env = {
+      NODE_ENV: "production",
+      PROXY_SHARED_SECRET: "a-proxy-secret-that-is-long-enough-1234",
+      STREAM_API_KEY: "k",
+      STREAM_WEBHOOK_SECRET: "s",
+    };
+    expect(problems(env).join()).toContain("PAYMENT_SUCCESS_URL");
+    expect(problems(env).join()).toContain("PAYMENT_FAILURE_URL");
   });
 
   it("defaults to Stream's production API and a 60-minute checkout", () => {

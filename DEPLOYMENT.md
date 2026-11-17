@@ -40,6 +40,7 @@ connected to (https://app.cranl.com/dashboard/github). A push to that branch red
 | `SNDR_API_KEY`, `SNDR_FROM`, `OTP_SECRET` | email (§4 "Email"): SNDR key with the send scope, a sender on a verified domain, `openssl rand -hex 32`. Set together |
 | `SNDR_WEBHOOK_SECRET` | the secret SNDR shows for the registered webhook endpoint |
 | `APP_PUBLIC_URL` | `https://qupedu.com` — links inside emails |
+| `AI_PROVIDER`, `AI_API_KEY` | `deepseek` and the key from platform.deepseek.com → API keys. Without them AI is off |
 
 `CORS_ALLOWED_ORIGINS` stays empty: the browser never calls the API cross-origin.
 
@@ -63,8 +64,13 @@ defaults to `claude-opus-5-5`, `AI_EFFORT` to `medium`). Other vendors: `grok`, 
 `openrouter`, `gemini` or `openai-compatible` (the last one also needs `AI_BASE_URL`), plus
 `AI_API_KEY` and `AI_MODEL`. Student AI (mistake explanations and the study chat) turns on with the
 provider **for subscribers of the exam only**; `AI_STUDENT_EXPLANATIONS=false` and
-`AI_STUDY_CHAT=false` hide them (OPEN_QUESTIONS.md #18, #19e). Migration 0018 adds the knowledge
+`AI_STUDY_CHAT=false` hide them (OPEN_QUESTIONS.md #18, #19e). Migration 0020 adds the knowledge
 library and chat tables; it needs PostgreSQL's built-in `arabic` text search configuration.
+
+**Startup log.** qup-backend refuses to start when a variable is wrong or one is missing that another
+needs, and lists the variable names (never values). When it starts with a feature off (no Stream,
+no SNDR, no AI provider), it logs one `[config] … is off: set …` line per feature: those features'
+buttons answer 503 until the variables are set.
 
 ### Environment — qup-web
 
@@ -133,6 +139,11 @@ once DNS resolves.
    `SELECT kind, status FROM email_deliveries ORDER BY created_at DESC LIMIT 5;` shows SENT, then
    DELIVERED once the webhook arrives (RUNBOOK.md §6b).
 5. Deploy the worker (above) so receipts and notices go out.
+
+**Migration 0020 before merging the AI release (2026-11-18).** 0020 (`ai_knowledge_items`,
+`ai_knowledge_chunks`, `ai_chat_messages`) is additive. Apply it to `qup-db-prod` first (snapshot,
+`pnpm db:migrate`, `pnpm db:verify`), then merge: the code that reads it would otherwise fail on the
+library and chat pages. Check 0018 and 0019 are applied too (`pnpm db:verify` reports it).
 
 **Migrations 0018 and 0019 before the code that needs them.** 0019 (`one_time_codes`,
 `email_deliveries`) is additive like 0018; apply it the same way before merging code that reads it.

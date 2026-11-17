@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { createApp } from "./bootstrap/create-app.js";
-import { InvalidConfigError, loadConfig } from "./config/app-config.js";
+import { disabledFeatures, InvalidConfigError, loadConfig } from "./config/app-config.js";
 
 // Local development convenience only: deployed environments get their
 // variables from the platform and have no .env file. Existing variables win.
@@ -13,6 +13,7 @@ if (existsSync(localEnvFile)) process.loadEnvFile(localEnvFile);
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig(process.env);
+  for (const warning of disabledFeatures(config)) console.warn(`[config] ${warning}`);
   const app = await createApp(config);
   await app.listen(config.server.port, config.server.host);
 }

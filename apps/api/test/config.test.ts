@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { InvalidConfigError, loadConfig } from "../src/config/app-config.js";
+import { disabledFeatures, InvalidConfigError, loadConfig } from "../src/config/app-config.js";
 
 const VALID_URL = "postgresql://user:pass@db.internal:5432/qup_db";
 /** Production requires the web proxy's shared secret. */
@@ -72,6 +72,37 @@ describe("configuration", () => {
       PROXY_SECRET,
     );
     expect(loadConfig({ DATABASE_URL: VALID_URL }).proxy.sharedSecret).toBeNull();
+  });
+
+  it("needs the public address in production once email is on, for the links inside emails", () => {
+    const email = {
+      DATABASE_URL: VALID_URL,
+      ...PRODUCTION,
+      SNDR_API_KEY: "key",
+      SNDR_FROM: "QUP <no-reply@qupedu.com>",
+      OTP_SECRET: "an-otp-secret-that-is-long-enough-12345",
+    };
+    expect(loadExpectingFailure(email).problems).toEqual([
+      expect.stringContaining("APP_PUBLIC_URL"),
+    ]);
+    expect(loadConfig({ ...email, APP_PUBLIC_URL: "https://qupedu.com/" }).email.appUrl).toBe(
+      "https://qupedu.com",
+    );
+  });
+
+  it("names every feature a deployment leaves off, and the variables that turn it on", () => {
+    const bare = disabledFeatures(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }));
+    expect(bare).toHaveLength(3);
+    expect(bare.join()).toContain("STREAM_API_KEY");
+    expect(bare.join()).toContain("SNDR_API_KEY");
+    expect(bare.join()).toContain("AI_PROVIDER=deepseek");
+    const withAi = loadConfig({
+      DATABASE_URL: VALID_URL,
+      ...PRODUCTION,
+      AI_PROVIDER: "deepseek",
+      AI_API_KEY: "sk-test",
+    });
+    expect(disabledFeatures(withAi).join()).not.toContain("AI is off");
   });
 
   it("parses the CORS allowlist and drops blank entries", () => {

@@ -236,6 +236,29 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   if (env.NODE_ENV === "production" && !env.STREAM_API_BASE_URL.startsWith("https://")) {
     problems.push("STREAM_API_BASE_URL: must use https in production");
   }
+  // Without them Stream keeps the payer on its own page: they never come back to see their access.
+  if (env.NODE_ENV === "production" && env.STREAM_API_KEY !== undefined) {
+    if (env.PAYMENT_SUCCESS_URL === undefined) {
+      problems.push(
+        "PAYMENT_SUCCESS_URL: required in production when Stream is set (…/payment/return)",
+      );
+    }
+    if (env.PAYMENT_FAILURE_URL === undefined) {
+      problems.push(
+        "PAYMENT_FAILURE_URL: required in production when Stream is set (…/payment/return)",
+      );
+    }
+  }
+  // Links inside emails (reset your password, open QUP) point here.
+  if (
+    env.NODE_ENV === "production" &&
+    env.SNDR_API_KEY !== undefined &&
+    env.APP_PUBLIC_URL === undefined
+  ) {
+    problems.push(
+      "APP_PUBLIC_URL: required in production when SNDR_API_KEY is set (e.g. https://qupedu.com)",
+    );
+  }
   // Every student reaches the API through the web app: without the secret they would all share its address.
   if (env.NODE_ENV === "production" && env.PROXY_SHARED_SECRET === undefined) {
     problems.push("PROXY_SHARED_SECRET: required in production (shared with the web app)");
@@ -376,6 +399,31 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
       maxAttempts: env.AI_MAX_ATTEMPTS,
     },
   } as const;
+}
+
+/**
+ * Features a valid configuration still leaves off, in words an operator can
+ * act on. The API starts without them; their buttons answer 503 until the
+ * variables are set, so the startup log says so instead of a student finding out.
+ */
+export function disabledFeatures(config: AppConfig): string[] {
+  const off: string[] = [];
+  if (config.payments.stream === null) {
+    off.push(
+      "Online payment is off: set STREAM_API_KEY and STREAM_WEBHOOK_SECRET (checkout answers 503).",
+    );
+  }
+  if (config.email.sndr === null) {
+    off.push(
+      "Email is off: set SNDR_API_KEY, SNDR_FROM and OTP_SECRET (email verification and password reset codes answer 503).",
+    );
+  }
+  if (config.ai.provider === null) {
+    off.push(
+      "AI is off: set AI_PROVIDER=deepseek and AI_API_KEY (mistake explanations, the study chat and question drafts answer 503).",
+    );
+  }
+  return off;
 }
 
 export class InvalidConfigError extends Error {
