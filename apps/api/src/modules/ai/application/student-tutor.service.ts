@@ -70,6 +70,16 @@ export class StudentTutorService {
     const mistake = await this.mistakes.mistakeOf(studentId, examId, questionVersionId);
     if (!mistake) throw new AiMistakeNotFound();
 
+    return this.runner.exclusive(`${explainMistake.name}:${studentId}`, () =>
+      this.explain(studentId, mistake, questionVersionId),
+    );
+  }
+
+  private async explain(
+    studentId: string,
+    mistake: StudentMistake,
+    questionVersionId: string,
+  ): Promise<MistakeExplanationView> {
     const subject = { type: SUBJECT_STUDENT_MISTAKE, id: questionVersionId };
     // The same wrong answer gets the same explanation: no second model call.
     const cached = await this.runs.latestOutput({

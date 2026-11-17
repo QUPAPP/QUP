@@ -57,7 +57,8 @@ describe("mock exam result wording", () => {
 
   it("says how long the exam took", () => {
     const start = "2026-01-01T10:00:00Z";
-    expect(durationText(start, "2026-01-01T10:00:20Z")).toBe("دقيقة");
+    expect(durationText(start, "2026-01-01T10:00:20Z")).toBe("أقل من دقيقة");
+    expect(durationText(start, "2026-01-01T10:01:00Z")).toBe("دقيقة واحدة");
     expect(durationText(start, "2026-01-01T10:02:00Z")).toBe("دقيقتان");
     expect(durationText(start, "2026-01-01T10:07:00Z")).toBe("7 دقائق");
     expect(durationText(start, "2026-01-01T10:48:00Z")).toBe("48 دقيقة");

@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { type ChatReplyKind, studyChat } from "@qup/ai-gateway";
 
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
+import { TIMED_EXAMS, type TimedExams } from "../../assessments/assessments.contract.js";
 import { EXAM_ACCESS, type ExamAccess } from "../../billing/billing.contract.js";
 import { CATALOG_LOOKUP, type CatalogLookup } from "../../catalog/catalog.contract.js";
 import {
@@ -10,7 +11,12 @@ import {
   type SettingsReader,
   STUDY_CHAT_RULES_KEY,
 } from "../../settings/settings.contract.js";
-import { AiChatLimitReached, AiFreeLimitReached, AiStudyChatOff } from "../domain/ai.errors.js";
+import {
+  AiChatClosedDuringExam,
+  AiChatLimitReached,
+  AiFreeLimitReached,
+  AiStudyChatOff,
+} from "../domain/ai.errors.js";
 import {
   AI_RUN_STORE,
   type AiRunStore,
@@ -67,6 +73,7 @@ export class StudyChatService {
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(SETTINGS_READER) private readonly settings: SettingsReader,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(TIMED_EXAMS) private readonly timedExams: TimedExams,
   ) {}
 
   enabled(): boolean {
@@ -97,6 +104,14 @@ export class StudyChatService {
   async send(studentId: string, examId: string, message: string): Promise<ChatReplyView> {
     if (!this.config.ai.studyChat) throw new AiStudyChatOff();
     this.runner.assertAvailable();
+    return this.runner.exclusive(`${studyChat.name}:${studentId}`, () =>
+      this.reply(studentId, examId, message),
+    );
+  }
+
+  private async reply(studentId: string, examId: string, message: string): Promise<ChatReplyView> {
+    if (await this.timedExams.mockExamRunning(studentId, examId))
+      throw new AiChatClosedDuringExam();
     const allowance = await this.allowance(studentId, examId);
     if (allowance.freeRemaining === 0) {
       const trial = await this.settings.current(AI_FREE_TRIAL_KEY);

@@ -8,6 +8,8 @@ import {
   upstreamUrl,
 } from "@/lib/api-proxy";
 
+const MAX_PROXY_HOPS = 5;
+
 /**
  * Same-origin gateway to the QUP API. Runs on the server at request time, so
  * API_INTERNAL_URL is read from the environment of the running container.
@@ -41,6 +43,19 @@ function proxySecret(): string | null {
   return null;
 }
 
+/**
+ * How many proxies in front of this app append to X-Forwarded-For (1 behind
+ * CranL). 0 when the app is published directly: then the client writes that
+ * header, and no address from it is passed on.
+ */
+function trustedProxyHops(): number {
+  const hops = Number(process.env.WEB_TRUSTED_PROXY_HOPS ?? "1");
+  if (!Number.isInteger(hops) || hops < 0 || hops > MAX_PROXY_HOPS) {
+    throw new Error(`WEB_TRUSTED_PROXY_HOPS must be a whole number from 0 to ${MAX_PROXY_HOPS}.`);
+  }
+  return hops;
+}
+
 /** Same envelope as the API's own errors, so the client handles one shape. */
 function errorResponse(status: number, code: string, message: string): Response {
   return Response.json(
@@ -65,7 +80,7 @@ async function proxy(
   try {
     upstream = await fetch(target, {
       method: request.method,
-      headers: forwardedRequestHeaders(request.headers, proxySecret()),
+      headers: forwardedRequestHeaders(request.headers, proxySecret(), trustedProxyHops()),
       ...(hasBody ? { body: await request.arrayBuffer() } : {}),
       redirect: "manual",
       cache: "no-store",

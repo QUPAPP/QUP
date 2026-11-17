@@ -37,6 +37,9 @@ services:
     environment:
       API_INTERNAL_URL: http://api:3000
       PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?set PROXY_SHARED_SECRET in .env (openssl rand -hex 32)}
+      # Published directly, with no proxy in front: the client writes X-Forwarded-For here.
+      # Set to 1 when a reverse proxy that appends to X-Forwarded-For sits in front.
+      WEB_TRUSTED_PROXY_HOPS: "0"
     ports:
       - "3001:3000"
     depends_on:

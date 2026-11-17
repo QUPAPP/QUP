@@ -52,6 +52,8 @@ const BY_CODE: Record<string, string> = {
   AI_REQUIRES_SUBSCRIPTION: "مزايا الذكاء الاصطناعي متاحة للمشتركين في هذا الاختبار.",
   AI_FREE_LIMIT_REACHED: "انتهت رسائلك المجانية مع المساعد الدراسي. اشترك لتكمل.",
   AI_STUDY_CHAT_OFF: "المساعد الدراسي غير مفعّل حاليًا.",
+  AI_REQUEST_IN_PROGRESS: "طلبك السابق للمساعد ما زال قيد التجهيز. انتظر حتى يكتمل.",
+  AI_CHAT_CLOSED_DURING_EXAM: "المساعد الدراسي مغلق أثناء الاختبار المحاكي. أكمل اختبارك أولًا.",
   AI_CHAT_LIMIT_REACHED: "وصلت إلى الحد اليومي لرسائل المساعد الدراسي. يتجدد غدًا.",
   KNOWLEDGE_ITEM_NOT_FOUND: "لم نجد هذا النموذج، ربما أُرشف من قبل.",
   KNOWLEDGE_CONTENT_EMPTY: "أضف نصًا للنموذج قبل الحفظ.",

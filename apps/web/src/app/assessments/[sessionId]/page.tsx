@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AssessmentQuestions } from "@/components/assessment-questions";
+import { Icon } from "@/components/icon";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getSession, startSession } from "@/lib/api";
 import { COMPLETION_LABELS, completionHref, isRunnable, SESSION_TITLES } from "@/lib/diagnostics";
@@ -74,7 +75,9 @@ export default function AssessmentPage() {
         <p className="notice">هذه الجلسة غير متاحة للاستكمال.</p>
       ) : null}
       <p>
-        <Link href="/dashboard">العودة إلى جلساتي</Link>
+        <Link href="/dashboard" className="text-link text-link--back">
+          العودة إلى جلساتي <Icon name="arrow" />
+        </Link>
       </p>
     </main>
   );

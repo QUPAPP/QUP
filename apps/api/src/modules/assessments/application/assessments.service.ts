@@ -31,6 +31,7 @@ import type {
   StudentItems,
   StudentMistake,
   StudentMistakes,
+  TimedExams,
 } from "../assessments.contract.js";
 import {
   AssessmentItemNotFound,
@@ -135,7 +136,7 @@ export interface CurrentItem {
  * as not found (SECURITY.md: never trust a studentId from the client; no IDOR).
  */
 @Injectable()
-export class AssessmentsService implements StudentMistakes, StudentItems {
+export class AssessmentsService implements StudentMistakes, StudentItems, TimedExams {
   constructor(
     @Inject(ASSESSMENT_STORE) private readonly store: AssessmentStore,
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
@@ -587,6 +588,18 @@ export class AssessmentsService implements StudentMistakes, StudentItems {
     const item = (await this.store.items(sessionId)).find((candidate) => candidate.id === itemId);
     if (!item?.presentedAt) return null;
     return { examId: session.examId, questionVersionId: item.questionVersionId };
+  }
+
+  /** TIMED_EXAMS: a started mock exam of this exam whose clock is still running. */
+  async mockExamRunning(studentId: string, examId: string): Promise<boolean> {
+    const sessions = await this.store.sessionsFor(studentId, examId, "MOCK_EXAM");
+    const now = new Date();
+    for (const session of sessions) {
+      if (session.status !== "IN_PROGRESS") continue;
+      const deadline = this.deadlineOf(session, await this.store.progress(session.id));
+      if (!isPastDeadline(deadline, now)) return true;
+    }
+    return false;
   }
 
   /** STUDENT_MISTAKES: one question's latest wrong training answer, with its answer key. */

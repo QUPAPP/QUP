@@ -186,7 +186,7 @@
     box-shadow: var(--shadow);
     transform: translateY(-180%);
   }
-  :where(.skip-link:focus) {
+  :where(.skip-link:focus-visible) {
     transform: translateY(0);
   }
   :where(.visually-hidden) {
@@ -4710,5 +4710,45 @@
 @media (prefers-reduced-motion: reduce) {
   .chat__message--pending {
     animation: none;
+  }
+}
+
+/* File picker in Arabic (the native control speaks the browser's language). */
+@layer components {
+  :where(.file-picker) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-small);
+  }
+  :where(.file-picker__input) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  :where(.file-picker__button) {
+    cursor: pointer;
+  }
+  :where(.file-picker__input:focus-visible + .file-picker__button) {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+  :where(.file-picker__name) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+  }
+}
+
+/* Admin sidebar: twelve sections fit a laptop screen without scrolling to sign out. */
+@layer components {
+  :where(.workspace--admin .sidebar-link) {
+    padding-block: 0.6rem;
   }
 }

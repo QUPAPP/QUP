@@ -7,6 +7,7 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { TaxonomyPicker } from "@/components/admin/question-editor/taxonomy-picker";
 import { EmptyState } from "@/components/empty-state";
+import { FilePicker } from "@/components/file-picker";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -287,13 +288,7 @@ function AddEntryForm({
         <label className="field__label" htmlFor={`${id}-file`}>
           أو ارفع ملفًا نصيًا
         </label>
-        <input
-          id={`${id}-file`}
-          type="file"
-          className="field__input"
-          accept={KNOWLEDGE_FILE_ACCEPT}
-          onChange={readFile}
-        />
+        <FilePicker id={`${id}-file`} accept={KNOWLEDGE_FILE_ACCEPT} onChange={readFile} />
         <p className="field__hint">
           ملفات txt أو md أو csv. لملف PDF أو Word انسخ نصه والصقه أعلاه.
         </p>

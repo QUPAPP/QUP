@@ -156,3 +156,27 @@ export class AiNodeNotFound extends DomainError {
     super("The skill is not part of this taxonomy version.");
   }
 }
+
+/**
+ * The student already has a request to the model running. Limits are counted
+ * before the model is called, so parallel requests would all pass the same
+ * count; one at a time keeps the free trial and daily caps exact.
+ */
+export class AiRequestInProgress extends DomainError {
+  readonly code = "AI_REQUEST_IN_PROGRESS";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("Your previous request to the assistant is still running. Wait for it to finish.");
+  }
+}
+
+/** The student is sitting a timed mock exam; the chat opens again when it ends. */
+export class AiChatClosedDuringExam extends DomainError {
+  readonly code = "AI_CHAT_CLOSED_DURING_EXAM";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("The study assistant is closed while your mock exam is running. Finish it first.");
+  }
+}

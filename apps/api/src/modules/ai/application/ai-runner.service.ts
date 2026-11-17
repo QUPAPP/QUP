@@ -3,7 +3,12 @@ import { type AiProvider, type AiRunStatus, type AiTask, runAiTask } from "@qup/
 
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
 import { AI_PROVIDER } from "../ai.contract.js";
-import { AiOutputInvalid, AiTimedOut, AiUnavailable } from "../domain/ai.errors.js";
+import {
+  AiOutputInvalid,
+  AiRequestInProgress,
+  AiTimedOut,
+  AiUnavailable,
+} from "../domain/ai.errors.js";
 import { AI_RUN_STORE, type AiRunStore } from "../domain/ports.js";
 
 export interface AiSubject {
@@ -24,6 +29,9 @@ function failure(status: Exclude<AiRunStatus, "SUCCEEDED">): Error {
  */
 @Injectable()
 export class AiRunner {
+  /** Keys of the requests running now, e.g. one per student and task. */
+  private readonly inFlight = new Set<string>();
+
   constructor(
     @Inject(AI_PROVIDER) private readonly provider: AiProvider | null,
     @Inject(AI_RUN_STORE) private readonly runs: AiRunStore,
@@ -37,6 +45,22 @@ export class AiRunner {
   /** Throws AI_UNAVAILABLE before any work when AI is off. */
   assertAvailable(): void {
     if (!this.provider) throw new AiUnavailable();
+  }
+
+  /**
+   * Runs `work` unless work under the same key is already running in this
+   * process, which throws AI_REQUEST_IN_PROGRESS. Callers check their limits
+   * inside `work`, so a burst of parallel requests cannot all pass one count.
+   * Per process: with several API instances each would allow one at a time.
+   */
+  async exclusive<T>(key: string, work: () => Promise<T>): Promise<T> {
+    if (this.inFlight.has(key)) throw new AiRequestInProgress();
+    this.inFlight.add(key);
+    try {
+      return await work();
+    } finally {
+      this.inFlight.delete(key);
+    }
   }
 
   async run<I, O>(

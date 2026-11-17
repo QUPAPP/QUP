@@ -1,5 +1,22 @@
 # Security Requirements
 
+## Security review — 2026-11-18
+
+A review of every API route, guard and boundary. No critical or high findings: authentication fails closed (`@Public()` is the only way out), every `admin/*` controller carries a permission, and student routes take the student from the session (no IDOR found).
+
+Fixed in this pass:
+
+- **AI limits under parallel requests.** Free trial and daily caps were counted before the model ran, so a burst of parallel requests could all pass one count. `AiRunner.exclusive` now lets a student have one chat message and one mistake explanation running at a time (`AI_REQUEST_IN_PROGRESS`, 409). The guard is per API process; with several instances each allows one.
+- **Study chat during a mock exam.** The chat is closed while the student's timed mock exam is running (`AI_CHAT_CLOSED_DURING_EXAM`), so it cannot be asked to solve the live questions.
+- **Client address when the web app is published directly.** `WEB_TRUSTED_PROXY_HOPS` (default 1, behind CranL) says how many proxies append to `X-Forwarded-For`; `0` (docker-compose) passes no address, since the client writes that header there.
+
+Accepted for now (low; revisit before scale):
+
+- Register says when an email or phone already has an account (login and password reset do not).
+- Login is limited per IP (10/min), not per account.
+- Sessions last 30 days with no idle timeout, admins included.
+- A reassessment may reuse questions whose answers the student saw by skipping in training, when a skill's bank is small.
+
 ## Dependency audit — 2026-10-27
 
 `pnpm audit` (all dependencies, not only production) is clean. It reported 22 advisories; the

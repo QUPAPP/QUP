@@ -29,10 +29,13 @@ const TRIAL_KEY = "ai.freeTrial";
 /** Every request the model received, newest last. */
 const prompts: AiCompletionRequest[] = [];
 const fake = new FakeAiProvider();
+/** How long the model takes to answer; raised to make requests overlap. */
+let modelDelayMs = 0;
 const recording = {
   name: "fake",
-  complete: (request: AiCompletionRequest, signal: AbortSignal) => {
+  complete: async (request: AiCompletionRequest, signal: AbortSignal) => {
     prompts.push(request);
+    if (modelDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, modelDelayMs));
     return fake.complete(request, signal);
   },
 };
@@ -332,6 +335,60 @@ describe("the study chat", () => {
     });
     expect(refused.statusCode).toBe(422);
     expect(errorCode(refused)).toBe("AI_CHAT_LIMIT_REACHED");
+  });
+
+  it("answers one message at a time, so a burst cannot spend more than the free trial", async () => {
+    const student = await register("kc-burst");
+    const url = `/exams/${exam.examId}/ai-chat`;
+    modelDelayMs = 200;
+    try {
+      const burst = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          call(app, student.token, "POST", url, { message: `سؤال ${i}` }),
+        ),
+      );
+      const answered = burst.filter((response) => response.statusCode === 200);
+      expect(answered).toHaveLength(1);
+      for (const response of burst.filter((r) => r.statusCode !== 200)) {
+        expect(response.statusCode).toBe(409);
+        expect(errorCode(response)).toBe("AI_REQUEST_IN_PROGRESS");
+      }
+    } finally {
+      modelDelayMs = 0;
+    }
+    // Once the first reply is in, the next message goes through.
+    const next = await call(app, student.token, "POST", url, { message: "سؤال بعده" });
+    expect(next.statusCode, next.payload).toBe(200);
+  });
+
+  it("closes while the student sits a timed mock exam", async () => {
+    const student = await register("kc-mock");
+    await subscribe(student.id, exam.examId);
+    const created = await call(
+      app,
+      student.token,
+      "POST",
+      `/exams/${exam.examId}/assessments/mock-exam`,
+    );
+    expect(created.statusCode, created.payload).toBe(201);
+    const sessionId = created.json<{ id: string }>().id;
+    const url = `/exams/${exam.examId}/ai-chat`;
+    // Created but not started: the clock is not running yet.
+    expect((await call(app, student.token, "POST", url, { message: "قبل البدء" })).statusCode).toBe(
+      200,
+    );
+
+    await call(app, student.token, "POST", `/assessments/${sessionId}/start`);
+    const closed = await call(app, student.token, "POST", url, { message: "ما إجابة السؤال؟" });
+    expect(closed.statusCode).toBe(422);
+    expect(errorCode(closed)).toBe("AI_CHAT_CLOSED_DURING_EXAM");
+
+    // When the clock has run out, the chat opens again.
+    await e2eSql`
+      UPDATE assessment_sessions SET started_at = now() - interval '1 day' WHERE id = ${sessionId}`;
+    expect((await call(app, student.token, "POST", url, { message: "بعد الوقت" })).statusCode).toBe(
+      200,
+    );
   });
 
   it("stays off when the operator turns it off", async () => {

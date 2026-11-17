@@ -72,6 +72,7 @@ library and chat tables; it needs PostgreSQL's built-in `arabic` text search con
 | --- | --- |
 | `API_INTERNAL_URL` | `https://api.qupedu.com` |
 | `PROXY_SHARED_SECRET` | the same value as qup-backend's (C4) |
+| `WEB_TRUSTED_PROXY_HOPS` | `1` behind CranL (the default); `0` only when the web app is published with no proxy in front |
 
 **Before the first deploy that includes C4:**
 

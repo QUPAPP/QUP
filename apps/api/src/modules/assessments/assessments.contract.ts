@@ -43,3 +43,14 @@ export interface StudentItems {
 }
 
 export const STUDENT_ITEMS = Symbol("STUDENT_ITEMS");
+
+export interface TimedExams {
+  /**
+   * Whether the student is sitting a timed mock exam of this exam right now
+   * (started, and its clock has not run out). The study chat stays closed
+   * meanwhile, so it cannot be asked to solve the live questions.
+   */
+  mockExamRunning(studentId: string, examId: string): Promise<boolean>;
+}
+
+export const TIMED_EXAMS = Symbol("TIMED_EXAMS");

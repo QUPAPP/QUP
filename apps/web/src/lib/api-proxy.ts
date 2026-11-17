@@ -88,14 +88,18 @@ export function upstreamUrl(
 }
 
 /**
- * The address of the client this app is serving: the right-most
- * X-Forwarded-For entry, appended by the edge proxy in front of this app (or
- * filled from the socket by Next.js when there is none). Entries to its left
- * were written by the client and are never used.
+ * The address of the client this app is serving. Each trusted proxy in front
+ * of this app appends the address it saw to X-Forwarded-For, so the entry
+ * `trustedHops` from the right is the client (`1` behind CranL's edge proxy).
+ * Entries further left were written by the client and are never used. With
+ * no proxy in front (`0`), Next.js keeps whatever the client sent, so no
+ * address is trusted at all.
  */
-export function clientAddress(incoming: Headers): string | null {
+export function clientAddress(incoming: Headers, trustedHops = 1): string | null {
+  if (trustedHops < 1) return null;
   const entries = incoming.get("x-forwarded-for")?.split(",") ?? [];
-  const nearest = entries.at(-1)?.trim() ?? "";
+  if (entries.length < trustedHops) return null;
+  const nearest = entries.at(-trustedHops)?.trim() ?? "";
   return isIP(nearest) === 0 ? null : nearest;
 }
 
@@ -104,7 +108,11 @@ export function clientAddress(incoming: Headers): string | null {
  * API rate-limits per client, and that header is whatever the client wants.
  * With the shared secret, this app names the client it is serving instead.
  */
-export function forwardedRequestHeaders(incoming: Headers, proxySecret: string | null): Headers {
+export function forwardedRequestHeaders(
+  incoming: Headers,
+  proxySecret: string | null,
+  trustedHops = 1,
+): Headers {
   const headers = new Headers();
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = incoming.get(name);
@@ -112,7 +120,7 @@ export function forwardedRequestHeaders(incoming: Headers, proxySecret: string |
   }
   if (proxySecret !== null) {
     headers.set(PROXY_SECRET_HEADER, proxySecret);
-    const client = clientAddress(incoming);
+    const client = clientAddress(incoming, trustedHops);
     if (client !== null) headers.set(CLIENT_IP_HEADER, client);
   }
   return headers;

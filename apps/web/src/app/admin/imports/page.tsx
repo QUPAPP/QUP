@@ -7,6 +7,7 @@ import { type FormEvent, useState } from "react";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { useSingleFlight } from "@/components/admin/use-single-flight";
 import { EmptyState } from "@/components/empty-state";
+import { FilePicker } from "@/components/file-picker";
 import { Icon } from "@/components/icon";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -120,10 +121,8 @@ function UploadForm({ userId }: { userId: string }) {
           <label className="field__label" htmlFor="import-file">
             الملف
           </label>
-          <input
+          <FilePicker
             id="import-file"
-            className="field__input"
-            type="file"
             accept={ACCEPTED}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />

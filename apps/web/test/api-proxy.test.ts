@@ -90,6 +90,25 @@ describe("which headers cross the proxy", () => {
     expect(Object.fromEntries(headers)).toEqual({ "x-qup-proxy-secret": SECRET });
   });
 
+  it("trusts no forwarded address when no proxy sits in front", () => {
+    // Published directly, the whole header is written by the client.
+    const headers = forwardedRequestHeaders(
+      new Headers({ "x-forwarded-for": "203.0.113.7" }),
+      SECRET,
+      0,
+    );
+    expect(Object.fromEntries(headers)).toEqual({ "x-qup-proxy-secret": SECRET });
+  });
+
+  it("counts trusted proxies from the right", () => {
+    const headers = forwardedRequestHeaders(
+      new Headers({ "x-forwarded-for": "10.0.0.1, 203.0.113.7, 198.51.100.2" }),
+      SECRET,
+      2,
+    );
+    expect(headers.get("x-qup-client-ip")).toBe("203.0.113.7");
+  });
+
   it("accepts an IPv6 client", () => {
     const headers = forwardedRequestHeaders(
       new Headers({ "x-forwarded-for": "2001:db8::7" }),
