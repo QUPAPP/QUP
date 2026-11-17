@@ -47,3 +47,13 @@ export {
   type SuggestedDifficulty,
   suggestQuestionMetadata,
 } from "./tasks/question-metadata.js";
+export {
+  CHAT_REPLY_KINDS,
+  CHAT_REPLY_MAX_CHARS,
+  type ChatReference,
+  type ChatReplyKind,
+  type ChatTurn,
+  type StudyChatInput,
+  type StudyChatReply,
+  studyChat,
+} from "./tasks/study-chat.js";

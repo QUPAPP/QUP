@@ -22,6 +22,8 @@ describe("student navigation", () => {
   it("keeps the student's session and result under the sessions navigation", () => {
     expect(isActivePath("/assessments/session-id/result", "/dashboard")).toBe(true);
     expect(isActivePath("/assessments/session-id/result", "/exams")).toBe(false);
+    expect(isActivePath("/admin/ai/knowledge", "/admin/ai")).toBe(false);
+    expect(isActivePath("/admin/ai/knowledge", "/admin/ai/knowledge")).toBe(true);
   });
   it("uses complete path boundaries for the active item", () => {
     expect(isActivePath("/exams/exam-id/diagnostic", "/exams")).toBe(true);

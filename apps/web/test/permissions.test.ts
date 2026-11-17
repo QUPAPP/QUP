@@ -56,6 +56,7 @@ describe("permissions", () => {
       "/admin/audit",
       "/admin/adaptive-decisions",
       "/admin/ai",
+      "/admin/ai/knowledge",
     ]);
     // Taxonomy management stays admin-only (OPEN_QUESTIONS.md #16a).
     expect(adminNavItems(contentManager).map((item) => item.href)).toEqual([

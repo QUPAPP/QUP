@@ -114,4 +114,18 @@ export class DrizzleAiRunStore implements AiRunStore {
       );
     return row?.runs ?? 0;
   }
+
+  async countSucceededByRequester(task: string, requestedBy: string): Promise<number> {
+    const [row] = await this.db
+      .select({ runs: count() })
+      .from(aiRuns)
+      .where(
+        and(
+          eq(aiRuns.task, task),
+          eq(aiRuns.requestedBy, requestedBy),
+          eq(aiRuns.status, "SUCCEEDED"),
+        ),
+      );
+    return row?.runs ?? 0;
+  }
 }

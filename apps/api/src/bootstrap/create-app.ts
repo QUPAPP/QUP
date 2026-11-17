@@ -11,6 +11,7 @@ import { AppModule, type AppModuleOptions } from "../app.module.js";
 import { ErrorResponseFilter } from "../common/errors/error-response.filter.js";
 import { REQUEST_ID_HEADER, resolveRequestId } from "../common/http/request-id.js";
 import type { AppConfig } from "../config/app-config.js";
+import { KNOWLEDGE_BODY_LIMIT_BYTES } from "../modules/ai/domain/knowledge.js";
 import { IMPORT_UPLOAD_BODY_LIMIT_BYTES } from "../modules/content-import/domain/import-limits.js";
 import { registerClientAddress } from "./client-address.js";
 
@@ -26,6 +27,7 @@ const OPENAPI_JSON_PATH = "api/openapi.json";
 /** Routes whose JSON body carries a file, each with its own limit; every other keeps the global one. */
 const UPLOAD_BODY_LIMITS: Readonly<Record<string, number>> = {
   [`/${API_PREFIX}/admin/imports/upload`]: IMPORT_UPLOAD_BODY_LIMIT_BYTES,
+  [`/${API_PREFIX}/admin/ai/knowledge`]: KNOWLEDGE_BODY_LIMIT_BYTES,
 };
 
 /**

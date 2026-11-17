@@ -141,6 +141,13 @@
       "when": 1794921882805,
       "tag": "0019_one_time_codes_and_email_deliveries",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794948641229,
+      "tag": "0020_ai_knowledge_and_chat",
+      "breakpoints": true
     }
   ]
 }

@@ -58,6 +58,65 @@ export class AiNoSkills extends DomainError {
   }
 }
 
+/** Student AI is part of the exam's subscription (OPEN_QUESTIONS.md #18). */
+export class AiRequiresSubscription extends DomainError {
+  readonly code = "AI_REQUIRES_SUBSCRIPTION";
+  readonly kind = "FORBIDDEN";
+
+  constructor() {
+    super("AI features are available to subscribers of this exam.");
+  }
+}
+
+/** A student without a subscription used up the free study chat replies. */
+export class AiFreeLimitReached extends DomainError {
+  readonly code = "AI_FREE_LIMIT_REACHED";
+  readonly kind = "FORBIDDEN";
+
+  constructor(readonly limit: number) {
+    super(`The ${limit} free study assistant replies are used up. Subscribe to keep going.`);
+  }
+}
+
+/** The operator turned the study chat off (AI_STUDY_CHAT=false). */
+export class AiStudyChatOff extends DomainError {
+  readonly code = "AI_STUDY_CHAT_OFF";
+  readonly kind = "UNAVAILABLE";
+
+  constructor() {
+    super("The study assistant is not available.");
+  }
+}
+
+/** A student's daily allowance of study chat messages is used up. */
+export class AiChatLimitReached extends DomainError {
+  readonly code = "AI_CHAT_LIMIT_REACHED";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor(readonly limit: number) {
+    super(`You can send ${limit} messages to the study assistant a day.`);
+  }
+}
+
+export class KnowledgeItemNotFound extends DomainError {
+  readonly code = "KNOWLEDGE_ITEM_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("The library entry does not exist or is archived.");
+  }
+}
+
+/** An entry needs some text worth keeping once blank lines are dropped. */
+export class KnowledgeContentEmpty extends DomainError {
+  readonly code = "KNOWLEDGE_CONTENT_EMPTY";
+  readonly kind = "INVALID_INPUT";
+
+  constructor() {
+    super("The entry has no text.");
+  }
+}
+
 /** The product owner has not turned student explanations on (OPEN_QUESTIONS.md #18). */
 export class AiStudentExplanationsOff extends DomainError {
   readonly code = "AI_STUDENT_EXPLANATIONS_OFF";

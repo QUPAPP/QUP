@@ -223,6 +223,16 @@ export const aiRunStatusEnum = pgEnum("ai_run_status", [
   "FAILED",
 ]);
 
+/** What a library entry is for (AI_INTEGRATION.md "Knowledge Library"). */
+export const aiKnowledgeKindEnum = pgEnum("ai_knowledge_kind", [
+  /** A model question or a model exam: question generation copies its style. */
+  "EXAMPLE",
+  /** A summary or explanation the study chat may quote. */
+  "REFERENCE",
+]);
+
+export const aiChatRoleEnum = pgEnum("ai_chat_role", ["STUDENT", "ASSISTANT"]);
+
 /* -------------------------------------------------------------------------- */
 
 /** Why a student reported a question. */

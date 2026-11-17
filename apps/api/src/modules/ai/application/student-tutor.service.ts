@@ -7,10 +7,12 @@ import {
   type StudentMistake,
   type StudentMistakes,
 } from "../../assessments/assessments.contract.js";
+import { EXAM_ACCESS, type ExamAccess } from "../../billing/billing.contract.js";
 import type { RichContent } from "../../questions/questions.contract.js";
 import {
   AiDailyLimitReached,
   AiMistakeNotFound,
+  AiRequiresSubscription,
   AiStudentExplanationsOff,
 } from "../domain/ai.errors.js";
 import { AI_RUN_STORE, type AiRunStore } from "../domain/ports.js";
@@ -38,8 +40,8 @@ function plainText(content: RichContent | null): string | null {
 
 /**
  * A personalised explanation of a student's own wrong training answer
- * (AI_INTEGRATION.md "Student Explanation", "Error Classification"). Off until
- * the product owner turns it on (OPEN_QUESTIONS.md #18). Grounded on the
+ * (AI_INTEGRATION.md "Student Explanation", "Error Classification"). For
+ * subscribers of the exam only (OPEN_QUESTIONS.md #18). Grounded on the
  * stored answer key and the reviewed explanation; the classification is
  * shown to the student and never touches mastery.
  */
@@ -49,6 +51,7 @@ export class StudentTutorService {
     private readonly runner: AiRunner,
     @Inject(AI_RUN_STORE) private readonly runs: AiRunStore,
     @Inject(STUDENT_MISTAKES) private readonly mistakes: StudentMistakes,
+    @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -63,6 +66,7 @@ export class StudentTutorService {
   ): Promise<MistakeExplanationView> {
     if (!this.config.ai.studentExplanations) throw new AiStudentExplanationsOff();
     this.runner.assertAvailable();
+    if (!(await this.access.hasExamAccess(studentId, examId))) throw new AiRequiresSubscription();
     const mistake = await this.mistakes.mistakeOf(studentId, examId, questionVersionId);
     if (!mistake) throw new AiMistakeNotFound();
 

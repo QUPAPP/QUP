@@ -99,3 +99,40 @@ export function toGateValue(form: GateForm): GateValue {
     minTrainingAttempts: Number(form.minTrainingAttempts),
   };
 }
+
+/** The study chat's extra rules, as the API keeps them. */
+export interface ChatRulesValue {
+  rules: string[];
+}
+
+export const CHAT_RULES_MAX = 20;
+export const CHAT_RULE_MAX_CHARS = 300;
+
+/** One rule per line; blank lines dropped. */
+export function rulesFromText(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+}
+
+/** The first problem with a set of rules, in Arabic, or null when the API will accept it. */
+export function chatRulesProblem(rules: readonly string[]): string | null {
+  if (rules.length > CHAT_RULES_MAX) return `الحد الأقصى ${CHAT_RULES_MAX} قاعدة.`;
+  const index = rules.findIndex((rule) => rule.length > CHAT_RULE_MAX_CHARS);
+  return index === -1 ? null : `القاعدة ${index + 1} أطول من ${CHAT_RULE_MAX_CHARS} حرف.`;
+}
+
+/** The free study chat replies before subscribing, as the API keeps them. */
+export interface FreeTrialValue {
+  chatMessages: number;
+}
+
+export const FREE_CHAT_MESSAGES_MAX = 100;
+
+/** The problem with a typed allowance, in Arabic, or null when the API will accept it. */
+export function freeTrialProblem(text: string): string | null {
+  const value = text.trim();
+  if (!/^\d+$/.test(value)) return "اكتب عددًا صحيحًا من 0 فأكثر.";
+  return Number(value) > FREE_CHAT_MESSAGES_MAX ? `الحد الأقصى ${FREE_CHAT_MESSAGES_MAX}.` : null;
+}

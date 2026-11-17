@@ -262,6 +262,22 @@
     width: 8rem;
     height: auto;
   }
+  /* The gold fold of the Q, layered exactly over the rest of the logo. */
+  :where(.brand-mark) {
+    position: relative;
+    display: block;
+  }
+  :where(.brand-fold) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: fold-draw var(--motion-slow) var(--ease-out) 240ms backwards;
+    transition: translate var(--motion-base) var(--ease-out);
+  }
+  /* Forward along the fold's own diagonal: the Q's tail points onward. */
+  :where(.brand:hover .brand-fold, .brand:focus-visible .brand-fold) {
+    translate: 0.7% 1.2%;
+  }
   :where(.brand-tagline) {
     color: var(--color-text-muted);
     font-size: 0.625rem;
@@ -646,6 +662,12 @@
   :where(.auth-form-foot) {
     text-align: center;
     font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+  :where(.auth-consent) {
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1.8;
     color: var(--color-text-muted);
   }
   :where(.auth-security) {
@@ -1889,6 +1911,9 @@
     --motion-slow: 0ms;
     --stagger-step: 0ms;
   }
+  .brand-fold {
+    animation: none;
+  }
 }
 
 /* Admin panel (A1). Same tokens as the workspace; no new visual language. */
@@ -3039,6 +3064,13 @@
   from {
     opacity: 0;
     transform: translateY(10px);
+  }
+}
+/* The fold is drawn from the Q outwards: revealed left to right, settling into place. */
+@keyframes fold-draw {
+  from {
+    clip-path: inset(0 80% 0 20%);
+    translate: -0.7% -1.2%;
   }
 }
 @keyframes fade {
@@ -4512,5 +4544,171 @@
   }
   :where(.profile-facts dd .status-badge, .profile-facts dd .text-link) {
     margin-inline-start: 0.6rem;
+  }
+}
+
+/* Admin: accounts and roles. */
+@layer components {
+  :where(.users-search) {
+    flex-wrap: nowrap;
+  }
+  :where(.users-search .field__input) {
+    flex: 1;
+    min-width: 0;
+  }
+  :where(.badge--danger) {
+    background: var(--color-danger-surface);
+    color: var(--color-danger);
+  }
+  :where(.badge--accent) {
+    background: var(--color-gold-surface);
+    color: var(--color-gold-ink);
+  }
+  :where(.users-head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  :where(.users-contact) {
+    margin-inline-end: var(--space-2);
+  }
+  :where(.users-roles) {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+  :where(.users-roles legend) {
+    margin-bottom: var(--space-2);
+    font-weight: 600;
+  }
+  :where(.users-role) {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+  }
+  :where(.users-role:has(input:checked)) {
+    border-color: var(--color-blue);
+    background: var(--color-blue-surface);
+  }
+  :where(.users-role input) {
+    margin-top: 0.3rem;
+    accent-color: var(--color-blue);
+  }
+  :where(.users-role span) {
+    display: grid;
+  }
+}
+
+/* AI knowledge library (admin) and the student's study chat. */
+@layer components {
+  :where(.knowledge-list__head) {
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  :where(.knowledge-list__filter) {
+    inline-size: auto;
+    min-inline-size: 12rem;
+  }
+  :where(.knowledge-form__content) {
+    min-block-size: 12rem;
+    font-family: inherit;
+    line-height: 1.8;
+  }
+  :where(.knowledge-item) {
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+  :where(.knowledge-item:last-child) {
+    border-bottom: 0;
+  }
+  :where(.knowledge-item__head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  :where(.knowledge-item__content) {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--color-text-muted);
+    line-height: 1.8;
+  }
+
+  :where(.chat) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  :where(.chat__log) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.chat__message) {
+    max-inline-size: min(42rem, 88%);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    line-height: 1.8;
+  }
+  :where(.chat__message > p) {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  :where(.chat__message--student) {
+    align-self: flex-start;
+    background: var(--color-blue);
+    color: #fff;
+    border-end-start-radius: var(--radius-small);
+  }
+  :where(.chat__message--assistant) {
+    align-self: flex-end;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-end-end-radius: var(--radius-small);
+  }
+  :where(.chat__message--pending) {
+    color: var(--color-text-muted);
+    animation: chat-pulse 1.4s ease-in-out infinite;
+  }
+  :where(.chat__composer) {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-4);
+  }
+  :where(.chat__actions) {
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  :where(.tutor__locked) {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+  }
+}
+
+@keyframes chat-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat__message--pending {
+    animation: none;
   }
 }

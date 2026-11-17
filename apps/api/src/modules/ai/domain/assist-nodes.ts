@@ -33,6 +33,16 @@ export function assistNodes(outline: AssistOutline): AssistNode[] {
   );
 }
 
+/** The skill a node belongs to: itself for a skill, its parent for a subskill; null when absent. */
+export function owningSkillId(outline: AssistOutline, nodeId: string): string | null {
+  for (const domain of outline.domains) {
+    for (const skill of domain.skills) {
+      if (skill.id === nodeId || skill.subskills.some((sub) => sub.id === nodeId)) return skill.id;
+    }
+  }
+  return null;
+}
+
 /**
  * The editor's difficulty is a number in 0..1 (ADAPTIVE_ENGINE.md §4); the
  * model answers in three levels, placed at the quarter points

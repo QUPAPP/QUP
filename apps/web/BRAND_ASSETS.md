@@ -37,3 +37,11 @@ Extract and faithfully reproduce ONLY the standalone Q symbol at the far LEFT of
   the 2026-10-19 reference redesign (not a photograph of a real student; its prompt was not
   recorded). The owner chose to keep it on 2026-10-27. Replace it with a licensed or commissioned
   photograph when one is available.
+
+## Animated Q (2026-11-17)
+
+- `public/brand/qup-logo-v2-base.png` and `qup-logo-light-base.png` hold each logo without its gold fold.
+  `qup-logo-gold.png` and `qup-logo-light-gold.png` hold only the fold, on the same 1983 × 793 canvas, so
+  the two layers stack exactly. They are cut from the originals by colour; recut them if the logo changes.
+- `Brand` draws the fold in once on load (`fold-draw`) and moves it forward along its diagonal on hover.
+  Reduced motion shows the finished logo.

@@ -181,6 +181,10 @@ function Generator({ userId }: { userId: string }) {
           />
           <p className="field__hint">موضوع أو سياق تريده. لا يغيّر قواعد السؤال أو شكله.</p>
         </div>
+        <p className="small muted">
+          يقلّد التوليد أسلوب نماذج الأسئلة المرفوعة لهذا الاختبار في{" "}
+          <Link href="/admin/ai/knowledge">مكتبة النماذج</Link>، ويقدّم نماذج المهارة نفسها أولًا.
+        </p>
         {generate.isError ? (
           aiErrorMessage(generate.error) ? (
             <p className="notice notice--error" role="alert">

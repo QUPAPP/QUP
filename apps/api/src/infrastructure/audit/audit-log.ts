@@ -18,6 +18,9 @@ import type { DbExecutor } from "../database/executor.js";
 
 export const AuditAction = {
   RoleGranted: "user.role.grant",
+  RoleRevoked: "user.role.revoke",
+  UserSuspended: "user.suspend",
+  UserReactivated: "user.reactivate",
   EmailVerified: "user.email.verify",
   PasswordReset: "user.password.reset",
   TaxonomyPublished: "taxonomy.publish",
@@ -33,6 +36,8 @@ export const AuditAction = {
   SettingUpdated: "settings.update",
   BlueprintActivated: "blueprint.activate",
   BlueprintArchived: "blueprint.archive",
+  KnowledgeItemAdded: "ai.knowledge.add",
+  KnowledgeItemArchived: "ai.knowledge.archive",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

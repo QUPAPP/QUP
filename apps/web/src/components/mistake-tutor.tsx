@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 import { Icon } from "@/components/icon";
 import { ErrorNotice } from "@/components/status";
@@ -8,8 +9,8 @@ import { ERROR_TYPE_LABELS, explainMistake, getAiFeatures } from "@/lib/tutor-ap
 
 /**
  * "Explain my mistake": a personalised explanation of the student's own
- * wrong answer, with the likely kind of error. Renders nothing when the
- * deployment has not turned the feature on.
+ * wrong answer, with the likely kind of error. For subscribers of the exam;
+ * renders nothing when the deployment has not turned the feature on.
  */
 export function MistakeTutor({
   examId,
@@ -19,8 +20,8 @@ export function MistakeTutor({
   questionVersionId: string;
 }) {
   const features = useQuery({
-    queryKey: ["ai-features"],
-    queryFn: getAiFeatures,
+    queryKey: ["ai-features", examId],
+    queryFn: () => getAiFeatures(examId),
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
   });
@@ -29,6 +30,14 @@ export function MistakeTutor({
   });
 
   if (!features.data?.mistakeExplanations) return null;
+  if (features.data.subscribed === false) {
+    return (
+      <p className="small muted tutor__locked">
+        <Icon name="lock" /> الشرح المخصص بالذكاء الاصطناعي متاح للمشتركين.{" "}
+        <Link href="/subscriptions">عرض الباقات</Link>
+      </p>
+    );
+  }
 
   const result = explain.data?.explanation;
   if (result) {

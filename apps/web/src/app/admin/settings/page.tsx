@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { ChatRulesSection } from "@/components/admin/chat-rules-section";
+import { FreeTrialSection } from "@/components/admin/free-trial-section";
 import { useSingleFlight } from "@/components/admin/use-single-flight";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -14,6 +16,8 @@ import { daysText } from "@/lib/full-reassessment";
 import { answersText } from "@/lib/mastery-labels";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 import {
+  CHAT_RULES_KEY,
+  FREE_TRIAL_KEY,
   GATE_KEY,
   LEVELS_KEY,
   listSettings,
@@ -50,6 +54,8 @@ function Settings({ userId }: { userId: string }) {
   const settings = useQuery({ queryKey: ["admin-settings", userId], queryFn: listSettings });
   const levels = settings.data?.items.find((item) => item.key === LEVELS_KEY);
   const gate = settings.data?.items.find((item) => item.key === GATE_KEY);
+  const chatRules = settings.data?.items.find((item) => item.key === CHAT_RULES_KEY);
+  const freeTrial = settings.data?.items.find((item) => item.key === FREE_TRIAL_KEY);
 
   return (
     <main id="main-content" className="page stack stack--loose">
@@ -67,6 +73,8 @@ function Settings({ userId }: { userId: string }) {
       ) : null}
       {levels ? <LevelBoundaries userId={userId} setting={levels} /> : null}
       {gate ? <ReDiagnosticGate userId={userId} setting={gate} /> : null}
+      {chatRules ? <ChatRulesSection userId={userId} setting={chatRules} /> : null}
+      {freeTrial ? <FreeTrialSection userId={userId} setting={freeTrial} /> : null}
     </main>
   );
 }

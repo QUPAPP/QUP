@@ -759,6 +759,25 @@ GET   /admin/students/lookup?identifier=  exact email or E.164 phone → { stude
   `WEBHOOK_SIGNATURE_INVALID` (401).
 - Webhook responses: 200 acknowledges (including events that are not ours); 503 asks Stream to retry.
 
+## Admin Users
+
+All routes need `users.manage` (ADMIN). Every change is audited in the same transaction.
+
+- `GET /admin/users?search=&role=&status=&limit=&offset=`: accounts, newest first, with `roles`.
+  `search` matches email, phone or display name; `%` and `_` are literal.
+- `GET /admin/users/:id`: one account.
+- `GET /admin/roles`: every role with the permissions it grants.
+- `PUT /admin/users/:id/roles` `{ "roles": ["STUDENT", "CONTENT_MANAGER"] }`: replaces the roles.
+  Audits `user.role.grant` / `user.role.revoke` per change.
+- `POST /admin/users/:id/suspend`: status `SUSPENDED`, every session revoked. Audits `user.suspend`.
+- `POST /admin/users/:id/reactivate`: status `ACTIVE`. Audits `user.reactivate`.
+
+Errors:
+- `422 CANNOT_CHANGE_OWN_ACCESS`: an admin's own roles or status;
+- `422 LAST_ADMIN_REQUIRED`: the change would leave no active admin (two admins demoting each other at once);
+- `400 ROLES_REQUIRED` / `400 VALIDATION_FAILED`: an empty or unknown role list;
+- `404 USER_NOT_FOUND`.
+
 ## Admin Analytics/Audit
 
 Implemented in C2. Permission `audit.view` (ADMIN only). Windows are `days=7` or `days=30` (anything
@@ -843,7 +862,7 @@ POST /exams/:examId/mistakes/:questionVersionId/ai-explanation    student
   instructions? (≤500) }`.
   - Returns `201 { question: { questionId, versionId } }`: a new draft for the normal review flow.
   - Fails with `404 AI_NODE_NOT_FOUND` when the node is not an active skill or subskill.
-- `ai-features`: `{ mistakeExplanations: boolean }`.
+- `ai-features`: `{ mistakeExplanations: boolean }` (extended in V1.2 below).
 - `ai-explanation`: `{ explanation: { errorType, explanation, tip, cached } }`.
   - `errorType` is one of CONCEPTUAL_ERROR, CALCULATION_ERROR, MISREAD_QUESTION, PREREQUISITE_GAP
     or UNKNOWN.
@@ -851,6 +870,47 @@ POST /exams/:examId/mistakes/:questionVersionId/ai-explanation    student
     - `503 AI_STUDENT_EXPLANATIONS_OFF`;
     - `404 MISTAKE_NOT_FOUND` when the caller never answered that question wrongly;
     - `422 AI_DAILY_LIMIT_REACHED` after 30 runs in a day.
+    - `403 AI_REQUIRES_SUBSCRIPTION` without an entitlement in force for the exam (V1.2).
+
+Added in V1.2 (AI_INTEGRATION.md "V1.2", "Study Chat"; OPEN_QUESTIONS.md #19e):
+
+```text
+GET  /admin/ai/knowledge?examId&limit&offset          ai.manage
+POST /admin/ai/knowledge                              ai.manage
+POST /admin/ai/knowledge/:id/archive                  ai.manage
+GET  /exams/:examId/ai-chat                           student
+POST /exams/:examId/ai-chat                           student, subscribed or free trial
+DELETE /exams/:examId/ai-chat                         student
+```
+
+- `GET /admin/ai/knowledge` returns live entries, newest first:
+  `{ items: [{ id, examId, skillId | null, kind: EXAMPLE|REFERENCE, title, content, chunkCount,
+  createdBy, createdAt }], page }`.
+- `POST /admin/ai/knowledge`:
+  - Body: `{ taxonomyVersionId, nodeId | null, kind, title (≤200), content (≤20000) }`. A
+    subskill files the entry under its skill.
+  - Returns `201 { item }`. Body limit is 256 KiB.
+  - Errors: `404 AI_NODE_NOT_FOUND`, `400 KNOWLEDGE_CONTENT_EMPTY`.
+- `POST /admin/ai/knowledge/:id/archive` returns `204`, or `404 KNOWLEDGE_ITEM_NOT_FOUND`.
+- `question-drafts` now also returns `styleExamples`: the number of library passages it imitated.
+- `ai-features?examId=` returns `{ mistakeExplanations, studyChat, subscribed: boolean | null,
+  freeChatMessagesLeft: number | null }`.
+  - `subscribed` is null when no exam is given.
+  - `freeChatMessagesLeft` counts the free trial replies left; it is null for subscribers.
+- `GET ai-chat` returns `{ items: [{ id, role: STUDENT|ASSISTANT, content, createdAt }] }`, oldest
+  first, up to the latest 60.
+- `POST ai-chat`:
+  - Body: `{ message (1..1000) }`.
+  - Returns `{ messages: [student, assistant], kind: ANSWERED|OFF_TOPIC|REFUSED, sources:
+    [title], freeRemaining: number | null }`.
+  - A student without a subscription may send as many messages as the free trial allows (setting
+    `ai.freeTrial`, default 5 per account).
+  - Errors:
+    - `403 AI_FREE_LIMIT_REACHED` when the free trial is used up;
+    - `503 AI_STUDY_CHAT_OFF`;
+    - `422 AI_CHAT_LIMIT_REACHED` after 40 messages in a day;
+    - the usual `503 AI_*` provider errors. Nothing is saved when the model fails.
+- `DELETE ai-chat` returns `204` and deletes the conversation. The daily count stays.
 
 ## Internal Application Services
 

@@ -47,6 +47,7 @@ export function NextStepCard({ progress }: { progress: ExamProgress }) {
             <>
               <Link href={`/exams/${exam.id}/mistakes`}>مراجعة أخطائي</Link>
               <Link href={`/exams/${exam.id}/mock-exam`}>اختبار محاكٍ</Link>
+              <Link href={`/exams/${exam.id}/assistant`}>المساعد الدراسي</Link>
             </>
           ) : (
             <Link href="/subscriptions">الباقات</Link>

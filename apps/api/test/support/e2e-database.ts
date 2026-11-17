@@ -138,6 +138,12 @@ export async function purgeE2eCatalog(): Promise<void> {
       await tx`DELETE FROM assessment_sessions WHERE id IN ${tx(sessionIds)}`;
     }
     await tx`DELETE FROM student_mastery_states WHERE exam_id IN ${tx(examIds)}`;
+    // AI: the exam's knowledge library (chunks first) and study chats.
+    await tx`
+      DELETE FROM ai_knowledge_chunks WHERE item_id IN (
+        SELECT id FROM ai_knowledge_items WHERE exam_id IN ${tx(examIds)})`;
+    await tx`DELETE FROM ai_knowledge_items WHERE exam_id IN ${tx(examIds)}`;
+    await tx`DELETE FROM ai_chat_messages WHERE exam_id IN ${tx(examIds)}`;
     const blueprintIds = (
       await tx<{ id: string }[]>`
         SELECT id FROM assessment_blueprints WHERE exam_id IN ${tx(examIds)}`

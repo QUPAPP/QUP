@@ -22,5 +22,7 @@ export function isActivePath(path: string, href: string): boolean {
   if (href === "/admin/exams" && path.startsWith("/admin/blueprints/")) return true;
   // Likewise a question version belongs to the question bank.
   if (href === "/admin/questions" && path.startsWith("/admin/question-versions/")) return true;
+  // The knowledge library has its own item under the AI one.
+  if (href === "/admin/ai" && path.startsWith("/admin/ai/knowledge")) return false;
   return path === href || path.startsWith(`${href}/`);
 }

@@ -25,9 +25,10 @@ import {
   AiQuestionVersionNotFound,
   AiRequiresDraft,
 } from "../domain/ai.errors.js";
-import { assistNodes, DIFFICULTY_VALUES } from "../domain/assist-nodes.js";
+import { assistNodes, DIFFICULTY_VALUES, owningSkillId } from "../domain/assist-nodes.js";
 import { AI_RUN_STORE, type AiRunStore } from "../domain/ports.js";
 import { AiRunner } from "./ai-runner.service.js";
+import { KnowledgeService } from "./knowledge.service.js";
 
 /** Tasks this deployment offers authors, in the order the editor shows them. */
 const TASKS = [suggestQuestionMetadata.name, draftExplanation.name, draftQuestion.name];
@@ -76,6 +77,7 @@ export class AiAssistantService {
     @Inject(QUESTION_AUTHOR) private readonly questions: QuestionAuthor,
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(USER_DIRECTORY) private readonly users: UserDirectory,
+    private readonly knowledge: KnowledgeService,
   ) {}
 
   status() {
@@ -129,7 +131,7 @@ export class AiAssistantService {
   async draftQuestion(
     request: QuestionDraftRequest,
     actor: ActorContext,
-  ): Promise<{ questionId: string; versionId: string }> {
+  ): Promise<{ questionId: string; versionId: string; styleExamples: number }> {
     this.runner.assertAvailable();
     const outline = await this.catalog.activeOutline(request.taxonomyVersionId);
     if (!outline) throw new AiNodeNotFound();
@@ -137,6 +139,12 @@ export class AiAssistantService {
     if (!node) throw new AiNodeNotFound();
     const [examName] = (await this.catalog.examNames([outline.version.examId])).values();
     const stems = await this.questions.stemTextsInExam(outline.version.examId);
+    // RAG: the library's model questions closest to this skill and topic set the style.
+    const styleExamples = await this.knowledge.styleExamples(
+      outline.version.examId,
+      owningSkillId(outline, node.id),
+      [node.name, request.instructions ?? ""].join(" "),
+    );
 
     const output = await this.runner.run(
       draftQuestion,
@@ -146,6 +154,7 @@ export class AiAssistantService {
         difficulty: request.difficulty,
         instructions: request.instructions,
         avoidStems: stems.slice(0, AVOID_STEMS_MAX).map((stem) => stem.text),
+        styleExamples,
       },
       { type: SUBJECT_TAXONOMY_NODE, id: node.id },
       actor.userId,
@@ -180,7 +189,8 @@ export class AiAssistantService {
       ],
     };
     if (this.questions.contentProblems(content).length > 0) throw new AiOutputInvalid();
-    return this.questions.createDraft(content, actor);
+    const created = await this.questions.createDraft(content, actor);
+    return { ...created, styleExamples: styleExamples.length };
   }
 
   async recentRuns(page: { limit: number; offset: number }) {

@@ -8,6 +8,10 @@ import { api } from "./api";
 export const LEVELS_KEY = "assessment.preliminaryResult.levels";
 /** The full re-diagnostic's gate (PRD §8). */
 export const GATE_KEY = "assessment.fullReassessment.gate";
+/** The study chat's extra rules (AI_INTEGRATION.md "Study Chat"). */
+export const CHAT_RULES_KEY = "ai.studyChat.rules";
+/** Free study chat replies before subscribing. */
+export const FREE_TRIAL_KEY = "ai.freeTrial";
 
 export interface SettingView {
   key: string;

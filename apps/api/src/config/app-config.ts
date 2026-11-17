@@ -53,6 +53,18 @@ const AI_PROVIDERS = [
   ...(Object.keys(OPENAI_COMPATIBLE_URLS) as OpenAiCompatibleKind[]),
 ] as const;
 
+/**
+ * A preset's model when AI_MODEL is not set. DeepSeek is the provider the
+ * product owner chose (OPEN_QUESTIONS.md #17); `deepseek-chat` is its
+ * general model, which answers JSON fast and cheaply.
+ */
+const DEFAULT_PRESET_MODELS: Partial<Record<OpenAiCompatibleKind, string>> = {
+  deepseek: "deepseek-chat",
+};
+
+/** Presets that honour `response_format: json_object`, so a reply is always one JSON object. */
+const JSON_MODE_PRESETS: ReadonlySet<OpenAiCompatibleKind> = new Set(["deepseek", "openai"]);
+
 function isOpenAiCompatible(provider: string): provider is OpenAiCompatibleKind {
   return Object.hasOwn(OPENAI_COMPATIBLE_URLS, provider);
 }
@@ -181,15 +193,20 @@ const envSchema = z.object({
   AI_API_KEY: optionalSecret,
   /** Overrides a preset's address; required for `openai-compatible` (e.g. a local Ollama). */
   AI_BASE_URL: z.url().optional(),
-  /** The model every task runs on. Claude defaults to DEFAULT_CLAUDE_MODEL; others must name one. */
+  /**
+   * The model every task runs on. Claude defaults to DEFAULT_CLAUDE_MODEL and
+   * DeepSeek to `deepseek-chat` (DEFAULT_PRESET_MODELS); others must name one.
+   */
   AI_MODEL: z.string().trim().min(1).optional(),
   /** Claude's effort level: these tasks are short, structured answers. */
   AI_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),
   /**
    * Students may ask for a personalised explanation of a wrong answer
-   * (OPEN_QUESTIONS.md #18). Off until the product owner turns it on.
+   * (OPEN_QUESTIONS.md #18). On by default, for subscribers of the exam only.
    */
-  AI_STUDENT_EXPLANATIONS: booleanFlag.default(false),
+  AI_STUDENT_EXPLANATIONS: booleanFlag.default(true),
+  /** The study chat (AI_INTEGRATION.md "Study Chat"). On by default, for subscribers of the exam only. */
+  AI_STUDY_CHAT: booleanFlag.default(true),
   /**
    * Per attempt; the attempt is aborted when it runs out. Defaults to
    * FAKE_AI_TIMEOUT_MS for the test provider and REAL_AI_TIMEOUT_MS for a
@@ -236,7 +253,7 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
     if (provider !== "openai-compatible" && env.AI_API_KEY === undefined) {
       problems.push(`AI_API_KEY: required when AI_PROVIDER=${provider}`);
     }
-    if (env.AI_MODEL === undefined) {
+    if (env.AI_MODEL === undefined && DEFAULT_PRESET_MODELS[provider] === undefined) {
       problems.push(`AI_MODEL: required when AI_PROVIDER=${provider} (the provider's model id)`);
     }
     if (provider === "openai-compatible" && env.AI_BASE_URL === undefined) {
@@ -249,7 +266,14 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
 export type AiProviderConfig =
   | { kind: "fake" }
   | { kind: "anthropic"; apiKey: string; model: string; effort: "low" | "medium" | "high" }
-  | { kind: "openai-compatible"; name: string; baseUrl: string; apiKey: string; model: string };
+  | {
+      kind: "openai-compatible";
+      name: string;
+      baseUrl: string;
+      apiKey: string;
+      model: string;
+      jsonMode: boolean;
+    };
 
 /** null: AI is off and its routes answer AI_UNAVAILABLE. */
 function aiProvider(env: z.infer<typeof envSchema>): AiProviderConfig | null {
@@ -262,13 +286,15 @@ function aiProvider(env: z.infer<typeof envSchema>): AiProviderConfig | null {
     return { kind, apiKey, model: env.AI_MODEL ?? DEFAULT_CLAUDE_MODEL, effort: env.AI_EFFORT };
   }
   const baseUrl = env.AI_BASE_URL ?? OPENAI_COMPATIBLE_URLS[kind];
-  if (baseUrl === null || env.AI_MODEL === undefined) return null;
+  const model = env.AI_MODEL ?? DEFAULT_PRESET_MODELS[kind];
+  if (baseUrl === null || model === undefined) return null;
   return {
     kind: "openai-compatible",
     name: kind,
     baseUrl,
     apiKey: env.AI_API_KEY ?? "",
-    model: env.AI_MODEL,
+    model,
+    jsonMode: JSON_MODE_PRESETS.has(kind),
   };
 }
 
@@ -343,6 +369,7 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
     ai: {
       provider: aiProvider(env),
       studentExplanations: env.AI_STUDENT_EXPLANATIONS,
+      studyChat: env.AI_STUDY_CHAT,
       timeoutMs:
         env.AI_TIMEOUT_MS ??
         (aiProvider(env)?.kind === "fake" ? FAKE_AI_TIMEOUT_MS : REAL_AI_TIMEOUT_MS),

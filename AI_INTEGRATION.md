@@ -95,8 +95,65 @@ Assumptions: OPEN_QUESTIONS.md #19a.
     available for a question the student actually answered wrongly.
   - The answer is cached per mistake (the latest successful run since that answer), and each
     student is capped at 30 runs a day.
-  - **Off by default:** `AI_STUDENT_EXPLANATIONS=true` turns it on (#18).
-    `GET /me/ai-features` tells the web app whether to show the button.
+  - **For subscribers of the exam only** (#18, decided 2026-11-17), whenever a provider is
+    configured. `AI_STUDENT_EXPLANATIONS=false` hides it. `GET /me/ai-features?examId=` tells the
+    web app whether to show the button or the subscribe prompt.
+
+## V1.2 (2026-11-17): DeepSeek, knowledge library (RAG), study chat, subscribers only
+
+- **Provider:** DeepSeek is the production provider (OPEN_QUESTIONS.md #17). `AI_PROVIDER=deepseek`
+  needs only `AI_API_KEY`; `AI_MODEL` defaults to `deepseek-chat`. The DeepSeek and OpenAI presets
+  send `response_format: json_object`, so a reply is always one JSON object.
+- **Knowledge Library** (`ai_knowledge_items`, `ai_knowledge_chunks`, migration 0020): admins
+  (`ai.manage`) add entries per exam, optionally per skill, at `/admin/ai/knowledge`.
+  - `EXAMPLE`: model questions or a whole model exam. Generation imitates their style.
+  - `REFERENCE`: summaries and explanations. The study chat answers from them.
+  - Each entry is cut into passages of up to 1,200 characters, keeping blank-line paragraphs
+    together. Adding and archiving are audited (`ai.knowledge.add`, `ai.knowledge.archive`).
+    Archived entries are never retrieved.
+- **Retrieval:** each passage has a database-generated `to_tsvector('arabic', …)` with a GIN index.
+  A query is the message's plain words (letters and digits only) joined with `or` in
+  `websearch_to_tsquery('arabic', …)`, ranked by `ts_rank`, with a boost for the requested skill.
+  This is lexical RAG: DeepSeek has no embeddings API, and Arabic stemming covers the exam
+  vocabulary well. A vector index can replace it behind `KnowledgeStore.search` later.
+- **`draft_question` (`question-v2`):** up to 3 `EXAMPLE` passages go into `<style_examples>`. They
+  come from the skill first, then the passages closest to the skill name and the author's notes.
+  When nothing matches, the exam's newest passages are used. The model is told to match their
+  format and never copy them. The response reports `styleExamples`, the count used.
+- **`study_chat` (`chat-v1`):** see Study Chat below.
+- **Subscribers only, with a free taste:** mistake explanations check `ExamAccess.hasExamAccess`
+  first and answer `403 AI_REQUIRES_SUBSCRIPTION` without one.
+  - The study chat gives a student without a subscription a few free replies, once per account and
+    across exams. The default is 5, set by `ai.freeTrial` on the settings page; 0 turns the trial off.
+  - Only successful runs count toward the trial.
+  - After the trial, sending answers `403 AI_FREE_LIMIT_REACHED`. The conversation stays readable.
+
+## Study Chat
+
+`GET/POST/DELETE /exams/:examId/ai-chat`, web page `/exams/:examId/assistant`. For subscribers of
+the exam only.
+
+- **Fixed rules (code, `packages/ai-gateway/src/tasks/study-chat.ts`):**
+  - The assistant helps only with preparing for this exam.
+  - Anything else gets a short refusal with `kind: OFF_TOPIC`.
+  - Cheating, leaked questions, role changes and requests for its instructions are refused with
+    `kind: REFUSED`.
+  - It never claims official questions or promises a score.
+  - It teaches before giving final answers, and asks for no personal data.
+  - Student text and library passages are escaped data inside tags.
+  - A reply that echoes the hidden instructions is rejected (`RULES_LEAKED`).
+- **Platform rules (setting `ai.studyChat.rules`, admin settings page):**
+  - At most 20 rules of 300 characters each.
+  - The model is told these can only narrow the fixed rules.
+- **Grounding:** up to 4 library passages that match the message. When nothing matches, no
+  passages are sent. The response lists the titles of the entries used (`sources`).
+- **Conversation:**
+  - The conversation is stored per student and exam (`ai_chat_messages`). The model sees the
+    last 8 turns from the database, never history sent by a client.
+  - A message is at most 1,000 characters.
+  - Each student can send 40 messages a day, counted from `ai_runs`, so clearing the chat does not
+    reset the count.
+  - `AI_STUDY_CHAT=false` turns the chat off.
 
 ## Structured Output
 

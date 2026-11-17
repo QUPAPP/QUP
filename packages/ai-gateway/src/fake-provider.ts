@@ -7,6 +7,7 @@ import type {
   MetadataSuggestionInput,
   SuggestedDifficulty,
 } from "./tasks/question-metadata.js";
+import type { StudyChatInput } from "./tasks/study-chat.js";
 
 /** How the next call should misbehave, for tests of the gateway's fallbacks. */
 export type FakeFailure = "invalid-json" | "wrong-answer" | "timeout" | "error";
@@ -92,6 +93,16 @@ function draftQuestion(input: QuestionDraftInput, wrong: boolean) {
   };
 }
 
+function studyChat(input: StudyChatInput, wrong: boolean) {
+  const titles = input.references.map((reference) => `«${reference.title}»`).join("، ");
+  return {
+    kind: "ANSWERED",
+    reply: wrong
+      ? ""
+      : `${LABEL}: وصلني سؤالك عن ${input.examName}.${titles ? ` مراجع من المكتبة: ${titles}.` : ""}`,
+  };
+}
+
 /**
  * A deterministic stand-in for a model (AI_INTEGRATION.md "Evaluation"): the
  * same request always gets the same answer, computed from the task's input.
@@ -132,6 +143,8 @@ export class FakeAiProvider implements AiProvider {
         return explainMistake(request.input as MistakeExplanationInput, wrong);
       case "draft_question":
         return draftQuestion(request.input as QuestionDraftInput, wrong);
+      case "study_chat":
+        return studyChat(request.input as StudyChatInput, wrong);
       default:
         throw new Error(`The fake provider has no answer for ${request.task}`);
     }

@@ -114,6 +114,9 @@ function Profile({ profile }: { profile: SkillProfile }) {
           <Link href={`/exams/${profile.exam.id}/mock-exam`} className="btn btn--ghost">
             اختبار محاكٍ
           </Link>
+          <Link href={`/exams/${profile.exam.id}/assistant`} className="btn btn--ghost">
+            <Icon name="chat" /> المساعد الدراسي
+          </Link>
         </div>
       ) : null}
 

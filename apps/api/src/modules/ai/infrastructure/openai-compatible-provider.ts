@@ -7,6 +7,8 @@ export interface OpenAiCompatibleOptions {
   baseUrl: string;
   apiKey: string;
   model: string;
+  /** Ask for `response_format: json_object` (DeepSeek, OpenAI): the reply is always one JSON object. */
+  jsonMode?: boolean;
 }
 
 /** A non-2xx answer, a cut-off answer or an empty one: never output. */
@@ -34,12 +36,14 @@ export class OpenAiCompatibleProvider implements AiProvider {
   readonly #endpoint: string;
   readonly #apiKey: string;
   readonly #model: string;
+  readonly #jsonMode: boolean;
 
   constructor(options: OpenAiCompatibleOptions) {
     this.name = options.name;
     this.#endpoint = `${options.baseUrl.replace(/\/+$/, "")}/chat/completions`;
     this.#apiKey = options.apiKey;
     this.#model = options.model;
+    this.#jsonMode = options.jsonMode ?? false;
   }
 
   async complete(request: AiCompletionRequest, signal: AbortSignal): Promise<AiCompletion> {
@@ -56,6 +60,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
           { role: "system", content: request.system },
           { role: "user", content: request.prompt },
         ],
+        ...(this.#jsonMode ? { response_format: { type: "json_object" } } : {}),
       }),
       signal,
     });

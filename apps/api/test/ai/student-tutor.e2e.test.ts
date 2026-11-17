@@ -135,8 +135,13 @@ describe("personalised explanations of a student's mistakes", () => {
     const { student, wrongQuestion } = await studentWithMistake(exam, "tutor-own");
     const url = `/exams/${exam.examId}/mistakes/${wrongQuestion}/ai-explanation`;
 
-    expect((await call(app, student.token, "GET", "/me/ai-features")).json()).toEqual({
+    expect(
+      (await call(app, student.token, "GET", `/me/ai-features?examId=${exam.examId}`)).json(),
+    ).toEqual({
       mistakeExplanations: true,
+      studyChat: true,
+      subscribed: true,
+      freeChatMessagesLeft: null,
     });
     const first = await call(app, student.token, "POST", url);
     expect(first.statusCode, first.payload).toBe(200);
@@ -169,8 +174,25 @@ describe("personalised explanations of a student's mistakes", () => {
     const url = `/exams/${exam.examId}/mistakes/${wrongQuestion}/ai-explanation`;
     const foreign = await call(app, outsider.token, "POST", url);
     expect(foreign.statusCode).toBe(403);
-    expect(errorCode(foreign)).toBe("TRAINING_REQUIRES_ACCESS");
+    expect(errorCode(foreign)).toBe("AI_REQUIRES_SUBSCRIPTION");
     expect((await call(app, null, "POST", url)).statusCode).toBe(401);
+  });
+
+  it("is for subscribers: an ended subscription ends the explanations", async () => {
+    const exam = await liveExam(10);
+    const { student, wrongQuestion } = await studentWithMistake(exam, "tutor-lapsed");
+    await e2eSql`DELETE FROM entitlements WHERE student_id = ${student.id}`;
+    const lapsed = await call(
+      app,
+      student.token,
+      "POST",
+      `/exams/${exam.examId}/mistakes/${wrongQuestion}/ai-explanation`,
+    );
+    expect(lapsed.statusCode).toBe(403);
+    expect(errorCode(lapsed)).toBe("AI_REQUIRES_SUBSCRIPTION");
+    expect(
+      (await call(app, student.token, "GET", `/me/ai-features?examId=${exam.examId}`)).json(),
+    ).toMatchObject({ subscribed: false });
   });
 
   it("stays off until the product owner turns it on", async () => {
@@ -179,6 +201,9 @@ describe("personalised explanations of a student's mistakes", () => {
     const student = await register(other, "tutor-off");
     expect((await call(other, student.token, "GET", "/me/ai-features")).json()).toEqual({
       mistakeExplanations: false,
+      studyChat: true,
+      subscribed: null,
+      freeChatMessagesLeft: null,
     });
     const refused = await call(
       other,

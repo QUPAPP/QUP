@@ -91,6 +91,35 @@ describe("OpenAI-compatible provider", () => {
       model: "grok-test-model",
       messages: [{ role: "system" }, { role: "user" }],
     });
+    expect(request?.body).not.toHaveProperty("response_format");
+  });
+
+  it("asks DeepSeek for JSON mode", async () => {
+    next = {
+      status: 200,
+      body: completion('{"correctOptionKeys":["B"],"explanation":"عاجل تعني سريع."}'),
+    };
+    const deepseek = new OpenAiCompatibleProvider({
+      name: "deepseek",
+      baseUrl: `${baseUrl}/v1`,
+      apiKey: "sk-test",
+      model: "deepseek-chat",
+      jsonMode: true,
+    });
+    const result = await runAiTask(
+      deepseek,
+      draftExplanation,
+      { question },
+      {
+        timeoutMs: 5000,
+        maxAttempts: 1,
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(seen.at(-1)?.body).toMatchObject({
+      model: "deepseek-chat",
+      response_format: { type: "json_object" },
+    });
   });
 
   it("treats an HTTP error or a cut-off answer as a provider failure, never as output", async () => {

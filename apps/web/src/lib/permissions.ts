@@ -17,6 +17,7 @@ export const ADMIN_PERMISSIONS = {
   auditView: "audit.view",
   aiManage: "ai.manage",
   billingManage: "billing.manage",
+  usersManage: "users.manage",
 } as const;
 
 export function hasPermission(me: Me | null | undefined, code: string): boolean {
@@ -66,6 +67,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     permission: ADMIN_PERMISSIONS.billingManage,
   },
   {
+    href: "/admin/users",
+    title: "الحسابات والصلاحيات",
+    icon: "shield",
+    permission: ADMIN_PERMISSIONS.usersManage,
+  },
+  {
     href: "/admin/settings",
     title: "الإعدادات",
     icon: "settings",
@@ -93,6 +100,12 @@ const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/ai",
     title: "الذكاء الاصطناعي",
     icon: "spark",
+    permission: ADMIN_PERMISSIONS.aiManage,
+  },
+  {
+    href: "/admin/ai/knowledge",
+    title: "مكتبة النماذج",
+    icon: "library",
     permission: ADMIN_PERMISSIONS.aiManage,
   },
 ];
