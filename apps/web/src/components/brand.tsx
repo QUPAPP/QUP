@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const LOGO_WIDTH = 1983;
+const LOGO_WIDTH = 1557;
 const LOGO_HEIGHT = 793;
 const LOGO_SIZES = "(max-width: 520px) 112px, 136px";
 

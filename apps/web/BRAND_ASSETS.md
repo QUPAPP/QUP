@@ -4,7 +4,7 @@ The new primary logo pairs a substantial Q symbol and a custom QUP wordmark. A g
 
 ## Files and usage
 
-- `public/brand/qup-logo-v2.png`: primary horizontal logo, 1983 × 793, transparent RGBA PNG.
+- `public/brand/qup-logo-v2.png`: primary horizontal logo, 1557 × 793, transparent RGBA PNG.
 - `public/brand/qup-symbol-v2.png`: standalone symbol, 1254 × 1254, transparent RGBA PNG.
 - `src/app/icon.png`: the same standalone symbol for Next.js file-based favicon metadata.
 - `src/components/brand.tsx`: shared logo for public header/footer and student navigation. Next Image optimizes the large source for its 136px/112px display widths; the existing accessible link name and Arabic tagline remain text.
@@ -41,7 +41,13 @@ Extract and faithfully reproduce ONLY the standalone Q symbol at the far LEFT of
 ## Animated Q (2026-11-17)
 
 - `public/brand/qup-logo-v2-base.png` and `qup-logo-light-base.png` hold each logo without its gold fold.
-  `qup-logo-gold.png` and `qup-logo-light-gold.png` hold only the fold, on the same 1983 × 793 canvas, so
+  `qup-logo-gold.png` and `qup-logo-light-gold.png` hold only the fold, on the same 1557 × 793 canvas, so
   the two layers stack exactly. They are cut from the originals by colour; recut them if the logo changes.
 - `Brand` draws the fold in once on load (`fold-draw`) and moves it forward along its diagonal on hover.
   Reduced motion shows the finished logo.
+
+## One Q (2026-11-18)
+
+- The wordmark's own Q is removed from every horizontal logo file: the big symbol, with its gold fold,
+  is now the Q of "QUP", followed by "UP". "UP" moved left by 426 px, and the canvas is 1557 × 793.
+  The standalone symbol and favicon are unchanged.
