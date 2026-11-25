@@ -1,4 +1,4 @@
-import type { RichContent } from "./question-content.js";
+import { blockAsText, type RichContent } from "./question-content.js";
 
 /** Long enough to tell questions apart in a list, short enough for one row. */
 export const STEM_PREVIEW_LENGTH = 140;
@@ -14,7 +14,13 @@ const ELLIPSIS = "…";
  */
 export function stemPreview(stem: RichContent, maxLength = STEM_PREVIEW_LENGTH): string {
   const line = stem.blocks
-    .map((block) => (block.type === "text" ? block.text : MATH_PLACEHOLDER))
+    .map((block) =>
+      block.type === "text"
+        ? block.text
+        : block.type === "math"
+          ? MATH_PLACEHOLDER
+          : blockAsText(block),
+    )
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();

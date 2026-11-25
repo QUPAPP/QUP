@@ -14,6 +14,8 @@ const FORWARDED_REQUEST_HEADERS = [
   "content-type",
   "cookie",
   "idempotency-key",
+  // Audio players ask for byte ranges to start and seek (question assets).
+  "range",
   "user-agent",
   "x-request-id",
 ] as const;
@@ -23,7 +25,16 @@ export const PROXY_SECRET_HEADER = "x-qup-proxy-secret";
 export const CLIENT_IP_HEADER = "x-qup-client-ip";
 
 /** Response headers the browser needs back. Set-Cookie is handled separately (it repeats). */
-const FORWARDED_RESPONSE_HEADERS = ["content-type", "retry-after", "x-request-id"] as const;
+const FORWARDED_RESPONSE_HEADERS = [
+  "content-type",
+  "retry-after",
+  "x-request-id",
+  // Question images and audio: ranges, how to show them, and their sandbox.
+  "accept-ranges",
+  "content-range",
+  "content-disposition",
+  "content-security-policy",
+] as const;
 
 const SAFE_SEGMENT = /^[A-Za-z0-9._~-]+$/;
 
@@ -133,7 +144,12 @@ export function forwardedResponseHeaders(upstream: Headers): Headers {
     if (value !== null) headers.set(name, value);
   }
   for (const cookie of upstream.getSetCookie()) headers.append("set-cookie", cookie);
-  // Whatever the API said, nothing that passes through here is cacheable.
-  headers.set("cache-control", "no-store");
+  // Nothing passes through here into a shared cache. The one exception the API makes —
+  // an immutable question asset — stays private to this person's browser.
+  const upstreamCache = upstream.get("cache-control");
+  headers.set(
+    "cache-control",
+    upstreamCache?.trim().startsWith("private") ? upstreamCache : "no-store",
+  );
   return headers;
 }

@@ -1,13 +1,14 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import {
   deleteE2eUsers,
+  deleteE2eUsersById,
   E2E_DATABASE_URL,
   e2eEmail,
   e2eSql,
   grantRole,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** Admin account management: list, roles, suspend and reactivate (users.manage). */
@@ -24,7 +25,7 @@ async function register(label: string) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD, displayName: label },
+    payload: { email, password: PASSWORD, displayName: label, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     email,
@@ -164,5 +165,66 @@ describe("admin users", () => {
     expect(demoted.statusCode).toBe(200);
     // The demoted admin loses access on their next request.
     expect((await call(admin.token, "GET", "/admin/users")).statusCode).toBe(403);
+  });
+});
+
+describe("erasing an account at its owner's request", () => {
+  const erased: string[] = [];
+  // Its own accounts: earlier tests demote and suspend the shared ones.
+  let admin: { token: string; id: string; email: string };
+  let student: { token: string; id: string; email: string };
+  beforeAll(async () => {
+    admin = await register("users-erase-admin");
+    await grantRole(admin.id, "ADMIN");
+    student = await register("users-erase-student");
+  });
+  afterAll(async () => {
+    await deleteE2eUsersById(erased);
+  });
+
+  it("erases a student, keeps the row, and then refuses every further change", async () => {
+    const target = await register("users-erase");
+    erased.push(target.id);
+
+    const response = await call(admin.token, "POST", `/admin/users/${target.id}/erase`);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: target.id,
+      email: null,
+      phone: null,
+      displayName: null,
+      status: "DEACTIVATED",
+    });
+    expect(response.json<{ erasedAt: string | null }>().erasedAt).not.toBeNull();
+    expect((await call(target.token, "GET", "/auth/me")).statusCode).toBe(401);
+
+    const again = await call(admin.token, "POST", `/admin/users/${target.id}/erase`);
+    expect(again.statusCode).toBe(409);
+    expect(again.json<{ error: { code: string } }>().error.code).toBe("ACCOUNT_ERASED");
+    const reactivate = await call(admin.token, "POST", `/admin/users/${target.id}/reactivate`);
+    expect(reactivate.statusCode).toBe(409);
+    const roles = await call(admin.token, "PUT", `/admin/users/${target.id}/roles`, {
+      roles: ["ADMIN"],
+    });
+    expect(roles.statusCode).toBe(409);
+  });
+
+  it("refuses a staff account and the admin's own account", async () => {
+    const manager = await register("users-erase-staff");
+    await grantRole(manager.id, "CONTENT_MANAGER");
+    const staff = await call(admin.token, "POST", `/admin/users/${manager.id}/erase`);
+    expect(staff.statusCode).toBe(422);
+    expect(staff.json<{ error: { code: string } }>().error.code).toBe(
+      "STAFF_ACCOUNT_CANNOT_BE_ERASED",
+    );
+
+    const self = await call(admin.token, "POST", `/admin/users/${admin.id}/erase`);
+    expect(self.statusCode).toBe(422);
+    expect(self.json<{ error: { code: string } }>().error.code).toBe("CANNOT_CHANGE_OWN_ACCESS");
+  });
+
+  it("is closed to accounts without users.manage", async () => {
+    const response = await call(student.token, "POST", `/admin/users/${admin.id}/erase`);
+    expect(response.statusCode).toBe(403);
   });
 });

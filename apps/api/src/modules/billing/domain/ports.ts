@@ -84,6 +84,14 @@ export interface Entitlement extends EntitlementWindow {
   createdAt: Date;
 }
 
+export interface EndingNotice {
+  studentId: string;
+  examId: string;
+  endsAt: Date | null;
+  /** Still ACTIVE, still time-limited, and not followed by a later period at sending time. */
+  stillEnding: boolean;
+}
+
 export type NewPaymentResult =
   | { kind: "CREATED"; payment: Payment }
   /** The Idempotency-Key already belongs to this payment. */
@@ -136,6 +144,19 @@ export interface BillingStore {
   ): Promise<Entitlement>;
   /** ACTIVE → REVOKED, audited; null when it does not exist. Idempotent. */
   revokeEntitlement(entitlementId: string, actor: ActorContext): Promise<Entitlement | null>;
+  /**
+   * Queues the "ends soon" email for active, time-limited entitlements ending
+   * in (now, endingBefore] that were not reminded yet — the flag and its outbox
+   * event in one transaction, rows claimed with SKIP LOCKED so two workers never
+   * queue one twice. One that is already followed by a later period (renewed)
+   * is marked without an email. `claimed` counts both kinds; `queued`, the emails.
+   */
+  queueEndingReminders(input: {
+    endingBefore: Date;
+    limit: number;
+  }): Promise<{ claimed: number; queued: number }>;
+  /** What the "ends soon" email says, read when it is written; null when the entitlement is gone. */
+  endingNotice(entitlementId: string): Promise<EndingNotice | null>;
 
   /* Payments */
   findPayment(paymentId: string): Promise<Payment | null>;
@@ -156,6 +177,8 @@ export interface BillingStore {
   /** The admin ledger, newest first, keyset-paginated. */
   listPayments(filter: PaymentFilter): Promise<PaymentRecord[]>;
   revenueSummary(since: Date): Promise<RevenueSummary>;
+  /** Of the students, how many paid since the time (SUCCEEDED or REFUNDED: the purchase happened). */
+  payingStudentsAmong(studentIds: readonly string[], since: Date): Promise<number>;
   /** Records the provider checkout on a still-PENDING payment; false when it no longer is. */
   attachCheckout(
     paymentId: string,

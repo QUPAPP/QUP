@@ -148,6 +148,41 @@
       "when": 1794948641229,
       "tag": "0020_ai_knowledge_and_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795613602584,
+      "tag": "0021_account_consent_and_erasure",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795614680622,
+      "tag": "0022_subscription_ending_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795615177107,
+      "tag": "0023_one_settlement_per_provider_payment",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795616689295,
+      "tag": "0024_question_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795630401433,
+      "tag": "0025_question_passages",
+      "breakpoints": true
     }
   ]
 }

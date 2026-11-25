@@ -12,6 +12,7 @@ import { IdentifierTaken } from "../domain/auth.errors.js";
 import type {
   ActiveSession,
   AuthStore,
+  EraseRefusal,
   NewSession,
   NewUser,
   RoleCode,
@@ -20,10 +21,50 @@ import type {
   UserProfile,
 } from "../domain/ports.js";
 
-const { users, authSessions, roles, userRoles, rolePermissions, permissions } = tables;
+const {
+  users,
+  authSessions,
+  roles,
+  userRoles,
+  rolePermissions,
+  permissions,
+  oneTimeCodes,
+  emailDeliveries,
+  aiChatMessages,
+  aiRuns,
+  questionReports,
+} = tables;
 
 /** Bounded so a hostile User-Agent header cannot bloat the sessions table. */
 const MAX_USER_AGENT_LENGTH = 512;
+
+const STUDENT_ROLE: RoleCode = "STUDENT";
+
+/**
+ * Not an Argon2 hash, so no password can ever verify against it
+ * (PasswordHasher.verify answers false for an unreadable hash).
+ */
+const ERASED_PASSWORD_HASH = "erased";
+
+/** Kept in the delivery log in place of the address, so "how many mails bounced" still adds up. */
+const ERASED_ADDRESS = "erased";
+
+/**
+ * What an erased account keeps of its person: nothing that identifies or reaches them.
+ * The row itself stays — payments (a financial record the law asks to keep) and
+ * learning evidence point at it — under status DEACTIVATED, which never signs in.
+ */
+const ERASED_PROFILE = {
+  email: null,
+  phone: null,
+  displayName: null,
+  passwordHash: ERASED_PASSWORD_HASH,
+  status: "DEACTIVATED",
+  emailVerifiedAt: null,
+  phoneVerifiedAt: null,
+  lastLoginAt: null,
+  // termsVersion / termsAcceptedAt stay: they name no one, and show the data was processed with consent.
+} as const;
 
 const profileColumns = {
   id: users.id,
@@ -32,6 +73,7 @@ const profileColumns = {
   displayName: users.displayName,
   status: users.status,
   emailVerifiedAt: users.emailVerifiedAt,
+  termsVersion: users.termsVersion,
   createdAt: users.createdAt,
 };
 
@@ -118,7 +160,15 @@ export class DrizzleAuthStore implements AuthStore {
     try {
       return await this.db.transaction(async (tx) => {
         const roleId = await findRoleId(tx, role);
-        const [created] = await tx.insert(users).values(user).returning(profileColumns);
+        const { consent, ...identity } = user;
+        const [created] = await tx
+          .insert(users)
+          .values({
+            ...identity,
+            termsVersion: consent?.termsVersion ?? null,
+            termsAcceptedAt: consent?.acceptedAt ?? null,
+          })
+          .returning(profileColumns);
         if (!created) throw new Error("User insert returned no row.");
 
         await tx
@@ -203,6 +253,15 @@ export class DrizzleAuthStore implements AuthStore {
     return { roles: [...roleCodes], permissions: [...permissionCodes] };
   }
 
+  async recordConsent(userId: string, termsVersion: string, at: Date): Promise<UserProfile | null> {
+    const [row] = await this.db
+      .update(users)
+      .set({ termsVersion, termsAcceptedAt: at })
+      .where(eq(users.id, userId))
+      .returning(profileColumns);
+    return row ?? null;
+  }
+
   async recordLogin(userId: string, at: Date): Promise<void> {
     await this.db.update(users).set({ lastLoginAt: at }).where(eq(users.id, userId));
   }
@@ -267,5 +326,55 @@ export class DrizzleAuthStore implements AuthStore {
       )
       .returning({ id: authSessions.id });
     return revoked.length;
+  }
+
+  async eraseAccount(
+    userId: string,
+    actor: ActorContext,
+    at: Date,
+  ): Promise<EraseRefusal | "ERASED"> {
+    return this.db.transaction(async (tx) => {
+      // Locked, so two erase requests (or an erase racing a role grant) are applied one after the other.
+      const [user] = await tx
+        .select({ erasedAt: users.erasedAt })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for("update");
+      if (!user) return "NOT_FOUND";
+      if (user.erasedAt) return "ALREADY_ERASED";
+
+      const [staffRole] = await tx
+        .select({ code: roles.code })
+        .from(userRoles)
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(and(eq(userRoles.userId, userId), ne(roles.code, STUDENT_ROLE)))
+        .limit(1);
+      if (staffRole) return "HAS_STAFF_ROLE";
+
+      await tx
+        .update(users)
+        .set({ ...ERASED_PROFILE, erasedAt: at, updatedAt: at })
+        .where(eq(users.id, userId));
+      await tx.delete(authSessions).where(eq(authSessions.userId, userId));
+      await tx.delete(oneTimeCodes).where(eq(oneTimeCodes.userId, userId));
+      await tx.delete(aiChatMessages).where(eq(aiChatMessages.studentId, userId));
+      await tx.update(aiRuns).set({ output: null }).where(eq(aiRuns.requestedBy, userId));
+      await tx
+        .update(emailDeliveries)
+        .set({ toAddress: ERASED_ADDRESS, lastError: null })
+        .where(eq(emailDeliveries.userId, userId));
+      await tx
+        .update(questionReports)
+        .set({ note: null })
+        .where(eq(questionReports.reportedBy, userId));
+
+      await writeAudit(tx, actor, {
+        action: AuditAction.UserErased,
+        resourceType: "user",
+        resourceId: userId,
+        metadata: { bySelf: actor.userId === userId },
+      });
+      return "ERASED";
+    });
   }
 }

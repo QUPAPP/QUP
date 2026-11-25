@@ -11,6 +11,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 import {
   type AdminUser,
+  eraseUser,
   listUsers,
   ROLE_HINTS,
   ROLE_LABELS,
@@ -152,9 +153,14 @@ function UserEntry({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
       user.status === "SUSPENDED" ? reactivateUser(user.id) : suspendUser(user.id),
     onSuccess: refresh,
   });
+  const erase = useMutation({ mutationFn: () => eraseUser(user.id), onSuccess: refresh });
+  const erased = user.erasedAt !== null;
+  const isStaff = user.roles.some((role) => role !== "STUDENT");
   const changed =
     roles.length !== user.roles.length || roles.some((role) => !user.roles.includes(role));
-  const name = user.displayName ?? user.email ?? user.phone ?? "حساب بلا اسم";
+  const name = erased
+    ? "حساب محذوف"
+    : (user.displayName ?? user.email ?? user.phone ?? "حساب بلا اسم");
 
   function toggle(role: RoleCode, checked: boolean) {
     setRoles((current) =>
@@ -166,7 +172,7 @@ function UserEntry({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
     <li className="audit-entry stack">
       <div className="users-head">
         <strong>{name}</strong>
-        <span className={`badge ${user.status === "SUSPENDED" ? "badge--danger" : ""}`}>
+        <span className={`badge ${user.status === "SUSPENDED" || erased ? "badge--danger" : ""}`}>
           {STATUS_LABELS[user.status]}
         </span>
         {user.roles
@@ -189,7 +195,12 @@ function UserEntry({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
           ? ` · آخر دخول ${formatDateTime(user.lastLoginAt)}`
           : " · لم يسجّل الدخول بعد"}
       </span>
-      {isSelf ? (
+      {erased ? (
+        <p className="small muted">
+          حُذف هذا الحساب بطلب صاحبه في {formatDate(user.erasedAt ?? user.createdAt)}. لم يبقَ منه ما
+          يدل عليه، ولا يمكن تعديله أو إعادة تفعيله.
+        </p>
+      ) : isSelf ? (
         <p className="small muted">لا يمكنك تغيير صلاحيات حسابك. اطلب ذلك من مدير آخر.</p>
       ) : (
         <div className="stack">
@@ -211,6 +222,7 @@ function UserEntry({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
           </fieldset>
           {saveRoles.isError ? <ErrorNotice error={saveRoles.error} /> : null}
           {changeStatus.isError ? <ErrorNotice error={changeStatus.error} /> : null}
+          {erase.isError ? <ErrorNotice error={erase.error} /> : null}
           <div className="row">
             <button
               type="button"
@@ -239,6 +251,16 @@ function UserEntry({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
                 confirmLabel="أوقف الحساب"
                 onConfirm={() => changeStatus.mutate()}
                 pending={changeStatus.isPending}
+                danger
+              />
+            )}
+            {isStaff ? null : (
+              <ConfirmAction
+                label="حذف الحساب"
+                description={`بطلب من صاحبه فقط: يُحذف بريد ${name} وجواله واسمه وكلمة مروره ومحادثاته نهائيًا، ويبقى سجل مدفوعاته وإجاباته دون ما يدل عليه. لا يمكن التراجع.`}
+                confirmLabel="احذف الحساب نهائيًا"
+                onConfirm={() => erase.mutate()}
+                pending={erase.isPending}
                 danger
               />
             )}

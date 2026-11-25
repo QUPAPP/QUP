@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { deleteE2eUsers, E2E_DATABASE_URL, e2eEmail, e2eSql } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** With no Stream credentials the API still runs; only selling is off. */
@@ -20,7 +19,11 @@ beforeAll(async () => {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: e2eEmail("billing-off"), password: "billing off passphrase" },
+    payload: {
+      email: e2eEmail("billing-off"),
+      password: "billing off passphrase",
+      acceptedTermsVersion: TERMS_VERSION,
+    },
   });
   student = response.cookies.find((c) => c.name === COOKIE)?.value ?? "";
 });

@@ -10,7 +10,8 @@ import type {
   QuestionReader,
 } from "../questions.contract.js";
 
-const { questions, questionVersions, questionOptions, questionSkillMappings } = tables;
+const { questions, questionVersions, questionOptions, questionSkillMappings, questionPassages } =
+  tables;
 
 const CHOICE_TYPES: ReadonlySet<string> = new Set([
   "SINGLE_CHOICE",
@@ -122,6 +123,16 @@ export class DrizzleQuestionReader implements QuestionReader {
         .where(inArray(questionSkillMappings.questionVersionId, ids)),
     ]);
 
+    const passageIds = versions.flatMap((v) => (v.passageId ? [v.passageId] : []));
+    const passages =
+      passageIds.length === 0
+        ? []
+        : await this.db
+            .select({ id: questionPassages.id, content: questionPassages.content })
+            .from(questionPassages)
+            .where(inArray(questionPassages.id, [...new Set(passageIds)]));
+    const passageById = new Map(passages.map((p) => [p.id, p.content as RichContent]));
+
     for (const v of versions) {
       if (!CHOICE_TYPES.has(v.questionType)) {
         throw new Error(`Unsupported question type in storage: ${v.questionType}`);
@@ -130,6 +141,10 @@ export class DrizzleQuestionReader implements QuestionReader {
         questionVersionId: v.id,
         questionId: v.questionId,
         questionType: v.questionType as QuestionType,
+        passage:
+          v.passageId && passageById.has(v.passageId)
+            ? { id: v.passageId, content: passageById.get(v.passageId) as RichContent }
+            : null,
         stem: v.stemContent as RichContent,
         explanation: (v.explanationContent as RichContent | null) ?? null,
         difficulty: Number(v.difficultyAuthorScore),

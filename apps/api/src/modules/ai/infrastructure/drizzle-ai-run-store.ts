@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AI_RUN_STATUSES, type AiRunStatus } from "@qup/ai-gateway";
 import { type Database, tables } from "@qup/db";
-import { and, count, desc, eq, gte } from "drizzle-orm";
+import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { AiRunEntry, AiRunStore, StoredAiRun } from "../domain/ports.js";
@@ -58,6 +58,17 @@ export class DrizzleAiRunStore implements AiRunStore {
       .offset(page.offset);
     const items: StoredAiRun[] = rows.slice(0, page.limit);
     return { items, hasMore: rows.length > page.limit };
+  }
+
+  async usageSince(since: Date): Promise<{ runs: number; tokens: number }> {
+    const [row] = await this.db
+      .select({
+        runs: count(),
+        tokens: sql<number>`coalesce(sum(coalesce(${aiRuns.inputTokens}, 0) + coalesce(${aiRuns.outputTokens}, 0)), 0)::bigint`,
+      })
+      .from(aiRuns)
+      .where(gte(aiRuns.createdAt, since));
+    return { runs: row?.runs ?? 0, tokens: Number(row?.tokens ?? 0) };
   }
 
   async countsSince(since: Date): Promise<Record<AiRunStatus, number>> {

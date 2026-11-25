@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import { EraseAccountSection } from "@/components/erase-account";
 import { PageHeading } from "@/components/page-heading";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -48,7 +49,11 @@ export default function AccountPage() {
               </div>
             </dl>
             <p className="small muted">
-              البريد ورقم الجوال هما ما تسجّل الدخول به، ولتغييرهما تواصل مع الدعم.
+              البريد ورقم الجوال هما ما تسجّل الدخول به، ولتغييرهما{" "}
+              <Link href="/contact" className="text-link">
+                تواصل مع الدعم
+              </Link>
+              .
             </p>
           </section>
           <section className="card stack account-security">
@@ -73,6 +78,7 @@ export default function AccountPage() {
             <SignOutButton tone="light" />
           </section>
           <PasswordSection />
+          <EraseAccountSection />
         </div>
       ) : null}
     </main>

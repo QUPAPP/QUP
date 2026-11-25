@@ -47,6 +47,28 @@ export const questions = pgTable(
   (table) => [uniqueIndex("questions_stable_code_unique").on(table.stableCode)],
 );
 
+/**
+ * A reading passage several questions share (استيعاب المقروء, STEP reading):
+ * written once, shown above each question's stem. Immutable: a published
+ * question must keep showing what its students read, so a correction is a new
+ * passage the next versions point at.
+ */
+export const questionPassages = pgTable(
+  "question_passages",
+  {
+    id: primaryKeyId(),
+    /** For authors finding it again; students see the content only. */
+    title: text("title").notNull(),
+    content: jsonb("content").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("question_passages_created_idx").on(table.createdAt),
+    check("question_passages_title_length", sql`char_length(${table.title}) BETWEEN 1 AND 200`),
+  ],
+);
+
 export const questionVersions = pgTable(
   "question_versions",
   {
@@ -69,6 +91,8 @@ export const questionVersions = pgTable(
     taxonomyVersionId: uuid("taxonomy_version_id")
       .notNull()
       .references(() => taxonomyVersions.id, { onDelete: "restrict" }),
+    /** A reading passage several questions share (reading comprehension); shown above the stem. */
+    passageId: uuid("passage_id").references(() => questionPassages.id, { onDelete: "restrict" }),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "date" }),
     createdAt: createdAt(),
@@ -184,6 +208,35 @@ export const contentReviews = pgTable(
   (table) => [
     index("content_reviews_version_idx").on(table.questionVersionId),
     index("content_reviews_reviewer_idx").on(table.reviewerId),
+  ],
+);
+
+/**
+ * Images and audio that question content points at (`image` / `audio`
+ * blocks). The bytes are in private object storage under `storage_key`;
+ * this row is what the platform knows about them. Never deleted: a published
+ * version that shows an asset must keep showing it.
+ */
+export const questionAssets = pgTable(
+  "question_assets",
+  {
+    id: primaryKeyId(),
+    kind: text("kind").$type<"IMAGE" | "AUDIO">().notNull(),
+    /** Sniffed from the bytes, never taken from the upload's own claim. */
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    /** SHA-256 hex of the bytes: the same file uploaded twice is one asset. */
+    sha256: text("sha256").notNull(),
+    storageKey: text("storage_key").notNull(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("question_assets_sha256_unique").on(table.sha256),
+    uniqueIndex("question_assets_storage_key_unique").on(table.storageKey),
+    check("question_assets_kind_known", sql`${table.kind} IN ('IMAGE', 'AUDIO')`),
+    check("question_assets_size_positive", sql`${table.byteSize} > 0`),
+    check("question_assets_sha256_hex", sql`${table.sha256} ~ '^[0-9a-f]{64}$'`),
   ],
 );
 

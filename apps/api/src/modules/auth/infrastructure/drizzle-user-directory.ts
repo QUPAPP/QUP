@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Database, tables } from "@qup/db";
-import { eq, inArray } from "drizzle-orm";
+import { count, eq, gte, inArray } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { DirectoryEntry, UserDirectory } from "../auth.contract.js";
@@ -21,6 +21,14 @@ export class DrizzleUserDirectory implements UserDirectory {
       .from(tables.users)
       .where(inArray(tables.users.id, [...userIds]));
     return new Map(rows.map((row) => [row.id, { email: row.email, displayName: row.displayName }]));
+  }
+
+  async registeredSince(since: Date): Promise<number> {
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(tables.users)
+      .where(gte(tables.users.createdAt, since));
+    return row?.n ?? 0;
   }
 
   async findByIdentifier(identifier: string): Promise<DirectoryEntry | null> {

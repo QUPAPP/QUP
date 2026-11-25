@@ -28,6 +28,8 @@ export interface Session {
   plannedItemCount: number | null;
   /** The skill a SKILL_REASSESSMENT checks; null for every other type. */
   targetSkillId: string | null;
+  /** The blueprint the session was planned from; null when the code defaults applied. */
+  blueprintId: string | null;
 }
 
 export interface SessionProgress {
@@ -218,11 +220,14 @@ export interface NewBlueprint {
   code: string;
   name: string;
   questionCount: number;
+  timeLimitSeconds: number | null;
 }
 
 export interface BlueprintChanges {
   name?: string;
   questionCount?: number;
+  /** MOCK_EXAM only; null returns to the per-question default. */
+  timeLimitSeconds?: number | null;
   /** Per domain: a weight sets the override, null removes it. */
   domainWeights?: ReadonlyMap<string, number | null>;
 }

@@ -54,6 +54,11 @@ interface Diagnostic {
   alreadyCompleted: ((sessionId: string) => Error) | null;
   /** The blueprint's question count applies; false keeps the kind's own size. */
   sizeFromBlueprint: boolean;
+  /**
+   * Without an active blueprint of its own type, the domain weights of this
+   * one apply (never its size): the mock exam follows the full diagnostic.
+   */
+  weightsFallback: DiagnosticBlueprintType | null;
 }
 
 const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
@@ -65,6 +70,7 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     reusesSeenQuestions: false,
     alreadyCompleted: (sessionId) => new MiniDiagnosticAlreadyCompleted(sessionId),
     sizeFromBlueprint: true,
+    weightsFallback: null,
   },
   FULL_DIAGNOSTIC: {
     type: "FULL_DIAGNOSTIC",
@@ -74,6 +80,7 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     reusesSeenQuestions: false,
     alreadyCompleted: (sessionId) => new FullDiagnosticAlreadyCompleted(sessionId),
     sizeFromBlueprint: true,
+    weightsFallback: null,
   },
   // The whole exam measured again with the full diagnostic's recipe, so the
   // two compare; its gate is checked by FullReassessmentService.
@@ -85,17 +92,20 @@ const DIAGNOSTICS: Record<DiagnosticKind, Diagnostic> = {
     reusesSeenQuestions: true,
     alreadyCompleted: null,
     sizeFromBlueprint: true,
+    weightsFallback: null,
   },
-  // A timed practice exam with the full diagnostic's domain weights; it may be
-  // taken again, unseen questions first.
+  // A timed practice exam, taken again as often as wanted, unseen questions
+  // first. The exam's own MOCK_EXAM blueprint sets its size, weights and clock;
+  // without one, the full diagnostic's weights and the code defaults apply.
   MOCK_EXAM: {
     type: "MOCK_EXAM",
-    blueprintType: "FULL_DIAGNOSTIC",
+    blueprintType: "MOCK_EXAM",
     defaults: MOCK_EXAM_DEFAULTS,
     continuesEvidence: false,
     reusesSeenQuestions: true,
     alreadyCompleted: null,
-    sizeFromBlueprint: false,
+    sizeFromBlueprint: true,
+    weightsFallback: "FULL_DIAGNOSTIC",
   },
 };
 
@@ -134,14 +144,14 @@ export class DiagnosticSessions {
 
     const taxonomy = await this.catalog.publishedTaxonomy(examId);
     if (!taxonomy) throw new ExamNotAvailable();
-    const blueprint = await this.usableBlueprint(
-      examId,
-      kind.blueprintType,
-      taxonomy.taxonomyVersionId,
-    );
+    const own = await this.usableBlueprint(examId, kind.blueprintType, taxonomy.taxonomyVersionId);
+    const blueprint =
+      own ??
+      (kind.weightsFallback
+        ? await this.usableBlueprint(examId, kind.weightsFallback, taxonomy.taxonomyVersionId)
+        : null);
     const size =
-      (kind.sizeFromBlueprint ? blueprint?.questionCount : undefined) ??
-      kind.defaults.questionCount;
+      (kind.sizeFromBlueprint ? own?.questionCount : undefined) ?? kind.defaults.questionCount;
     const domainWeights = blueprint
       ? effectiveDomainWeights(taxonomy.domains, blueprint.domainWeights)
       : null;

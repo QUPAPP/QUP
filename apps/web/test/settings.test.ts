@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../src/lib/api";
 import { errorMessage } from "../src/lib/messages";
 import { LEVELS_KEY, listSettings, updateSetting } from "../src/lib/settings-api";
-import { formFromLevels, levelsFormSchema, toLevelsValue } from "../src/lib/settings-form";
+import {
+  budgetLimitProblem,
+  formFromLevels,
+  levelsFormSchema,
+  parseBudgetLimit,
+  toLevelsValue,
+} from "../src/lib/settings-form";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -67,4 +73,15 @@ describe("level boundaries form", () => {
       expect(message).not.toBe(errorMessage(new ApiError(500, "UNKNOWN", "x", null)));
     },
   );
+});
+
+describe("AI daily budget field", () => {
+  it("treats a blank field as no limit and refuses zero or text", () => {
+    expect(budgetLimitProblem("")).toBeNull();
+    expect(parseBudgetLimit("  ")).toBeNull();
+    expect(budgetLimitProblem("2000")).toBeNull();
+    expect(parseBudgetLimit("2000")).toBe(2000);
+    expect(budgetLimitProblem("0")).not.toBeNull();
+    expect(budgetLimitProblem("ألف")).not.toBeNull();
+  });
 });

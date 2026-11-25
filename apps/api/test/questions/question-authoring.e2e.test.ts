@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import {
   deleteE2eUsers,
   E2E_DATABASE_URL,
@@ -11,6 +10,7 @@ import {
   grantRole,
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -35,7 +35,7 @@ async function register(label: string): Promise<{ email: string; id: string }> {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD },
+    payload: { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return { email, id: response.json<{ user: { id: string } }>().user.id };
 }

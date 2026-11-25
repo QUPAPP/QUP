@@ -130,6 +130,25 @@ describe("which headers cross the proxy", () => {
     expect(headers.get("x-request-id")).toBe("r-1");
     expect(headers.get("x-internal-debug")).toBeNull();
   });
+
+  it("lets a private, immutable asset stay in this browser, with its range headers", () => {
+    const upstream = new Headers({
+      "content-type": "audio/mpeg",
+      "cache-control": "private, max-age=31536000, immutable",
+      "content-range": "bytes 0-99/1000",
+      "accept-ranges": "bytes",
+      "content-security-policy": "default-src 'none'; sandbox",
+    });
+    const headers = forwardedResponseHeaders(upstream);
+    expect(headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    expect(headers.get("content-range")).toBe("bytes 0-99/1000");
+    expect(headers.get("content-security-policy")).toContain("sandbox");
+  });
+
+  it("forwards a range request", () => {
+    const headers = forwardedRequestHeaders(new Headers({ range: "bytes=0-" }), null);
+    expect(headers.get("range")).toBe("bytes=0-");
+  });
 });
 
 describe("cross-site writes (C4, CSRF defence in depth)", () => {

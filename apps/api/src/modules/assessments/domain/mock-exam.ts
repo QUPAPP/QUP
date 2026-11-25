@@ -2,12 +2,19 @@ import { MOCK_EXAM_DEFAULTS } from "./assessment-config.js";
 
 const MS_PER_SECOND = 1000;
 
-/** When a mock exam's clock runs out: null until the student starts it. */
-export function mockDeadline(startedAt: Date | null, itemCount: number): Date | null {
+/**
+ * When a mock exam's clock runs out: null until the student starts it. The
+ * exam's MOCK_EXAM blueprint sets the whole duration; without one, each
+ * question adds the default seconds.
+ */
+export function mockDeadline(
+  startedAt: Date | null,
+  itemCount: number,
+  timeLimitSeconds: number | null = null,
+): Date | null {
   if (!startedAt) return null;
-  return new Date(
-    startedAt.getTime() + itemCount * MOCK_EXAM_DEFAULTS.secondsPerQuestion * MS_PER_SECOND,
-  );
+  const seconds = timeLimitSeconds ?? itemCount * MOCK_EXAM_DEFAULTS.secondsPerQuestion;
+  return new Date(startedAt.getTime() + seconds * MS_PER_SECOND);
 }
 
 export function isPastDeadline(deadline: Date | null, now: Date): boolean {

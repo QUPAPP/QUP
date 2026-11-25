@@ -13,6 +13,8 @@ import type { QuestionType, RichContent } from "./question-content.js";
 export interface StudentQuestionView {
   questionVersionId: string;
   questionType: QuestionType;
+  /** A shared reading passage, above the stem; the same id on each question about it. */
+  passage: { id: string; content: RichContent } | null;
   stem: RichContent;
   options: { key: string; content: RichContent }[];
 }
@@ -20,6 +22,7 @@ export interface StudentQuestionView {
 export interface PresentableVersion {
   id: string;
   questionType: QuestionType;
+  passage?: { id: string; content: RichContent } | null;
   stem: RichContent;
   options: readonly { key: string; content: RichContent; displayOrder: number }[];
 }
@@ -28,6 +31,7 @@ export function toStudentQuestionView(version: PresentableVersion): StudentQuest
   return {
     questionVersionId: version.id,
     questionType: version.questionType,
+    passage: version.passage ?? null,
     stem: version.stem,
     options: [...version.options]
       .sort((a, b) => a.displayOrder - b.displayOrder)

@@ -114,6 +114,7 @@ async function insertVersion(
       explanationContent: content.explanation,
       difficultyAuthorScore: content.difficulty.toFixed(DIFFICULTY_SCALE),
       taxonomyVersionId: content.taxonomyVersionId,
+      passageId: content.passageId,
       sourceType: content.sourceType,
       sourceReference: content.sourceReference,
       createdBy: input.createdBy,
@@ -298,6 +299,7 @@ export class DrizzleQuestionStore implements QuestionStore {
       explanation: (version.explanationContent as RichContent | null) ?? null,
       difficulty: Number(version.difficultyAuthorScore),
       taxonomyVersionId: version.taxonomyVersionId,
+      passageId: version.passageId,
       sourceType: version.sourceType,
       sourceReference: version.sourceReference,
       publishedAt: version.publishedAt,
@@ -357,6 +359,7 @@ export class DrizzleQuestionStore implements QuestionStore {
             explanationContent: content.explanation,
             difficultyAuthorScore: content.difficulty.toFixed(DIFFICULTY_SCALE),
             taxonomyVersionId: content.taxonomyVersionId,
+            passageId: content.passageId,
             sourceType: content.sourceType,
             sourceReference: content.sourceReference,
           })

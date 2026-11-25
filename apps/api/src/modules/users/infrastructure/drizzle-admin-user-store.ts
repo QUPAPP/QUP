@@ -33,6 +33,7 @@ const userColumns = {
   status: users.status,
   createdAt: users.createdAt,
   lastLoginAt: users.lastLoginAt,
+  erasedAt: users.erasedAt,
 };
 
 type UserRow = Omit<AdminUserView, "roles">;

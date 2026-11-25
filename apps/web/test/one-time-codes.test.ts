@@ -109,7 +109,7 @@ describe("one-time code client", () => {
     vi.stubGlobal("fetch", request);
     await requestEmailVerification();
     await confirmEmail("123456");
-    await forgotPassword("a@x.com");
+    await forgotPassword({ email: "a@x.com" });
     await resetPassword({
       email: "a@x.com",
       code: "123456",

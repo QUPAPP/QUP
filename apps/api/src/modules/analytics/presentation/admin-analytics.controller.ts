@@ -17,6 +17,14 @@ import { AnalyticsService } from "../application/analytics.service.js";
 export class AdminAnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
 
+  @Get("funnel")
+  @ApiOperation({
+    summary: "Sign-ups, finished mini diagnostics, and how many of those paid, over 7 or 30 days.",
+  })
+  funnel(@Query(new ZodValidationPipe(analyticsWindowQuery)) query: AnalyticsWindowQuery) {
+    return this.analytics.funnel(query.days);
+  }
+
   @Get("learning")
   @ApiOperation({ summary: "Diagnostics, training, answers and reassessments over 7 or 30 days." })
   learning(@Query(new ZodValidationPipe(analyticsWindowQuery)) query: AnalyticsWindowQuery) {

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import type { PurchaseFacts } from "../billing.contract.js";
 import {
   BILLING_STORE,
   type BillingStore,
@@ -22,8 +23,12 @@ export interface LedgerPage {
  * QUP through its webhook (OPEN_QUESTIONS.md #5).
  */
 @Injectable()
-export class BillingLedgerService {
+export class BillingLedgerService implements PurchaseFacts {
   constructor(@Inject(BILLING_STORE) private readonly store: BillingStore) {}
+
+  payingStudentsAmong(studentIds: readonly string[], since: Date): Promise<number> {
+    return this.store.payingStudentsAmong(studentIds, since);
+  }
 
   async list(filter: PaymentFilter): Promise<LedgerPage> {
     // One extra row tells whether another page exists, without a count query.

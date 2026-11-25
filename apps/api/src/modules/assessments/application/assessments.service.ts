@@ -62,6 +62,8 @@ import {
   ASSESSMENT_STORE,
   type AssessmentStore,
   type AttemptOutcome,
+  BLUEPRINT_STORE,
+  type BlueprintStore,
   type EvidenceTarget,
   type Session,
   type SessionHistoryQuery,
@@ -139,6 +141,7 @@ export interface CurrentItem {
 export class AssessmentsService implements StudentMistakes, StudentItems, TimedExams {
   constructor(
     @Inject(ASSESSMENT_STORE) private readonly store: AssessmentStore,
+    @Inject(BLUEPRINT_STORE) private readonly blueprints: BlueprintStore,
     @Inject(CATALOG_LOOKUP) private readonly catalog: CatalogLookup,
     @Inject(QUESTION_READER) private readonly questions: QuestionReader,
     @Inject(EXAM_ACCESS) private readonly access: ExamAccess,
@@ -209,9 +212,15 @@ export class AssessmentsService implements StudentMistakes, StudentItems, TimedE
     return this.diagnostics.open(studentId, examId, "MOCK_EXAM");
   }
 
-  /** When the session's clock runs out; null for untimed sessions and before the start. */
-  deadlineOf(session: Session, progress: SessionProgress): Date | null {
-    return session.type === "MOCK_EXAM" ? mockDeadline(session.startedAt, progress.total) : null;
+  /**
+   * When the session's clock runs out; null for untimed sessions and before the
+   * start. A mock exam keeps the duration of the blueprint it was planned from.
+   */
+  async deadlineOf(session: Session, progress: SessionProgress): Promise<Date | null> {
+    if (session.type !== "MOCK_EXAM") return null;
+    const blueprint = session.blueprintId ? await this.blueprints.find(session.blueprintId) : null;
+    const timeLimit = blueprint?.type === "MOCK_EXAM" ? blueprint.timeLimitSeconds : null;
+    return mockDeadline(session.startedAt, progress.total, timeLimit);
   }
 
   async get(
@@ -345,7 +354,7 @@ export class AssessmentsService implements StudentMistakes, StudentItems, TimedE
   /** A mock exam whose clock ran out is completed here, keeping the answers given in time. */
   private async closedByClock(session: Session, progress: SessionProgress): Promise<boolean> {
     if (session.status !== "IN_PROGRESS") return false;
-    if (!isPastDeadline(this.deadlineOf(session, progress), new Date())) return false;
+    if (!isPastDeadline(await this.deadlineOf(session, progress), new Date())) return false;
     this.logger.info({ sessionId: session.id }, "Mock exam ended: time is up");
     await this.store.complete(session.id, { endingEarly: true });
     return true;
@@ -596,7 +605,7 @@ export class AssessmentsService implements StudentMistakes, StudentItems, TimedE
     const now = new Date();
     for (const session of sessions) {
       if (session.status !== "IN_PROGRESS") continue;
-      const deadline = this.deadlineOf(session, await this.store.progress(session.id));
+      const deadline = await this.deadlineOf(session, await this.store.progress(session.id));
       if (!isPastDeadline(deadline, now)) return true;
     }
     return false;
@@ -777,6 +786,7 @@ function toPresentable(question: DeliverableQuestion) {
   return {
     id: question.questionVersionId,
     questionType: question.questionType,
+    passage: question.passage,
     stem: question.stem,
     options: question.options,
   };

@@ -20,6 +20,8 @@ import type {
 const MAX_BLOCKS = 50;
 const MAX_TEXT = 5_000;
 const MAX_LATEX = 2_000;
+const MAX_ALT = 300;
+const MAX_BLOCK_VALUE = { text: MAX_TEXT, math: MAX_LATEX, image: MAX_ALT, audio: 0 } as const;
 const MAX_OPTIONS = 6;
 const MAX_MAPPINGS = 10;
 const MAX_RATIONALE = 1_000;
@@ -50,14 +52,27 @@ export function optionKey(index: number): string {
 
 /* ----------------------------------------------------------------- schema */
 
+/** `value` is the text, the LaTeX, or an image's alternative text; media also carry their file. */
 const blockSchema = z
-  .object({ type: z.enum(["text", "math"]), value: z.string() })
-  .refine((block) => block.value.length <= (block.type === "text" ? MAX_TEXT : MAX_LATEX), {
+  .object({
+    type: z.enum(["text", "math", "image", "audio"]),
+    value: z.string(),
+    assetId: z.string().optional(),
+  })
+  .refine((block) => block.value.length <= MAX_BLOCK_VALUE[block.type], {
     message: "النص أطول من المسموح",
+    path: ["value"],
+  })
+  .refine((block) => block.type !== "image" || block.value.trim() !== "", {
+    // A blind student hears this instead of seeing the figure.
+    message: "اكتب وصفًا للصورة",
     path: ["value"],
   });
 
-const hasContent = (blocks: { value: string }[]) => blocks.some((b) => b.value.trim() !== "");
+const isMedia = (type: string) => type === "image" || type === "audio";
+
+const hasContent = (blocks: { type: string; value: string }[]) =>
+  blocks.some((b) => isMedia(b.type) || b.value.trim() !== "");
 
 const blocksSchema = z.array(blockSchema).max(MAX_BLOCKS, `${MAX_BLOCKS} مقطعًا كحد أقصى`);
 
@@ -93,6 +108,8 @@ export const questionFormSchema = z.object({
     .string()
     .refine((value) => /^(0(\.\d{1,3})?|1(\.0{1,3})?)$/.test(value), "الصعوبة رقم من 0 إلى 1"),
   taxonomyVersionId: z.string().min(1, "اختر نسخة التصنيف"),
+  /** "" for none. */
+  passageId: z.string(),
   sourceType: z.string().max(MAX_SOURCE_TYPE, `${MAX_SOURCE_TYPE} حرف كحد أقصى`),
   sourceReference: z.string().max(MAX_SOURCE_REFERENCE, `${MAX_SOURCE_REFERENCE} حرف كحد أقصى`),
   options: z.array(optionSchema).max(MAX_OPTIONS, `${MAX_OPTIONS} خيارات كحد أقصى`),
@@ -106,22 +123,37 @@ export const FORM_LIMITS = { blocks: MAX_BLOCKS, options: MAX_OPTIONS, mappings:
 
 /* ------------------------------------------------------------- conversion */
 
+function toBlockField(block: RichContent["blocks"][number]): BlockField {
+  switch (block.type) {
+    case "text":
+      return { type: "text", value: block.text };
+    case "math":
+      return { type: "math", value: block.latex };
+    case "image":
+      return { type: "image", value: block.alt, assetId: block.assetId };
+    case "audio":
+      return { type: "audio", value: "", assetId: block.assetId };
+  }
+}
+
 const toBlocks = (content: RichContent | null): BlockField[] =>
-  (content?.blocks ?? []).map((block) =>
-    block.type === "text"
-      ? { type: "text", value: block.text }
-      : { type: "math", value: block.latex },
-  );
+  (content?.blocks ?? []).map(toBlockField);
 
 function toRichContent(blocks: BlockField[]): RichContent {
   return {
-    blocks: blocks
-      .filter((block) => block.value.trim() !== "")
-      .map((block) =>
-        block.type === "text"
-          ? { type: "text", text: block.value }
-          : { type: "math", latex: block.value.trim() },
-      ),
+    blocks: blocks.flatMap((block): RichContent["blocks"] => {
+      if (block.type === "image") {
+        return block.assetId
+          ? [{ type: "image", assetId: block.assetId, alt: block.value.trim() }]
+          : [];
+      }
+      if (block.type === "audio")
+        return block.assetId ? [{ type: "audio", assetId: block.assetId }] : [];
+      if (block.value.trim() === "") return [];
+      return block.type === "text"
+        ? [{ type: "text", text: block.value }]
+        : [{ type: "math", latex: block.value.trim() }];
+    }),
   };
 }
 
@@ -132,6 +164,7 @@ export function emptyQuestionForm(): QuestionForm {
     explanation: [],
     difficulty: String(DEFAULT_DIFFICULTY),
     taxonomyVersionId: "",
+    passageId: "",
     sourceType: "",
     sourceReference: "",
     options: Array.from({ length: NEW_QUESTION_OPTIONS }, (_, index) => ({
@@ -150,6 +183,7 @@ export function formFromVersion(version: QuestionVersion): QuestionForm {
     explanation: toBlocks(version.explanation),
     difficulty: String(version.difficulty),
     taxonomyVersionId: version.taxonomyVersionId,
+    passageId: version.passageId ?? "",
     sourceType: version.sourceType ?? "",
     sourceReference: version.sourceReference ?? "",
     options: [...version.options]
@@ -179,6 +213,8 @@ export function toDraftContentInput(form: QuestionForm): DraftContentInput {
     ...(explanation.blocks.length > 0 ? { explanation } : {}),
     difficulty: Number(form.difficulty),
     taxonomyVersionId: form.taxonomyVersionId,
+    // Sent always, so removing the passage from a draft is saved too.
+    passageId: form.passageId || null,
     ...(sourceType ? { sourceType } : {}),
     ...(sourceReference ? { sourceReference } : {}),
     options: form.options.map((option, index) => ({
@@ -217,6 +253,9 @@ const RULE_MESSAGES: Record<string, string> = {
   DUPLICATE_MAPPING: "رُبطت المهارة نفسها أكثر من مرة.",
   MAPPING_OUTSIDE_VERSION: "إحدى المهارات المربوطة ليست مهارة نشطة في نسخة التصنيف المختارة.",
   TAXONOMY_VERSION_MISSING: "نسخة التصنيف المختارة غير موجودة.",
+  PASSAGE_MISSING: "قطعة القراءة المختارة غير موجودة. اخترها من جديد.",
+  ASSET_MISSING: "صورة أو مقطع صوتي لم يُرفع بعد أو حُذف. ارفعه من جديد.",
+  AUDIO_OUTSIDE_STEM: "المقطع الصوتي يكون في نص السؤال فقط، لا في الخيارات أو الشرح.",
   DATABASE_RULE: "رُفض المحتوى عند الحفظ (الإجابة الصحيحة أو الربط). راجع السؤال.",
 };
 

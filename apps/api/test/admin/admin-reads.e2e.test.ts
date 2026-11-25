@@ -15,6 +15,7 @@ import {
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
 import { type LiveExam, liveExam } from "../support/live-exam.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, LogCapture, testConfig } from "../support/test-app.js";
 
 /** C2: OBSERVABILITY.md metrics and decision audit; API_CONTRACTS.md "Admin Analytics/Audit". */
@@ -53,7 +54,7 @@ async function register(label: string) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: e2eEmail(label), password: PASSWORD },
+    payload: { email: e2eEmail(label), password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     token: response.cookies.find((c) => c.name === COOKIE)?.value ?? "",
@@ -97,7 +98,7 @@ beforeAll(async () => {
   const registeredManager = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: managerEmail, password: PASSWORD },
+    payload: { email: managerEmail, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   await grantRole(registeredManager.json<{ user: { id: string } }>().user.id, "CONTENT_MANAGER");
   manager = await signIn(managerEmail);
@@ -134,6 +135,7 @@ describe("admin reads", () => {
     "/admin/audit-logs",
     "/admin/operations/outbox",
     "/admin/analytics/learning?days=7",
+    "/admin/analytics/funnel?days=7",
     "/admin/analytics/content",
     "/admin/analytics/imports?days=7",
     `/admin/adaptive-decisions?sessionId=${randomUUID()}`,
@@ -221,6 +223,23 @@ describe("admin reads", () => {
     expect(body.attempts.answered).toBeGreaterThanOrEqual(10);
     expect(body.attempts.correctRate).toBeGreaterThan(0);
     expect(body.attempts.correctRate).toBeLessThan(1);
+  });
+
+  it("reports the sign-up to purchase funnel", async () => {
+    const response = await call(admin.token, "GET", "/admin/analytics/funnel?days=30");
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{
+      days: number;
+      registered: number;
+      finishedMiniDiagnostic: number;
+      paidAfterMiniDiagnostic: number;
+      conversionRate: number | null;
+    }>();
+    expect(body.days).toBe(30);
+    expect(body.registered).toBeGreaterThanOrEqual(3);
+    expect(body.finishedMiniDiagnostic).toBeGreaterThanOrEqual(1);
+    expect(body.paidAfterMiniDiagnostic).toBeLessThanOrEqual(body.finishedMiniDiagnostic);
+    expect(body.conversionRate).not.toBeNull();
   });
 
   it("shows the content backlog and thin skills", async () => {

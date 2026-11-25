@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
   deleteE2eUsers,
@@ -14,6 +13,7 @@ import {
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
 import { type LiveExam, liveExam } from "../support/live-exam.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** A3: QUESTION_BANK_IMPORT.md "Structured Import", "Import Report", "Duplicate Detection". */
@@ -113,14 +113,14 @@ beforeAll(async () => {
     config: testConfig({
       DATABASE_URL: E2E_DATABASE_URL,
       AUTH_RATE_LIMIT_PER_MINUTE: "10000",
-      IMPORT_STORAGE_DIR: STORAGE,
+      STORAGE_LOCAL_DIR: STORAGE,
     }),
   }));
   const managerEmail = e2eEmail("import-manager");
   const registered = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: managerEmail, password: PASSWORD },
+    payload: { email: managerEmail, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   const managerId = registered.json<{ user: { id: string } }>().user.id;
   await grantRole(managerId, "CONTENT_MANAGER");
@@ -129,7 +129,7 @@ beforeAll(async () => {
   await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: studentEmail, password: PASSWORD },
+    payload: { email: studentEmail, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   student = await signIn(studentEmail);
   await app.get(AdminBootstrapService).ensureAdmin({

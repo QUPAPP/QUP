@@ -206,9 +206,18 @@
   :where(.small) {
     font-size: var(--text-small);
   }
+  /* A typeset formula (KaTeX) inside right-to-left text: kept left to right, isolated. */
   :where(.math) {
     direction: ltr;
     unicode-bidi: isolate;
+    display: inline-block;
+    max-width: 100%;
+    overflow-x: auto;
+    vertical-align: middle;
+    padding-inline: 0.15em;
+  }
+  /* A formula KaTeX could not read shows its source; make it readable, not alarming. */
+  :where(.math .katex-error) {
     font-family: ui-monospace, "Cascadia Mono", monospace;
   }
   /* A plain section label. Gold is kept for dark grounds, where it is legible. */
@@ -4750,5 +4759,107 @@
 @layer components {
   :where(.workspace--admin .sidebar-link) {
     padding-block: 0.6rem;
+  }
+}
+
+/* Sign-up consent: an explicit tick (PDPL), its text wrapping beside the box. */
+@layer components {
+  :where(.auth-consent-field) {
+    display: grid;
+    gap: 0.35rem;
+  }
+  :where(.auth-consent-field .checkbox) {
+    align-items: flex-start;
+    font-weight: 400;
+    text-align: start;
+  }
+  :where(.auth-consent-field .checkbox input) {
+    flex: none;
+    margin-block-start: 0.2rem;
+  }
+}
+
+/* Account deletion: the one destructive action a student can take. */
+@layer components {
+  :where(.btn--danger) {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: #fff;
+  }
+  :where(.btn--danger:hover:not(:disabled)) {
+    filter: brightness(0.92);
+  }
+  :where(.btn--danger-text) {
+    color: var(--color-danger);
+  }
+  :where(.account-erase) {
+    border-color: var(--color-danger-surface);
+  }
+}
+
+/* Contact: one card per reason to write. */
+@layer components {
+  :where(.contact-reasons) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :where(.contact-reasons .btn) {
+    align-self: start;
+    margin-block-start: auto;
+  }
+}
+
+/* Images and audio inside question content. */
+@layer components {
+  :where(.content-image) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    max-height: 28rem;
+    margin-block: 0.75rem;
+    border-radius: var(--radius-small);
+    background: #fff;
+  }
+  :where(.content-audio) {
+    display: block;
+    width: 100%;
+    max-width: 32rem;
+    margin-block: 0.75rem;
+  }
+  :where(.block-media) {
+    display: grid;
+    gap: 0.5rem;
+  }
+  :where(.block-media .content-image) {
+    max-height: 12rem;
+    margin: 0;
+  }
+}
+
+/* A reading passage above its questions: set apart, comfortable to read at length. */
+@layer components {
+  :where(.question-passage) {
+    margin-block-end: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-inline-start: 4px solid var(--color-navy);
+    border-radius: var(--radius-small);
+    background: var(--color-surface, #f7f9fc);
+  }
+  :where(.question-passage__label) {
+    margin: 0 0 0.5rem;
+    font-size: var(--text-small, 0.85rem);
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+  :where(.question-passage__body) {
+    max-height: 22rem;
+    overflow-y: auto;
+    line-height: 2;
+    white-space: pre-line;
   }
 }

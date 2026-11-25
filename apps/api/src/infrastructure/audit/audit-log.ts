@@ -21,6 +21,7 @@ export const AuditAction = {
   RoleRevoked: "user.role.revoke",
   UserSuspended: "user.suspend",
   UserReactivated: "user.reactivate",
+  UserErased: "user.erase",
   EmailVerified: "user.email.verify",
   PasswordReset: "user.password.reset",
   TaxonomyPublished: "taxonomy.publish",

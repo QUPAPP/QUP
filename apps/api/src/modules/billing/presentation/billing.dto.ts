@@ -114,3 +114,17 @@ export const listPaymentsQuery = z.strictObject({
   limit: z.coerce.number().int().min(1).max(LEDGER_MAX_PAGE).default(LEDGER_DEFAULT_PAGE),
 });
 export type ListPaymentsQuery = z.output<typeof listPaymentsQuery>;
+
+/** The provider's own id for a payment, as its dashboard shows it. */
+const MAX_PROVIDER_PAYMENT_ID = 128;
+
+export const reconcilePaymentBody = z.strictObject({
+  providerPaymentId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_PROVIDER_PAYMENT_ID)
+    // An id, not a path: it goes into the provider's URL.
+    .regex(/^[A-Za-z0-9_-]+$/, "letters, digits, - and _ only"),
+});
+export type ReconcilePaymentBody = z.output<typeof reconcilePaymentBody>;

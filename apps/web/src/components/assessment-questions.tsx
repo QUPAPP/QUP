@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MistakeTutor } from "@/components/mistake-tutor";
+import { QuestionPassage } from "@/components/question-passage";
 import { ReportQuestion } from "@/components/report-question";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
@@ -342,6 +343,7 @@ function Question({
         </div>
       </div>
 
+      <QuestionPassage passage={item.question.passage} />
       <fieldset className="options" disabled={locked}>
         <legend>
           <RichContent content={item.question.stem} />

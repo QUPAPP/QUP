@@ -34,12 +34,25 @@ const newPassword = z
     `must be at most ${PASSWORD_MAX_LENGTH} characters`,
   );
 
+/**
+ * The version of the terms and privacy policy the person accepted: the date the
+ * web app publishes them under (LEGAL_UPDATED_AT). Required, so no account
+ * exists without a record of what its owner agreed to (PDPL consent).
+ */
+const termsVersion = z.iso.date();
+
+/** The token the human-check widget gave the browser (Turnstile tokens are at most 2048 chars). */
+const MAX_CAPTCHA_TOKEN = 2048;
+const captchaToken = z.string().min(1).max(MAX_CAPTCHA_TOKEN).optional();
+
 export const registerBody = z
   .strictObject({
     email: email.optional(),
     phone: phone.optional(),
     password: newPassword,
     displayName: z.string().trim().min(1).max(MAX_DISPLAY_NAME_LENGTH).optional(),
+    acceptedTermsVersion: termsVersion,
+    captchaToken,
   })
   .refine((body) => body.email !== undefined || body.phone !== undefined, {
     message: "provide an email, a phone number, or both",
@@ -47,6 +60,10 @@ export const registerBody = z
   });
 
 export type RegisterBody = z.output<typeof registerBody>;
+
+/** Accepting the terms again after they changed. */
+export const acceptTermsBody = z.strictObject({ acceptedTermsVersion: termsVersion });
+export type AcceptTermsBody = z.output<typeof acceptTermsBody>;
 
 export const loginBody = z.strictObject({
   identifier: z.string().trim().min(1).max(MAX_EMAIL_LENGTH),
@@ -86,6 +103,25 @@ export const changePasswordBody = z.strictObject({
 
 export type ChangePasswordBody = z.output<typeof changePasswordBody>;
 
+/**
+ * Erasing one's own account. The password proves it is the owner at the keyboard,
+ * not someone at an unlocked device; the literal confirmation guards a mis-tap.
+ */
+export const ERASE_CONFIRMATION = "DELETE";
+
+export const eraseAccountBody = z.strictObject({
+  password: z
+    .string()
+    .min(1)
+    .refine(
+      (value) => passwordLength(value) <= PASSWORD_MAX_LENGTH,
+      `must be at most ${PASSWORD_MAX_LENGTH} characters`,
+    ),
+  confirmation: z.literal(ERASE_CONFIRMATION),
+});
+
+export type EraseAccountBody = z.output<typeof eraseAccountBody>;
+
 /** What a person types for a code: digits, maybe spaced or Arabic-Indic. otp-policy.ts normalizes it. */
 const MAX_CODE_INPUT_LENGTH = 16;
 const codeInput = z.string().trim().min(1).max(MAX_CODE_INPUT_LENGTH);
@@ -93,7 +129,7 @@ const codeInput = z.string().trim().min(1).max(MAX_CODE_INPUT_LENGTH);
 export const confirmEmailBody = z.strictObject({ code: codeInput });
 export type ConfirmEmailBody = z.output<typeof confirmEmailBody>;
 
-export const forgotPasswordBody = z.strictObject({ email });
+export const forgotPasswordBody = z.strictObject({ email, captchaToken });
 export type ForgotPasswordBody = z.output<typeof forgotPasswordBody>;
 
 export const resetPasswordBody = z.strictObject({ email, code: codeInput, newPassword });

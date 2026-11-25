@@ -6,7 +6,7 @@ import type { ActorContext } from "../../../common/actor.js";
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import { publishabilityProblems, structuralProblems } from "../domain/content-rules.js";
 import { QUESTION_STORE, type QuestionStore } from "../domain/ports.js";
-import type { DraftContent, RichContent } from "../domain/question-content.js";
+import { blockAsText, type DraftContent, type RichContent } from "../domain/question-content.js";
 import type { AssistedVersion, QuestionAuthor } from "../questions.contract.js";
 import { QuestionsService } from "./questions.service.js";
 
@@ -70,7 +70,5 @@ export class QuestionAuthorService implements QuestionAuthor {
 
 /** Text and math sources in order: what a duplicate check compares, and what AI reads. */
 function plainText(content: RichContent): string {
-  return content.blocks
-    .map((block) => (block.type === "text" ? block.text : block.latex))
-    .join(" ");
+  return content.blocks.map(blockAsText).join(" ");
 }

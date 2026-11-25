@@ -19,6 +19,9 @@ export type ContentRule =
   | "DUPLICATE_MAPPING"
   | "MAPPING_OUTSIDE_VERSION"
   | "TAXONOMY_VERSION_MISSING"
+  | "ASSET_MISSING"
+  | "PASSAGE_MISSING"
+  | "AUDIO_OUTSIDE_STEM"
   | "DATABASE_RULE";
 
 export interface ContentProblem {
@@ -90,6 +93,19 @@ export function structuralProblems(content: DraftContent): ContentProblem[] {
   const keys = content.options.map((option) => option.key);
   if (new Set(keys).size !== keys.length) {
     problems.push({ rule: "DUPLICATE_OPTION_KEY", message: "Option keys must be unique." });
+  }
+
+  // A listening passage belongs to the question, before the student answers; an
+  // option or an explanation that plays audio is a mistake in the content.
+  const misplacedAudio = [
+    ...(content.explanation?.blocks ?? []),
+    ...content.options.flatMap((option) => option.content.blocks),
+  ].some((block) => block.type === "audio");
+  if (misplacedAudio) {
+    problems.push({
+      rule: "AUDIO_OUTSIDE_STEM",
+      message: "Audio may only be part of the question stem.",
+    });
   }
 
   const nodes = content.mappings.map((m) => m.skillId ?? m.subskillId);

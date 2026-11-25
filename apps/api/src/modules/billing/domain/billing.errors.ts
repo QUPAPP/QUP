@@ -185,3 +185,35 @@ export class WebhookPayloadInvalid extends DomainError {
     super("The webhook payload could not be understood.");
   }
 }
+
+/** The provider's payment already settled another of our payments: the same money cannot buy twice. */
+export class ProviderPaymentAlreadyUsed extends DomainError {
+  readonly code = "PROVIDER_PAYMENT_ALREADY_USED";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("This provider payment is already linked to another payment.");
+  }
+}
+
+/** Reconciling by hand: what the provider says was paid is not what this payment asked for. */
+export class ProviderPaymentDoesNotMatch extends DomainError {
+  readonly code = "PROVIDER_PAYMENT_DOES_NOT_MATCH";
+  readonly kind = "RULE_VIOLATION";
+  override readonly details: { expectedMinor: number; paidMinor: number; currency: string };
+
+  constructor(details: { expectedMinor: number; paidMinor: number; currency: string }) {
+    super("The provider payment's amount or currency differs from this payment.");
+    this.details = details;
+  }
+}
+
+/** The provider has no paid (or refunded) payment under that id yet. */
+export class ProviderPaymentNotPaid extends DomainError {
+  readonly code = "PROVIDER_PAYMENT_NOT_PAID";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("The provider does not report this payment as paid.");
+  }
+}

@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 
+import type { ActorContext } from "../../../common/actor.js";
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
 import { isPermission } from "../../rbac/permissions.js";
 import {
@@ -10,6 +11,7 @@ import {
   CurrentPasswordIncorrect,
   InvalidCredentials,
   NotAuthenticated,
+  StaffAccountCannotBeErased,
 } from "../domain/auth.errors.js";
 import { parseSignInIdentifier } from "../domain/identifiers.js";
 import {
@@ -30,6 +32,8 @@ export interface RegisterCommand {
   phone?: string | undefined;
   password: string;
   displayName?: string | undefined;
+  /** The terms-and-privacy version shown on the sign-up page, which the person accepted. */
+  acceptedTermsVersion: string;
 }
 
 export interface ChangePasswordCommand {
@@ -93,6 +97,7 @@ export class AuthService {
       phone: command.phone ?? null,
       passwordHash,
       displayName: command.displayName ?? null,
+      consent: { termsVersion: command.acceptedTermsVersion, acceptedAt: this.clock.now() },
     });
     const session = await this.openSession(user.id, client);
     this.logger.info({ userId: user.id }, "User registered");
@@ -177,6 +182,14 @@ export class AuthService {
     return user;
   }
 
+  /** The person accepted the terms as they read now (after an update); recorded with the time. */
+  async acceptTerms(principal: Principal, termsVersion: string): Promise<UserProfile> {
+    const user = await this.store.recordConsent(principal.userId, termsVersion, this.clock.now());
+    if (!user) throw new NotAuthenticated();
+    this.logger.info({ userId: principal.userId, termsVersion }, "Terms accepted");
+    return user;
+  }
+
   async changePassword(principal: Principal, command: ChangePasswordCommand): Promise<void> {
     const credentials = await this.store.findCredentialsById(principal.userId);
     if (!credentials) throw new NotAuthenticated();
@@ -188,6 +201,27 @@ export class AuthService {
     await this.store.updatePasswordHash(principal.userId, passwordHash, now);
     await this.store.revokeOtherSessions(principal.userId, principal.sessionId, now);
     this.logger.info({ userId: principal.userId }, "Password changed");
+  }
+
+  /**
+   * The owner erases their own account (privacy policy, "الإتلاف"). The password
+   * is asked again: an open session alone is not enough to destroy an account.
+   */
+  async eraseOwnAccount(
+    principal: Principal,
+    password: string,
+    actor: ActorContext,
+  ): Promise<void> {
+    const credentials = await this.store.findCredentialsById(principal.userId);
+    if (!credentials) throw new NotAuthenticated();
+    if (!(await this.hasher.verify(credentials.passwordHash, password))) {
+      throw new CurrentPasswordIncorrect();
+    }
+    const outcome = await this.store.eraseAccount(principal.userId, actor, this.clock.now());
+    if (outcome === "HAS_STAFF_ROLE") throw new StaffAccountCannotBeErased();
+    // NOT_FOUND / ALREADY_ERASED cannot follow a live session; the session is gone either way.
+    if (outcome !== "ERASED") throw new NotAuthenticated();
+    this.logger.info({ userId: principal.userId }, "Account erased by its owner");
   }
 
   private async findCredentials(rawIdentifier: string): Promise<StoredCredentials | null> {

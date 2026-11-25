@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { AdminGate } from "@/components/admin/admin-gate";
+import { AiBudgetSection } from "@/components/admin/ai-budget-section";
 import { ChatRulesSection } from "@/components/admin/chat-rules-section";
 import { FreeTrialSection } from "@/components/admin/free-trial-section";
 import { useSingleFlight } from "@/components/admin/use-single-flight";
@@ -16,6 +17,7 @@ import { daysText } from "@/lib/full-reassessment";
 import { answersText } from "@/lib/mastery-labels";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 import {
+  AI_BUDGET_KEY,
   CHAT_RULES_KEY,
   FREE_TRIAL_KEY,
   GATE_KEY,
@@ -56,6 +58,7 @@ function Settings({ userId }: { userId: string }) {
   const gate = settings.data?.items.find((item) => item.key === GATE_KEY);
   const chatRules = settings.data?.items.find((item) => item.key === CHAT_RULES_KEY);
   const freeTrial = settings.data?.items.find((item) => item.key === FREE_TRIAL_KEY);
+  const aiBudget = settings.data?.items.find((item) => item.key === AI_BUDGET_KEY);
 
   return (
     <main id="main-content" className="page stack stack--loose">
@@ -75,6 +78,7 @@ function Settings({ userId }: { userId: string }) {
       {gate ? <ReDiagnosticGate userId={userId} setting={gate} /> : null}
       {chatRules ? <ChatRulesSection userId={userId} setting={chatRules} /> : null}
       {freeTrial ? <FreeTrialSection userId={userId} setting={freeTrial} /> : null}
+      {aiBudget ? <AiBudgetSection userId={userId} setting={aiBudget} /> : null}
     </main>
   );
 }

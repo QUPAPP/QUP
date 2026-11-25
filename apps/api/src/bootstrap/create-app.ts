@@ -13,6 +13,7 @@ import { REQUEST_ID_HEADER, resolveRequestId } from "../common/http/request-id.j
 import type { AppConfig } from "../config/app-config.js";
 import { KNOWLEDGE_BODY_LIMIT_BYTES } from "../modules/ai/domain/knowledge.js";
 import { IMPORT_UPLOAD_BODY_LIMIT_BYTES } from "../modules/content-import/domain/import-limits.js";
+import { ASSET_UPLOAD_BODY_LIMIT_BYTES } from "../modules/questions/domain/question-assets.js";
 import { registerClientAddress } from "./client-address.js";
 
 /**
@@ -28,6 +29,7 @@ const OPENAPI_JSON_PATH = "api/openapi.json";
 const UPLOAD_BODY_LIMITS: Readonly<Record<string, number>> = {
   [`/${API_PREFIX}/admin/imports/upload`]: IMPORT_UPLOAD_BODY_LIMIT_BYTES,
   [`/${API_PREFIX}/admin/ai/knowledge`]: KNOWLEDGE_BODY_LIMIT_BYTES,
+  [`/${API_PREFIX}/admin/question-assets`]: ASSET_UPLOAD_BODY_LIMIT_BYTES,
 };
 
 /**

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { createBlueprint, listBlueprints } from "@/lib/blueprint-api";
+import { BLUEPRINT_TYPE_TITLES, createBlueprint, listBlueprints } from "@/lib/blueprint-api";
 import {
   type BlueprintCreateForm,
   type BlueprintCreateFormInput,
@@ -50,7 +50,7 @@ export function BlueprintsSection({
           {blueprints.data.items.map((blueprint) => (
             <li key={blueprint.id} className="admin-row">
               <Link href={`/admin/blueprints/${blueprint.id}`} className="admin-row__main">
-                <strong>{`${DIAGNOSTIC_TITLES[blueprint.type]} — ${blueprint.name}`}</strong>
+                <strong>{`${BLUEPRINT_TYPE_TITLES[blueprint.type]} — ${blueprint.name}`}</strong>
                 <span className="small muted">
                   {`${countText(blueprint.questionCount, QUESTIONS)} · `}
                   <bdi dir="ltr">{blueprint.code}</bdi>
@@ -75,9 +75,18 @@ function BlueprintCreateFormView({ userId, examId }: { userId: string; examId: s
   const queryClient = useQueryClient();
   const form = useForm<BlueprintCreateFormInput, unknown, BlueprintCreateForm>({
     resolver: zodResolver(blueprintCreateSchema),
-    defaultValues: { type: "FULL_DIAGNOSTIC", code: "", name: "", questionCount: "" },
+    defaultValues: {
+      type: "FULL_DIAGNOSTIC",
+      code: "",
+      name: "",
+      questionCount: "",
+      timeLimitMinutes: "",
+    },
   });
-  const send = useSingleFlight((values: BlueprintCreateForm) => createBlueprint(examId, values));
+  const isMock = form.watch("type") === "MOCK_EXAM";
+  const send = useSingleFlight(({ timeLimitMinutes, ...values }: BlueprintCreateForm) =>
+    createBlueprint(examId, values.type === "MOCK_EXAM" ? { ...values, timeLimitMinutes } : values),
+  );
   const create = useMutation({
     mutationFn: send,
     onSuccess: async (blueprint) => {
@@ -96,11 +105,12 @@ function BlueprintCreateFormView({ userId, examId }: { userId: string; examId: s
       {create.isError ? <ErrorNotice error={create.error} /> : null}
       <div className="field">
         <label className="field__label" htmlFor="blueprint-type">
-          نوع التشخيص
+          نوع النموذج
         </label>
         <select id="blueprint-type" className="field__input" {...form.register("type")}>
           <option value="FULL_DIAGNOSTIC">{DIAGNOSTIC_TITLES.FULL_DIAGNOSTIC}</option>
           <option value="MINI_DIAGNOSTIC">{DIAGNOSTIC_TITLES.MINI_DIAGNOSTIC}</option>
+          <option value="MOCK_EXAM">{BLUEPRINT_TYPE_TITLES.MOCK_EXAM}</option>
         </select>
       </div>
       <TextField
@@ -126,6 +136,17 @@ function BlueprintCreateFormView({ userId, examId }: { userId: string; examId: s
         error={errors.questionCount?.message}
         ltr
       />
+      {isMock ? (
+        <TextField
+          idPrefix="blueprint"
+          label="مدة الاختبار (بالدقائق)"
+          hint="ساعة واحدة للاختبار كله، كالاختبار الحقيقي. فارغ: 62.5 ثانية لكل سؤال."
+          inputMode="numeric"
+          registration={form.register("timeLimitMinutes")}
+          error={errors.timeLimitMinutes?.message}
+          ltr
+        />
+      ) : null}
       <button type="submit" className="btn" disabled={create.isPending}>
         {create.isPending ? "جارٍ الإنشاء…" : "إنشاء نموذج مسودة"}
       </button>

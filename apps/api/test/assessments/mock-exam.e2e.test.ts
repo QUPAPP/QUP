@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import {
   deleteE2eUsers,
   E2E_DATABASE_URL,
@@ -10,6 +9,7 @@ import {
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
 import { type LiveExam, liveExam } from "../support/live-exam.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** The timed mock exam: planned up front, one clock, nothing revealed until it ends. */
@@ -31,7 +31,7 @@ async function register(label: string): Promise<Student> {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: e2eEmail(label), password: PASSWORD },
+    payload: { email: e2eEmail(label), password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     token: response.cookies.find((c) => c.name === COOKIE)?.value ?? "",
@@ -194,5 +194,28 @@ describe("timed mock exam", () => {
 
     const result = await call(student.token, "GET", `/assessments/${sessionId}/mock-result`);
     expect(result.json()).toMatchObject({ correct: 1, answered: 1 });
+  });
+});
+
+describe("the exam's own mock exam blueprint", () => {
+  it("sets the number of questions and one clock for the whole exam", async () => {
+    const exam = await liveExam(4);
+    await e2eSql`
+      INSERT INTO assessment_blueprints (exam_id, taxonomy_version_id, type, code, name,
+        min_questions, max_questions, time_limit_seconds, config_version, status)
+      VALUES (${exam.examId}, ${exam.versionId}, 'MOCK_EXAM', 'MOCK_REAL', 'محاكاة', 1, 3,
+        ${25 * 60}, 'blueprint-v1', 'ACTIVE')`;
+    const student = await withAccess("mock-blueprint", exam);
+    const sessionId = await startedMock(student, exam);
+
+    const session = (await call(student.token, "GET", `/assessments/${sessionId}`)).json<{
+      startedAt: string;
+      deadline: string;
+      progress: { total: number };
+    }>();
+    expect(session.progress.total).toBe(3);
+    expect(new Date(session.deadline).getTime() - new Date(session.startedAt).getTime()).toBe(
+      25 * 60 * 1000,
+    );
   });
 });

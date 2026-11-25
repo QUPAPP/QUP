@@ -24,7 +24,8 @@ export type EmailTemplate =
       appUrl: string | null;
     }
   | { kind: "PAYMENT_REFUNDED"; planName: string; amountMinor: number; currency: string }
-  | { kind: "PASSWORD_CHANGED"; changedAt: Date; appUrl: string | null };
+  | { kind: "PASSWORD_CHANGED"; changedAt: Date; appUrl: string | null }
+  | { kind: "SUBSCRIPTION_ENDING"; examName: string; endsAt: Date; appUrl: string | null };
 
 /** The notification kinds stored on `email_deliveries.kind`. */
 export function deliveryKind(template: EmailTemplate): string {
@@ -220,6 +221,34 @@ function renderPasswordChanged(
   };
 }
 
+function renderSubscriptionEnding(
+  t: Extract<EmailTemplate, { kind: "SUBSCRIPTION_ENDING" }>,
+): EmailMessage {
+  const when = formatDateTime(t.endsAt);
+  const heading = `اشتراكك في «${t.examName}» ينتهي قريبًا`;
+  const lead = `ينتهي اشتراكك في «${t.examName}» بتاريخ ${when}. جدّده قبل ذلك ليستمر تدريبك دون انقطاع.`;
+  const note =
+    "لا يتجدد الاشتراك تلقائيًا، ولن يُخصم منك شيء دون أن تختار. إجاباتك وملف مهاراتك يبقيان في حسابك.";
+  return {
+    subject: heading,
+    html: layout({
+      preheader: lead,
+      heading,
+      body: `${paragraph(lead)}${t.appUrl ? button("جدّد الاشتراك", `${t.appUrl}/subscriptions`) : ""}${paragraph(note)}`,
+      footer: AUTOMATED_FOOTER,
+    }),
+    text: [
+      heading,
+      "",
+      lead,
+      note,
+      ...(t.appUrl ? ["", `${t.appUrl}/subscriptions`] : []),
+      "",
+      AUTOMATED_FOOTER,
+    ].join("\n"),
+  };
+}
+
 export function renderEmail(template: EmailTemplate): EmailMessage {
   switch (template.kind) {
     case "OTP":
@@ -230,5 +259,7 @@ export function renderEmail(template: EmailTemplate): EmailMessage {
       return renderRefunded(template);
     case "PASSWORD_CHANGED":
       return renderPasswordChanged(template);
+    case "SUBSCRIPTION_ENDING":
+      return renderSubscriptionEnding(template);
   }
 }

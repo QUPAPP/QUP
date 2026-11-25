@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "payments_provider_payment_unique" ON "payments" USING btree ("provider",(provider_payload_redacted ->> 'providerPaymentId')) WHERE provider_payload_redacted ? 'providerPaymentId';

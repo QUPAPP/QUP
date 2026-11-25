@@ -9,6 +9,7 @@ import type { PaymentStatus } from "@/lib/api";
 import { type AdminPayment, getRevenueSummary, listAdminPayments } from "@/lib/billing-admin-api";
 import { formatDateTime } from "@/lib/format";
 import { formatPrice } from "@/lib/messages";
+import { ReconcilePayment } from "./reconcile-payment";
 
 const STATUSES = Object.keys(PAYMENT_STATUS_LABELS) as PaymentStatus[];
 
@@ -180,6 +181,12 @@ function LedgerRow({ payment }: { payment: AdminPayment }) {
           {PAYMENT_STATUS_LABELS[payment.status]}
         </span>
       </div>
+      {/* A checkout that never settled may still have been paid at Stream. */}
+      {payment.status === "PENDING" ||
+      payment.status === "FAILED" ||
+      payment.status === "CANCELLED" ? (
+        <ReconcilePayment paymentId={payment.id} />
+      ) : null}
     </li>
   );
 }

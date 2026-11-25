@@ -1,18 +1,37 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
+import { type ChangeEvent, useRef } from "react";
 import {
   type Control,
   type FieldErrors,
   type UseFormRegister,
   useFieldArray,
+  useWatch,
 } from "react-hook-form";
+import { ErrorNotice } from "@/components/status";
+import { assetUrl } from "@/lib/api";
+import { renderMath } from "@/lib/math";
+import { readAsBase64, uploadQuestionAsset } from "@/lib/question-api";
 import { FORM_LIMITS, type QuestionForm } from "@/lib/question-form";
 
 export type BlocksPath = "stem" | "explanation" | `options.${number}.content`;
 
+/** What the file pickers offer; the API still reads the real type from the bytes. */
+const IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+const AUDIO_TYPES = "audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a";
+
+const BLOCK_LABELS = {
+  text: "نص",
+  math: "معادلة (LaTeX)",
+  image: "صورة",
+  audio: "مقطع صوتي",
+} as const;
+
 /**
- * Content as a list of blocks: text, or a formula typed as LaTeX (shown as its
- * source until math rendering exists). Blocks can be added, removed and moved;
+ * Content as a list of blocks: text, a formula typed as LaTeX (shown as its
+ * source until math rendering exists), an image with its description, or — in
+ * the stem only — a listening passage. Blocks can be added, removed and moved;
  * nothing here is HTML.
  */
 export function BlocksField({
@@ -29,8 +48,30 @@ export function BlocksField({
   errors?: FieldErrors<QuestionForm>;
 }) {
   const { fields, append, remove, move } = useFieldArray({ control, name });
+  const values = useWatch({ control, name });
   const full = fields.length >= FORM_LIMITS.blocks;
   const error = fieldError(errors, name);
+  // A listening passage is part of the question, never of an option or the explanation.
+  const allowAudio = name === "stem";
+  const imageInput = useRef<HTMLInputElement>(null);
+  const audioInput = useRef<HTMLInputElement>(null);
+
+  const upload = useMutation({
+    mutationFn: async (file: File) => uploadQuestionAsset(await readAsBase64(file)),
+    onSuccess: (asset) =>
+      append(
+        asset.kind === "IMAGE"
+          ? { type: "image", value: "", assetId: asset.id }
+          : { type: "audio", value: "", assetId: asset.id },
+      ),
+  });
+
+  function picked(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // The same file may be picked again after a failed upload.
+    event.target.value = "";
+    if (file) upload.mutate(file);
+  }
 
   return (
     <fieldset className="blocks-field">
@@ -38,21 +79,49 @@ export function BlocksField({
       {fields.length === 0 ? <p className="small muted">لا يوجد محتوى.</p> : null}
       <ol className="blocks-field__list">
         {fields.map((field, index) => {
-          const isMath = field.type === "math";
+          const type = field.type;
+          const assetId = values?.[index]?.assetId ?? field.assetId;
           const inputId = `${field.id}-value`;
           return (
             <li key={field.id} className="block-row">
-              <label className="small muted" htmlFor={inputId}>
-                {isMath ? `معادلة ${index + 1} (LaTeX)` : `نص ${index + 1}`}
+              <label className="small muted" htmlFor={type === "audio" ? undefined : inputId}>
+                {`${BLOCK_LABELS[type]} ${index + 1}`}
               </label>
               <input type="hidden" {...register(`${name}.${index}.type` as const)} />
-              {isMath ? (
-                <input
-                  id={inputId}
-                  className="field__input"
-                  dir="ltr"
-                  {...register(`${name}.${index}.value` as const)}
-                />
+              <input type="hidden" {...register(`${name}.${index}.assetId` as const)} />
+              {type === "math" ? (
+                <div className="block-media">
+                  <input
+                    id={inputId}
+                    className="field__input"
+                    dir="ltr"
+                    {...register(`${name}.${index}.value` as const)}
+                  />
+                  <MathPreview latex={values?.[index]?.value ?? ""} />
+                </div>
+              ) : type === "image" ? (
+                <div className="block-media">
+                  {assetId ? (
+                    // biome-ignore lint/performance/noImgElement: next/image fetches server-side without the session cookie
+                    <img className="content-image" src={assetUrl(assetId)} alt="" />
+                  ) : null}
+                  <input
+                    id={inputId}
+                    className="field__input"
+                    placeholder="صف الصورة لمن لا يراها، دون كشف الإجابة"
+                    {...register(`${name}.${index}.value` as const)}
+                  />
+                </div>
+              ) : type === "audio" ? (
+                assetId ? (
+                  // biome-ignore lint/a11y/useMediaCaption: the author previews the listening passage
+                  <audio
+                    className="content-audio"
+                    controls
+                    preload="metadata"
+                    src={assetUrl(assetId)}
+                  />
+                ) : null
               ) : (
                 <textarea
                   id={inputId}
@@ -93,6 +162,7 @@ export function BlocksField({
           );
         })}
       </ol>
+      {upload.isError ? <ErrorNotice error={upload.error} /> : null}
       <div className="row">
         <button
           type="button"
@@ -110,6 +180,44 @@ export function BlocksField({
         >
           + معادلة
         </button>
+        <button
+          type="button"
+          className="btn btn--small btn--ghost"
+          disabled={full || upload.isPending}
+          onClick={() => imageInput.current?.click()}
+        >
+          {upload.isPending ? "جارٍ الرفع…" : "+ صورة"}
+        </button>
+        {allowAudio ? (
+          <button
+            type="button"
+            className="btn btn--small btn--ghost"
+            disabled={full || upload.isPending}
+            onClick={() => audioInput.current?.click()}
+          >
+            + مقطع صوتي
+          </button>
+        ) : null}
+        <input
+          ref={imageInput}
+          type="file"
+          accept={IMAGE_TYPES}
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={picked}
+        />
+        {allowAudio ? (
+          <input
+            ref={audioInput}
+            type="file"
+            accept={AUDIO_TYPES}
+            hidden
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={picked}
+          />
+        ) : null}
       </div>
       {error ? (
         <span className="field__error" role="alert">
@@ -117,6 +225,22 @@ export function BlocksField({
         </span>
       ) : null}
     </fieldset>
+  );
+}
+
+/** How the formula will look to students, as the author types it. */
+function MathPreview({ latex }: { latex: string }) {
+  if (latex.trim() === "") return null;
+  return (
+    <span className="small muted">
+      المعاينة:{" "}
+      <span
+        className="math"
+        dir="ltr"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX output from trust:false rendering (lib/math.ts)
+        dangerouslySetInnerHTML={{ __html: renderMath(latex) }}
+      />
+    </span>
   );
 }
 

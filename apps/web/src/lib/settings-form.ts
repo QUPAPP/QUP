@@ -136,3 +136,23 @@ export function freeTrialProblem(text: string): string | null {
   if (!/^\d+$/.test(value)) return "اكتب عددًا صحيحًا من 0 فأكثر.";
   return Number(value) > FREE_CHAT_MESSAGES_MAX ? `الحد الأقصى ${FREE_CHAT_MESSAGES_MAX}.` : null;
 }
+
+/** The platform-wide AI ceiling over 24 hours (setting ai.dailyBudget); null is no limit. */
+export interface AiBudgetValue {
+  maxRuns: number | null;
+  maxTokens: number | null;
+}
+
+/** A blank field is no limit; anything else must be a whole number from 1. */
+export function budgetLimitProblem(text: string): string | null {
+  const value = text.trim();
+  if (value === "") return null;
+  if (!/^\d+$/.test(value) || Number(value) < 1)
+    return "اكتب عددًا صحيحًا من 1 فأكثر، أو اتركه فارغًا.";
+  return Number.isSafeInteger(Number(value)) ? null : "العدد كبير جدًا.";
+}
+
+export function parseBudgetLimit(text: string): number | null {
+  const value = text.trim();
+  return value === "" ? null : Number(value);
+}

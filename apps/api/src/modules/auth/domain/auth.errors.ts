@@ -98,3 +98,36 @@ export class CodeRequestedTooOften extends DomainError {
     this.details = { retryAfterSeconds };
   }
 }
+
+/**
+ * Staff accounts are not erased from the account screen: an admin takes their
+ * roles away first, so the platform never loses its last admin by accident.
+ */
+export class StaffAccountCannotBeErased extends DomainError {
+  readonly code = "STAFF_ACCOUNT_CANNOT_BE_ERASED";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("This account has staff roles. An admin must remove them before it can be deleted.");
+  }
+}
+
+/** The human check was missing, expired, already used or refused. The form shows a fresh one. */
+export class CaptchaFailed extends DomainError {
+  readonly code = "CAPTCHA_FAILED";
+  readonly kind = "INVALID_INPUT";
+
+  constructor() {
+    super("Confirm you are not a robot, then try again.");
+  }
+}
+
+/** The human check's provider could not be asked; try again in a moment. */
+export class CaptchaUnavailable extends DomainError {
+  readonly code = "CAPTCHA_UNAVAILABLE";
+  readonly kind = "UNAVAILABLE";
+
+  constructor() {
+    super("The human check is unavailable right now. Try again shortly.");
+  }
+}

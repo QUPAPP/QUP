@@ -1,9 +1,9 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import { Permission } from "../../src/modules/rbac/permissions.js";
 import { deleteE2eUsers, E2E_DATABASE_URL, e2eEmail, e2eSql } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -80,7 +80,7 @@ describe("admin bootstrap", () => {
     const register = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { email, password: originalPassword },
+      payload: { email, password: originalPassword, acceptedTermsVersion: TERMS_VERSION },
     });
     expect(register.statusCode).toBe(201);
 

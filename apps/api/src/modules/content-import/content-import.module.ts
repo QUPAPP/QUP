@@ -5,7 +5,7 @@ import { QuestionsModule } from "../questions/questions.module.js";
 import { ImportsService } from "./application/imports.service.js";
 import { IMPORT_FILE_STORAGE, IMPORT_STORE } from "./domain/ports.js";
 import { DrizzleImportStore } from "./infrastructure/drizzle-import-store.js";
-import { LocalImportFileStorage } from "./infrastructure/local-file-storage.js";
+import { StoredImportFiles } from "./infrastructure/stored-import-files.js";
 import { AdminImportAnalyticsController } from "./presentation/admin-import-analytics.controller.js";
 import { AdminImportsController } from "./presentation/admin-imports.controller.js";
 
@@ -20,7 +20,7 @@ import { AdminImportsController } from "./presentation/admin-imports.controller.
   providers: [
     ImportsService,
     { provide: IMPORT_STORE, useClass: DrizzleImportStore },
-    { provide: IMPORT_FILE_STORAGE, useClass: LocalImportFileStorage },
+    { provide: IMPORT_FILE_STORAGE, useClass: StoredImportFiles },
   ],
 })
 export class ContentImportModule {}

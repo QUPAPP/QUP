@@ -1,6 +1,5 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
   deleteE2eUsers,
@@ -9,6 +8,7 @@ import {
   e2eSql,
   grantRole,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -72,7 +72,7 @@ beforeAll(async () => {
   const registered = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: managerEmail, password: PASSWORD },
+    payload: { email: managerEmail, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   await grantRole(registered.json<{ user: { id: string } }>().user.id, "CONTENT_MANAGER");
   manager = await signIn(managerEmail);

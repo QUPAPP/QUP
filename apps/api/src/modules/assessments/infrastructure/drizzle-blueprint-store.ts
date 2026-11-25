@@ -28,11 +28,16 @@ const columns = {
   code: blueprints.code,
   name: blueprints.name,
   questionCount: blueprints.maxQuestions,
+  timeLimitSeconds: blueprints.timeLimitSeconds,
   status: blueprints.status,
   createdAt: blueprints.createdAt,
   updatedAt: blueprints.updatedAt,
 };
-type Row = { [K in keyof typeof columns]: (typeof columns)[K]["_"]["data"] };
+// The column's "data" type drops nullability; time_limit_seconds is nullable.
+type Row = Omit<
+  { [K in keyof typeof columns]: (typeof columns)[K]["_"]["data"] },
+  "timeLimitSeconds"
+> & { timeLimitSeconds: number | null };
 
 /** Blueprints of the other session types are not managed here yet (B2 covers diagnostics). */
 const diagnosticOnly = inArray(blueprints.type, [...DIAGNOSTIC_BLUEPRINT_TYPES]);
@@ -82,6 +87,7 @@ export class DrizzleBlueprintStore implements BlueprintStore {
           // The planner proceeds with what is available, as the mini diagnostic always has.
           minQuestions: BLUEPRINT_QUESTION_COUNT.min,
           maxQuestions: input.questionCount,
+          timeLimitSeconds: input.timeLimitSeconds,
           configVersion: BLUEPRINT_CONFIG_VERSION,
         })
         .returning(columns);
@@ -115,6 +121,9 @@ export class DrizzleBlueprintStore implements BlueprintStore {
           updatedAt: new Date(),
           ...(changes.name === undefined ? {} : { name: changes.name }),
           ...(changes.questionCount === undefined ? {} : { maxQuestions: changes.questionCount }),
+          ...(changes.timeLimitSeconds === undefined
+            ? {}
+            : { timeLimitSeconds: changes.timeLimitSeconds }),
         })
         .where(eq(blueprints.id, blueprintId));
 

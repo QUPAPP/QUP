@@ -1,9 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Database, tables } from "@qup/db";
-import { gte, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 
 import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import { OutboxEventType } from "../../../infrastructure/outbox/outbox.js";
+import { USER_DIRECTORY, type UserDirectory } from "../../auth/auth.contract.js";
+import { PURCHASE_FACTS, type PurchaseFacts } from "../../billing/billing.contract.js";
 
 const { learningEvents } = tables;
 const DAY_MS = 86_400_000;
@@ -15,7 +17,44 @@ const DAY_MS = 86_400_000;
  */
 @Injectable()
 export class AnalyticsService {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: Database,
+    @Inject(USER_DIRECTORY) private readonly users: UserDirectory,
+    @Inject(PURCHASE_FACTS) private readonly purchases: PurchaseFacts,
+  ) {}
+
+  /**
+   * The commercial funnel (PRD §17): accounts opened, then students who
+   * finished the free mini diagnostic, then how many of those paid — all
+   * within the window. A cohort of the window, not of a sign-up date: a
+   * student who finished the diagnostic just before it is not counted.
+   */
+  async funnel(days: number, now = new Date()) {
+    const since = new Date(now.getTime() - days * DAY_MS);
+    const finishedMini = await this.db
+      .selectDistinct({ studentId: learningEvents.studentId })
+      .from(learningEvents)
+      .where(
+        and(
+          gte(learningEvents.occurredAt, since),
+          eq(learningEvents.eventType, OutboxEventType.SessionCompleted),
+          sql`${learningEvents.payload}->>'sessionType' = 'MINI_DIAGNOSTIC'`,
+        ),
+      );
+    // An erased account keeps its events without a student; it is not part of a cohort.
+    const cohort = finishedMini.flatMap((row) => (row.studentId ? [row.studentId] : []));
+    const [registered, paid] = await Promise.all([
+      this.users.registeredSince(since),
+      this.purchases.payingStudentsAmong(cohort, since),
+    ]);
+    return {
+      days,
+      registered,
+      finishedMiniDiagnostic: cohort.length,
+      paidAfterMiniDiagnostic: paid,
+      conversionRate: cohort.length > 0 ? paid / cohort.length : null,
+    };
+  }
 
   async learning(days: number, now = new Date()) {
     const since = new Date(now.getTime() - days * DAY_MS);
