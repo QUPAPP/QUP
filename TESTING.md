@@ -167,3 +167,15 @@ These are UI checks, not evidence of a completed full diagnostic or a real Strea
   Focus loss in the runner was found and fixed. The web app has no component-test tooling, so
   that fix is verified in the browser only.
 
+
+## Browser tests (Playwright, 2026-11-25)
+
+`apps/web/e2e/`: the student journey in a real browser against the real API — sign-up with the
+consent tick, the free mini diagnostic to its result, then deleting the account — on a desktop and
+a phone viewport. Both apps are started by the config; the database must be a throwaway local one
+(`e2e/global-setup.ts` refuses any other host, then migrates and seeds the demo exam):
+
+```bash
+pnpm build
+QUP_E2E_DATABASE_URL=postgresql://qup:qup_test@127.0.0.1:55433/qup_db pnpm --filter @qup/web e2e
+```

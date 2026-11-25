@@ -35,6 +35,9 @@ POST /auth/logout
 GET  /auth/me
 PATCH /auth/me
 POST /auth/password
+POST /auth/me/erase               { password, confirmation: "DELETE" } — delete the account for good
+POST /auth/terms                  { acceptedTermsVersion } — accept the terms again after they changed
+GET  /auth/sign-up-options        public: { captchaSiteKey } — null when there is no human check
 POST /auth/sessions/revoke
 POST /auth/email/verification     mail a code to the signed-in user's address
 POST /auth/email/verify           { code } — verify the address
@@ -771,12 +774,52 @@ All routes need `users.manage` (ADMIN). Every change is audited in the same tran
   Audits `user.role.grant` / `user.role.revoke` per change.
 - `POST /admin/users/:id/suspend`: status `SUSPENDED`, every session revoked. Audits `user.suspend`.
 - `POST /admin/users/:id/reactivate`: status `ACTIVE`. Audits `user.reactivate`.
+- `POST /admin/users/:id/erase`: deletes a student's account at their request (OPEN_QUESTIONS.md
+  #6d): contact details, name and password erased, sessions and chats deleted; payments and
+  anonymous evidence stay. The view then has `erasedAt` and status `DEACTIVATED`. Audits
+  `user.erase`. `/auth/me/erase` is the same for the owner, with their password.
+
+With TURNSTILE_* set, `POST /auth/register` and `POST /auth/password/forgot` also need
+`captchaToken` (the widget's token): `400 CAPTCHA_FAILED` when missing, expired, reused, for another
+form or another site; `503 CAPTCHA_UNAVAILABLE` when Cloudflare cannot be asked. `GET /auth/me` carries
+`user.acceptedTermsVersion`.
+
+Registration (`POST /auth/register`) requires `acceptedTermsVersion` (the ISO date of the terms the
+person ticked, the web's `LEGAL_UPDATED_AT`); it is stored with the account and the time.
 
 Errors:
 - `422 CANNOT_CHANGE_OWN_ACCESS`: an admin's own roles or status;
 - `422 LAST_ADMIN_REQUIRED`: the change would leave no active admin (two admins demoting each other at once);
 - `400 ROLES_REQUIRED` / `400 VALIDATION_FAILED`: an empty or unknown role list;
-- `404 USER_NOT_FOUND`.
+- `404 USER_NOT_FOUND`;
+- `409 ACCOUNT_ERASED`: a deleted account cannot be changed, reactivated or deleted again;
+- `422 STAFF_ACCOUNT_CANNOT_BE_ERASED`: take the staff roles away first.
+
+## Question assets
+
+Images and audio inside question content (OPEN_QUESTIONS.md #16h).
+
+- `POST /admin/question-assets` `{ "contentBase64": "…" }` (`questions.create`): PNG, JPEG or WebP up
+  to 2 MiB, MP3 or M4A up to 8 MiB, type read from the bytes. `201` new, `200` the same file
+  already uploaded; `{ id, kind: "IMAGE" | "AUDIO", contentType, byteSize }`.
+  `400 ASSET_TYPE_NOT_ACCEPTED` / `ASSET_TOO_LARGE`.
+- `GET /question-assets/:id` (signed in): the bytes, `Cache-Control: private, immutable`, a
+  sandboxing CSP, and byte ranges (`206`) for audio players. `404 ASSET_NOT_FOUND`.
+- Content blocks: `{ "type": "image", "assetId", "alt" }` (alt required) anywhere, and
+  `{ "type": "audio", "assetId" }` in the stem only. A block pointing at no uploaded file of its kind
+  fails the draft with rule `ASSET_MISSING`; audio outside the stem with `AUDIO_OUTSIDE_STEM`.
+
+## Reading passages
+
+A passage several questions share (OPEN_QUESTIONS.md #16i), written once and never edited.
+
+- `POST /admin/passages` `{ title, content }` (`questions.create`): content blocks as in questions
+  (text, math, image, audio); a block pointing at no uploaded file fails with `ASSET_MISSING`.
+- `GET /admin/passages?search=&limit=&offset=`: newest first, with `questionCount`.
+- `GET /admin/passages/:id`. `404 PASSAGE_NOT_FOUND`.
+- A draft's content takes `passageId` (nullable); an unknown one fails with rule `PASSAGE_MISSING`.
+  Students receive `question.passage` (`{ id, content }` or null) with the stem, in sessions and
+  reviews; the same id on every question about the passage.
 
 ## Admin Analytics/Audit
 

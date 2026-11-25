@@ -140,6 +140,27 @@ once DNS resolves.
    DELIVERED once the webhook arrives (RUNBOOK.md §6b).
 5. Deploy the worker (above) so receipts and notices go out.
 
+**Migrations 0021–0024 before merging the launch-readiness release (2026-11-25).** All additive:
+0021 (`users.terms_version`, `terms_accepted_at`, `erased_at`, relaxed identifier check), 0022
+(`entitlements.ending_reminder_queued_at`), 0023 (one settlement per Stream payment — unique index;
+check first that no two payments share a Stream payment id:
+`SELECT provider_payload_redacted->>'providerPaymentId', count(*) FROM payments WHERE provider_payload_redacted ? 'providerPaymentId' GROUP BY 1 HAVING count(*) > 1;`
+must return nothing), 0024 (`question_assets`). Snapshot, `pnpm db:migrate`, `pnpm db:verify`, then
+merge. The new sign-up requires the terms tick: deploy qup-web and qup-backend together.
+
+**Migration 0025** (`question_passages`, `question_versions.passage_id`) is additive too: apply it with 0021–0024.
+
+**Human check (optional, recommended before launch).** In Cloudflare → Turnstile add a widget for
+`qupedu.com` (managed mode), then on **qup-backend** set `TURNSTILE_SITE_KEY` and
+`TURNSTILE_SECRET_KEY`. Sign-up and "forgot password" then require it; nothing to set on qup-web.
+
+**File storage (STORAGE_DRIVER=s3) before authors upload images.** Create a private bucket on any
+S3-compatible provider (Cloudflare R2, AWS S3, or CranL's storage if it speaks S3), a key limited
+to that bucket, and set on **qup-backend**: `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`,
+`S3_SECRET_ACCESS_KEY`, and `S3_ENDPOINT` / `S3_REGION` as the provider says (`.env.example`).
+Without it the API warns at start-up and keeps files on the container's disk, where every redeploy
+loses them. Never make the bucket public: files are served through the API.
+
 **Migration 0020 before merging the AI release (2026-11-18).** 0020 (`ai_knowledge_items`,
 `ai_knowledge_chunks`, `ai_chat_messages`) is additive. Apply it to `qup-db-prod` first (snapshot,
 `pnpm db:migrate`, `pnpm db:verify`), then merge: the code that reads it would otherwise fail on the

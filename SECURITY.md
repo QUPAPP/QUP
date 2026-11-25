@@ -147,6 +147,19 @@ Prevent IDOR via ownership checks; never trust `studentId` from client for self 
 - parser isolation where practical.
 - async heavy processing.
 
+**Question images and audio (2026-11-25):** the type is sniffed from the bytes (PNG, JPEG, WebP,
+MP3, M4A); SVG, HTML and anything else is refused, whatever its name. Size caps per kind. Bytes go
+to private storage under `question-assets/<uuid>`; keys are checked against that shape before any
+read or write, and the local adapter re-checks the resolved path stays in its root. Served only to
+signed-in users with `Content-Security-Policy: default-src 'none'; sandbox`, `nosniff`,
+`inline`, `private` caching (the web proxy lets only `private` through, never a shared cache).
+The bucket is never public.
+
+**Account erasure (2026-11-25):** re-asks the password (an open session is not enough), runs in one
+transaction under a row lock, audited `user.erase`; staff accounts are refused while they hold a
+role, so the last-admin rule cannot be bypassed. An erased account has no identifier and an
+unusable password hash, and can never be reactivated.
+
 ## AI Security
 
 - external text is untrusted.
