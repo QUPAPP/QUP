@@ -10,6 +10,7 @@ import { Brand } from "./brand";
 import { EmailVerifyBanner } from "./email-verify-banner";
 import { Icon, type IconName } from "./icon";
 import { SignOutButton } from "./sign-out-button";
+import { TermsUpdateBanner } from "./terms-update-banner";
 
 const links: { href: string; title: string; icon: IconName }[] = [
   { href: "/dashboard", title: "الرئيسية", icon: "home" },
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </header>
         <div className="workspace-content">
+          {inSession ? null : <TermsUpdateBanner />}
           {inSession ? null : <EmailVerifyBanner />}
           {children}
         </div>

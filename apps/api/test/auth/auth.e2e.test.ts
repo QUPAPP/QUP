@@ -1,19 +1,19 @@
 import { createHash } from "node:crypto";
-
 import { Controller, Get } from "@nestjs/common";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { Permission } from "../../src/modules/rbac/permissions.js";
 import { RequirePermissions } from "../../src/modules/rbac/require-permissions.js";
 import {
   deleteE2eUsers,
+  deleteE2eUsersById,
   E2E_DATABASE_URL,
   e2eEmail,
   e2ePhone,
   e2eSql,
   grantRole,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** Test-only route guarded by the publish permission (OPEN_QUESTIONS.md #14). */
@@ -51,7 +51,12 @@ interface Registered {
 }
 
 async function register(body: Record<string, unknown>) {
-  return app.inject({ method: "POST", url: "/api/v1/auth/register", payload: body });
+  // Every sign-up accepts the terms unless a test says otherwise (see "records consent").
+  return app.inject({
+    method: "POST",
+    url: "/api/v1/auth/register",
+    payload: { acceptedTermsVersion: TERMS_VERSION, ...body },
+  });
 }
 
 async function registerStudent(email = e2eEmail("student")): Promise<Registered> {
@@ -343,12 +348,146 @@ describe("production cookie", () => {
       const response = await production.inject({
         method: "POST",
         url: "/api/v1/auth/register",
-        payload: { email: e2eEmail("prod"), password: PASSWORD },
+        payload: {
+          email: e2eEmail("prod"),
+          password: PASSWORD,
+          acceptedTermsVersion: TERMS_VERSION,
+        },
       });
       const cookie = response.cookies.find((c) => c.name === "__Host-qup_session");
       expect(cookie).toMatchObject({ secure: true, httpOnly: true, path: "/" });
     } finally {
       await production.close();
     }
+  });
+});
+
+describe("consent (PDPL)", () => {
+  it("refuses a sign-up that did not accept the terms", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/register",
+      payload: { email: e2eEmail("no-consent"), password: PASSWORD },
+    });
+    expect(response.statusCode).toBe(400);
+    const { error } = response.json<{ error: { details: { path: string }[] } }>();
+    expect(error.details.map((d) => d.path)).toContain("acceptedTermsVersion");
+  });
+
+  it("records which terms version was accepted, and when", async () => {
+    const { userId } = await registerStudent(e2eEmail("consent"));
+    const [row] = await e2eSql<{ terms_version: string; terms_accepted_at: Date | null }[]>`
+      SELECT terms_version, terms_accepted_at FROM users WHERE id = ${userId}`;
+    expect(row?.terms_version).toBe(TERMS_VERSION);
+    expect(row?.terms_accepted_at).toBeInstanceOf(Date);
+  });
+});
+
+describe("erasing one's own account", () => {
+  const erased: string[] = [];
+  afterAll(async () => {
+    await deleteE2eUsersById(erased);
+  });
+
+  function erase(token: string, payload: Record<string, unknown>) {
+    return app.inject({
+      method: "POST",
+      url: "/api/v1/auth/me/erase",
+      cookies: { [COOKIE]: token },
+      payload,
+    });
+  }
+
+  it("needs the password and the literal confirmation", async () => {
+    const { token } = await registerStudent();
+    expect((await erase(token, { password: PASSWORD })).statusCode).toBe(400);
+    const wrong = await erase(token, { password: "not it", confirmation: "DELETE" });
+    expect(wrong.statusCode).toBe(422);
+    expect(errorCode(wrong)).toBe("CURRENT_PASSWORD_INCORRECT");
+    expect((await me(token)).statusCode).toBe(200);
+  });
+
+  it("erases contact details and password, ends every session, and frees the email", async () => {
+    const email = e2eEmail("erase-me");
+    const phone = e2ePhone();
+    const signUp = await register({ email, phone, password: PASSWORD });
+    const userId = signUp.json<{ user: { id: string } }>().user.id;
+    erased.push(userId);
+    const token = signUp.cookies.find((c) => c.name === COOKIE)?.value ?? "";
+    const otherDevice = (await login(email)).cookies.find((c) => c.name === COOKIE)?.value ?? "";
+
+    const response = await erase(token, { password: PASSWORD, confirmation: "DELETE" });
+    expect(response.statusCode).toBe(204);
+    expect(response.cookies.find((c) => c.name === COOKIE)?.value).toBe("");
+
+    expect((await me(token)).statusCode).toBe(401);
+    expect((await me(otherDevice)).statusCode).toBe(401);
+    expect((await login(email)).statusCode).toBe(401);
+    expect((await login(phone)).statusCode).toBe(401);
+
+    const [row] = await e2eSql<
+      {
+        email: string | null;
+        phone: string | null;
+        display_name: string | null;
+        status: string;
+        erased_at: Date | null;
+        sessions: number;
+      }[]
+    >`
+      SELECT email, phone, display_name, status, erased_at,
+        (SELECT count(*)::int FROM auth_sessions WHERE user_id = ${userId}) AS sessions
+      FROM users WHERE id = ${userId}`;
+    expect(row).toMatchObject({
+      email: null,
+      phone: null,
+      display_name: null,
+      status: "DEACTIVATED",
+      sessions: 0,
+    });
+    expect(row?.erased_at).toBeInstanceOf(Date);
+
+    const [audit] = await e2eSql<{ action: string }[]>`
+      SELECT action FROM audit_logs WHERE resource_id = ${userId} AND action = 'user.erase'`;
+    expect(audit?.action).toBe("user.erase");
+
+    // The address is free again: the person may come back with a fresh account.
+    const again = await register({ email, password: PASSWORD });
+    expect(again.statusCode).toBe(201);
+  });
+
+  it("refuses a staff account: an admin takes its roles away first", async () => {
+    const { userId, token } = await registerStudent();
+    await grantRole(userId, "CONTENT_MANAGER");
+    const response = await erase(token, { password: PASSWORD, confirmation: "DELETE" });
+    expect(response.statusCode).toBe(422);
+    expect(errorCode(response)).toBe("STAFF_ACCOUNT_CANNOT_BE_ERASED");
+  });
+});
+
+describe("accepting updated terms", () => {
+  it("tells the app which version was accepted, and records a newer one", async () => {
+    const { token } = await registerStudent(e2eEmail("terms-update"));
+    const before = (await me(token)).json<{ user: { acceptedTermsVersion: string | null } }>();
+    expect(before.user.acceptedTermsVersion).toBe(TERMS_VERSION);
+
+    const accepted = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/terms",
+      cookies: { [COOKIE]: token },
+      payload: { acceptedTermsVersion: "2027-01-01" },
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(
+      accepted.json<{ user: { acceptedTermsVersion: string } }>().user.acceptedTermsVersion,
+    ).toBe("2027-01-01");
+
+    const bad = await app.inject({
+      method: "POST",
+      url: "/api/v1/auth/terms",
+      cookies: { [COOKIE]: token },
+      payload: { acceptedTermsVersion: "latest" },
+    });
+    expect(bad.statusCode).toBe(400);
   });
 });

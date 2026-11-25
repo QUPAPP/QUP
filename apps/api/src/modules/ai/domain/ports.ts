@@ -25,6 +25,8 @@ export interface AiRunStore {
     limit: number;
     offset: number;
   }): Promise<{ items: StoredAiRun[]; hasMore: boolean }>;
+  /** Calls and tokens (input + output) recorded since the given time, every task and status. */
+  usageSince(since: Date): Promise<{ runs: number; tokens: number }>;
   /** Runs per status since the given time; every status is present. */
   countsSince(since: Date): Promise<Record<AiRunStatus, number>>;
   /** The newest successful output of a task about a subject, asked by this person since a time. */

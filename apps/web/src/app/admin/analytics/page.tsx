@@ -8,6 +8,7 @@ import { ErrorNotice, Loading } from "@/components/status";
 import {
   type AnalyticsWindow,
   getContentMetrics,
+  getFunnelMetrics,
   getImportMetrics,
   getLearningMetrics,
   getOutboxStatus,
@@ -58,6 +59,7 @@ function Analytics({ userId }: { userId: string }) {
           </fieldset>
         }
       />
+      <FunnelCard userId={userId} days={days} />
       <LearningCard userId={userId} days={days} />
       <ContentCard userId={userId} />
       <ImportsCard userId={userId} days={days} />
@@ -76,6 +78,34 @@ function Stats({ items }: { items: [string, string | number][] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function FunnelCard({ userId, days }: { userId: string; days: AnalyticsWindow }) {
+  const funnel = useQuery({
+    queryKey: ["admin-analytics-funnel", userId, days],
+    queryFn: () => getFunnelMetrics(days),
+  });
+  const data = funnel.data;
+  return (
+    <section className="card stack" aria-labelledby="funnel-heading">
+      <h2 id="funnel-heading">من التسجيل إلى الاشتراك</h2>
+      {funnel.isPending ? <Loading /> : null}
+      {funnel.isError ? <ErrorNotice error={funnel.error} /> : null}
+      {data ? (
+        <Stats
+          items={[
+            ["حسابات جديدة", data.registered],
+            ["أنهوا التشخيص المصغّر", data.finishedMiniDiagnostic],
+            ["اشتركوا بعده", data.paidAfterMiniDiagnostic],
+            ["نسبة التحويل", data.conversionRate === null ? "—" : percentText(data.conversionRate)],
+          ]}
+        />
+      ) : null}
+      <p className="small muted">
+        من أنهى التشخيص المصغّر خلال الفترة، كم منهم دفع خلالها. المبالغ في صفحة الباقات والمدفوعات.
+      </p>
+    </section>
   );
 }
 

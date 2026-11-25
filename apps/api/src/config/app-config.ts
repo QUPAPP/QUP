@@ -77,6 +77,8 @@ const MIN_PROXY_SECRET_LENGTH = 32;
 /** 256 bits as hex; a shorter key weakens the code hashes. */
 const MIN_OTP_SECRET_LENGTH = 32;
 
+const DEFAULT_LOCAL_STORAGE_DIR = "var/storage";
+
 /** Empty strings in a .env file mean "not set". */
 const optionalSecret = z
   .string()
@@ -164,6 +166,13 @@ const envSchema = z.object({
    * SNDR_API_KEY unset to run without email: codes cannot be requested (503), everything else works.
    * SNDR_FROM's domain must be verified in the SNDR dashboard.
    */
+  /**
+   * Cloudflare Turnstile on sign-up and "forgot password" (bots, throwaway accounts).
+   * Set both, or neither: without them there is no human check.
+   */
+  TURNSTILE_SITE_KEY: optionalSecret,
+  TURNSTILE_SECRET_KEY: optionalSecret,
+
   SNDR_API_KEY: optionalSecret,
   SNDR_FROM: optionalSecret,
   SNDR_REPLY_TO: optionalSecret,
@@ -178,8 +187,25 @@ const envSchema = z.object({
   /** The web app's public address, for links inside emails. */
   APP_PUBLIC_URL: optionalUrl,
 
-  /** Private directory for uploaded import files (V1 storage adapter). Relative to the working directory. */
-  IMPORT_STORAGE_DIR: z.string().min(1).default("var/imports"),
+  /**
+   * Where uploaded files live: import originals and question images/audio.
+   * `local` is a private directory (STORAGE_LOCAL_DIR) — fine on one machine,
+   * lost when a container is replaced. `s3` is any S3-compatible bucket (AWS,
+   * Cloudflare R2, MinIO…), the production choice. Defaults to local.
+   */
+  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  /** Private directory for the local driver, relative to the working directory (default var/storage). */
+  STORAGE_LOCAL_DIR: z.string().min(1).optional(),
+  /** The local directory's former name, from when only import files were stored; still honoured. */
+  IMPORT_STORAGE_DIR: z.string().min(1).optional(),
+  /** The bucket's endpoint for S3-compatible providers; unset for AWS itself. */
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().trim().min(1).default("auto"),
+  S3_BUCKET: optionalSecret,
+  S3_ACCESS_KEY_ID: optionalSecret,
+  S3_SECRET_ACCESS_KEY: optionalSecret,
+  /** Path-style addressing (bucket in the path), which MinIO and some providers need. */
+  S3_FORCE_PATH_STYLE: booleanFlag.default(false),
 
   /**
    * AI assistance (AI_INTEGRATION.md). `fake` is the deterministic test
@@ -220,6 +246,9 @@ const envSchema = z.object({
 /** Checks that span several variables. Messages name variables, never values. */
 function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   const problems: string[] = [];
+  if ((env.TURNSTILE_SITE_KEY === undefined) !== (env.TURNSTILE_SECRET_KEY === undefined)) {
+    problems.push("TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY: set both, or neither");
+  }
   if ((env.STREAM_API_KEY === undefined) !== (env.STREAM_WEBHOOK_SECRET === undefined)) {
     problems.push("STREAM_API_KEY and STREAM_WEBHOOK_SECRET: set both, or neither");
   }
@@ -262,6 +291,18 @@ function crossFieldProblems(env: z.infer<typeof envSchema>): string[] {
   // Every student reaches the API through the web app: without the secret they would all share its address.
   if (env.NODE_ENV === "production" && env.PROXY_SHARED_SECRET === undefined) {
     problems.push("PROXY_SHARED_SECRET: required in production (shared with the web app)");
+  }
+  if (env.STORAGE_DRIVER === "s3") {
+    for (const name of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const) {
+      if (env[name] === undefined) problems.push(`${name}: required when STORAGE_DRIVER=s3`);
+    }
+    if (
+      env.NODE_ENV === "production" &&
+      env.S3_ENDPOINT !== undefined &&
+      !env.S3_ENDPOINT.startsWith("https://")
+    ) {
+      problems.push("S3_ENDPOINT: must use https in production");
+    }
   }
   // Canned suggestions would reach real authors as if a model wrote them.
   if (env.NODE_ENV === "production" && env.AI_PROVIDER === "fake") {
@@ -372,6 +413,15 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
       failureUrl: env.PAYMENT_FAILURE_URL ?? null,
       checkoutTtlMinutes: env.CHECKOUT_TTL_MINUTES,
     },
+    captcha:
+      env.TURNSTILE_SITE_KEY !== undefined && env.TURNSTILE_SECRET_KEY !== undefined
+        ? {
+            siteKey: env.TURNSTILE_SITE_KEY,
+            secretKey: env.TURNSTILE_SECRET_KEY,
+            // The widget must have been solved on our own site.
+            expectedHostname: env.APP_PUBLIC_URL ? new URL(env.APP_PUBLIC_URL).hostname : null,
+          }
+        : null,
     email: {
       sndr:
         env.SNDR_API_KEY !== undefined && env.SNDR_FROM !== undefined
@@ -386,9 +436,24 @@ function toAppConfig(env: z.infer<typeof envSchema>) {
       otpSecret: env.OTP_SECRET ?? null,
       appUrl: env.APP_PUBLIC_URL?.replace(/\/+$/, "") ?? null,
     },
-    imports: {
-      storageDir: env.IMPORT_STORAGE_DIR,
-    },
+    storage:
+      env.STORAGE_DRIVER === "s3" &&
+      env.S3_BUCKET !== undefined &&
+      env.S3_ACCESS_KEY_ID !== undefined &&
+      env.S3_SECRET_ACCESS_KEY !== undefined
+        ? {
+            driver: "s3" as const,
+            bucket: env.S3_BUCKET,
+            region: env.S3_REGION,
+            endpoint: env.S3_ENDPOINT ?? null,
+            accessKeyId: env.S3_ACCESS_KEY_ID,
+            secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+            forcePathStyle: env.S3_FORCE_PATH_STYLE,
+          }
+        : {
+            driver: "local" as const,
+            directory: env.STORAGE_LOCAL_DIR ?? env.IMPORT_STORAGE_DIR ?? DEFAULT_LOCAL_STORAGE_DIR,
+          },
     ai: {
       provider: aiProvider(env),
       studentExplanations: env.AI_STUDENT_EXPLANATIONS,
@@ -416,6 +481,11 @@ export function disabledFeatures(config: AppConfig): string[] {
   if (config.email.sndr === null) {
     off.push(
       "Email is off: set SNDR_API_KEY, SNDR_FROM and OTP_SECRET (email verification and password reset codes answer 503).",
+    );
+  }
+  if (config.isProduction && config.storage.driver === "local") {
+    off.push(
+      "Uploads are on the container's disk: set STORAGE_DRIVER=s3 and S3_* (question images, audio and import files are lost on every redeploy otherwise).",
     );
   }
   if (config.ai.provider === null) {

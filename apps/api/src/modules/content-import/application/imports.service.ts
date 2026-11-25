@@ -291,6 +291,7 @@ function toDraftContent(
     explanation: row.explanation ? textContent(row.explanation) : null,
     difficulty: row.difficulty,
     taxonomyVersionId,
+    passageId: null,
     sourceType: IMPORT_SOURCE_TYPE,
     sourceReference: row.source ?? fallbackSource,
     options: row.options.map((option, index) => ({

@@ -1,0 +1,2 @@
+ALTER TABLE "entitlements" ADD COLUMN "ending_reminder_queued_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "entitlements_ending_reminder_idx" ON "entitlements" USING btree ("ends_at") WHERE status = 'ACTIVE' AND ends_at IS NOT NULL AND ending_reminder_queued_at IS NULL;

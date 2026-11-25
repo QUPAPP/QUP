@@ -33,3 +33,11 @@ var/
 
 # Local code-graph output
 graphify-out/
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Playwright runs
+apps/web/test-results/
+apps/web/playwright-report/
+var/e2e-storage/

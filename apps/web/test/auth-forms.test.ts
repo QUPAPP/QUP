@@ -44,6 +44,7 @@ describe("sign-up phone", () => {
       email: "",
       phone: "0501234567",
       password: "a long enough password",
+      acceptTerms: true,
     });
     expect(form.phone).toBe("+966501234567");
   });
@@ -55,7 +56,22 @@ describe("sign-up phone", () => {
         email: "",
         phone: "123",
         password: "a long enough password",
+        acceptTerms: true,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("sign-up consent", () => {
+  it("refuses a sign-up without the explicit tick", () => {
+    const result = registerForm.safeParse({
+      displayName: "",
+      email: "student@example.com",
+      phone: "",
+      password: "a long enough password",
+      acceptTerms: false,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toContain("acceptTerms");
   });
 });

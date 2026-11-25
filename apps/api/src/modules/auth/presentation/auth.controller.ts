@@ -13,18 +13,24 @@ import {
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
+import { actorFrom } from "../../../common/http/actor-context.js";
 import { ZodValidationPipe } from "../../../common/validation/zod-validation.pipe.js";
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
 import { CredentialEndpoint } from "../../../infrastructure/rate-limit/rate-limit.module.js";
 import { AuthService, type ClientContext } from "../application/auth.service.js";
+import { HumanCheckService } from "../application/human-check.service.js";
 import { OtpService } from "../application/otp.service.js";
 import type { UserProfile } from "../domain/ports.js";
 import type { Principal } from "../domain/principal.js";
 import {
+  type AcceptTermsBody,
+  acceptTermsBody,
   type ChangePasswordBody,
   type ConfirmEmailBody,
   changePasswordBody,
   confirmEmailBody,
+  type EraseAccountBody,
+  eraseAccountBody,
   type ForgotPasswordBody,
   forgotPasswordBody,
   type LoginBody,
@@ -46,6 +52,8 @@ interface PublicUser {
   email: string | null;
   /** True once the person proved they can read mail sent to `email` (one-time code). */
   emailVerified: boolean;
+  /** The terms-and-privacy version the person last accepted; null before consent was recorded. */
+  acceptedTermsVersion: string | null;
   phone: string | null;
   displayName: string | null;
   createdAt: string;
@@ -56,6 +64,7 @@ function toPublicUser(user: UserProfile): PublicUser {
     id: user.id,
     email: user.email,
     emailVerified: user.emailVerifiedAt !== null,
+    acceptedTermsVersion: user.termsVersion,
     phone: user.phone,
     displayName: user.displayName,
     createdAt: user.createdAt.toISOString(),
@@ -76,8 +85,18 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly otp: OtpService,
+    private readonly humanCheck: HumanCheckService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
+
+  @Get("sign-up-options")
+  @Public()
+  @ApiOperation({
+    summary: "What the public forms need before they are sent: the human-check site key, if any.",
+  })
+  signUpOptions(): { captchaSiteKey: string | null } {
+    return { captchaSiteKey: this.config.captcha?.siteKey ?? null };
+  }
 
   @Post("register")
   @Public()
@@ -89,7 +108,10 @@ export class AuthController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<{ user: PublicUser }> {
-    const { user, session } = await this.auth.register(body, clientContext(request));
+    const client = clientContext(request);
+    const { captchaToken, ...command } = body;
+    await this.humanCheck.assert(captchaToken, "register", client.ipAddress);
+    const { user, session } = await this.auth.register(command, client);
     setSessionCookie(reply, this.config, session);
     return { user: toPublicUser(user) };
   }
@@ -154,6 +176,20 @@ export class AuthController {
     return { user: toPublicUser(user) };
   }
 
+  @Post("terms")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Accept the terms and privacy policy as they read now (after they were updated).",
+  })
+  async acceptTerms(
+    @CurrentPrincipal() principal: Principal,
+    @Body(new ZodValidationPipe(acceptTermsBody)) body: AcceptTermsBody,
+  ): Promise<{ user: PublicUser }> {
+    return {
+      user: toPublicUser(await this.auth.acceptTerms(principal, body.acceptedTermsVersion)),
+    };
+  }
+
   @Post("password")
   @CredentialEndpoint()
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -163,6 +199,24 @@ export class AuthController {
     @Body(new ZodValidationPipe(changePasswordBody)) body: ChangePasswordBody,
   ): Promise<void> {
     await this.auth.changePassword(principal, body);
+  }
+
+  @Post("me/erase")
+  @CredentialEndpoint()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: "Delete the signed-in account for good; every session ends.",
+    description:
+      'Needs the password and `confirmation: "DELETE"`. Email, phone, name and password are erased; payments and anonymous learning evidence stay. 422 CURRENT_PASSWORD_INCORRECT, or STAFF_ACCOUNT_CANNOT_BE_ERASED for an account with staff roles.',
+  })
+  async eraseAccount(
+    @CurrentPrincipal() principal: Principal,
+    @Body(new ZodValidationPipe(eraseAccountBody)) body: EraseAccountBody,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<void> {
+    await this.auth.eraseOwnAccount(principal, body.password, actorFrom(request));
+    clearSessionCookie(reply, this.config);
   }
 
   @Post("email/verification")
@@ -201,7 +255,15 @@ export class AuthController {
     description:
       "Answers the same whether or not the address belongs to an account, so it cannot be used to find out who is registered.",
   })
-  async forgotPassword(@Body(new ZodValidationPipe(forgotPasswordBody)) body: ForgotPasswordBody) {
+  async forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordBody)) body: ForgotPasswordBody,
+    @Req() request: FastifyRequest,
+  ) {
+    await this.humanCheck.assert(
+      body.captchaToken,
+      "forgot-password",
+      clientContext(request).ipAddress,
+    );
     return this.otp.requestPasswordReset(body.email);
   }
 

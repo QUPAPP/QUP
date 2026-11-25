@@ -23,7 +23,7 @@ export const config = {
   matcher: [
     {
       // Pages only: not the API proxy, build assets, or files from public/.
-      source: "/((?!api/|_next/static|_next/image|favicon.ico|brand/|robots.txt).*)",
+      source: "/((?!api/|_next/static|_next/image|favicon.ico|brand/|robots.txt|sitemap.xml).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

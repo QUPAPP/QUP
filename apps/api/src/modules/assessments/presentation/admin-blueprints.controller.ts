@@ -23,6 +23,7 @@ import {
   BLUEPRINT_QUESTION_COUNT,
   type Blueprint,
   DIAGNOSTIC_BLUEPRINT_TYPES,
+  MOCK_TIME_LIMIT_MINUTES,
 } from "../domain/blueprint.js";
 
 const NAME_MAX = 120;
@@ -34,6 +35,17 @@ const questionCount = z
   .int()
   .min(BLUEPRINT_QUESTION_COUNT.min)
   .max(BLUEPRINT_QUESTION_COUNT.max);
+/** A mock exam's whole duration, in minutes; null keeps the per-question default. */
+const timeLimitMinutes = z
+  .number()
+  .int()
+  .min(MOCK_TIME_LIMIT_MINUTES.min)
+  .max(MOCK_TIME_LIMIT_MINUTES.max)
+  .nullable();
+const SECONDS_PER_MINUTE = 60;
+const toSeconds = (minutes: number | null) =>
+  minutes === null ? null : minutes * SECONDS_PER_MINUTE;
+
 /** numeric(6, 4) like taxonomy weights, but 0 is allowed: it leaves a domain out. */
 const domainWeight = decimal({ scale: 4, min: 0, minInclusive: true, max: 99.9999 });
 
@@ -42,6 +54,7 @@ const createBlueprintBody = z.strictObject({
   code: nodeCode,
   name: z.string().trim().min(1).max(NAME_MAX),
   questionCount,
+  timeLimitMinutes: timeLimitMinutes.optional(),
 });
 type CreateBlueprintBody = z.output<typeof createBlueprintBody>;
 
@@ -49,6 +62,7 @@ const updateBlueprintBody = z
   .strictObject({
     name: z.string().trim().min(1).max(NAME_MAX).optional(),
     questionCount: questionCount.optional(),
+    timeLimitMinutes: timeLimitMinutes.optional(),
     domainWeights: z
       .array(z.strictObject({ domainId: z.uuid(), weight: domainWeight.nullable() }))
       .max(MAX_DOMAIN_WEIGHTS)
@@ -75,6 +89,10 @@ function toSummary(blueprint: Blueprint) {
     code: blueprint.code,
     name: blueprint.name,
     questionCount: blueprint.questionCount,
+    timeLimitMinutes:
+      blueprint.timeLimitSeconds === null
+        ? null
+        : Math.round(blueprint.timeLimitSeconds / SECONDS_PER_MINUTE),
     status: blueprint.status,
     createdAt: blueprint.createdAt.toISOString(),
     updatedAt: blueprint.updatedAt.toISOString(),
@@ -115,7 +133,13 @@ export class AdminBlueprintsController {
     @Param("examId", uuid) examId: string,
     @Body(new ZodValidationPipe(createBlueprintBody)) body: CreateBlueprintBody,
   ) {
-    return toView(await this.blueprints.create(examId, body));
+    const { timeLimitMinutes, ...rest } = body;
+    return toView(
+      await this.blueprints.create(examId, {
+        ...rest,
+        timeLimitSeconds: toSeconds(timeLimitMinutes ?? null),
+      }),
+    );
   }
 
   @Get("blueprints/:id")
@@ -125,7 +149,9 @@ export class AdminBlueprintsController {
   }
 
   @Patch("blueprints/:id")
-  @ApiOperation({ summary: "Change a DRAFT: name, question count, domain weights." })
+  @ApiOperation({
+    summary: "Change a DRAFT: name, question count, time limit (mock exam), domain weights.",
+  })
   async update(
     @Param("id", uuid) id: string,
     @Body(new ZodValidationPipe(updateBlueprintBody)) body: UpdateBlueprintBody,
@@ -134,6 +160,8 @@ export class AdminBlueprintsController {
       await this.blueprints.update(id, {
         name: body.name,
         questionCount: body.questionCount,
+        timeLimitSeconds:
+          body.timeLimitMinutes === undefined ? undefined : toSeconds(body.timeLimitMinutes),
         domainWeights: body.domainWeights
           ? new Map(body.domainWeights.map((entry) => [entry.domainId, entry.weight]))
           : undefined,

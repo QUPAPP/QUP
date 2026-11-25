@@ -17,6 +17,8 @@ export interface UserProfile {
   status: UserStatus;
   /** When the person proved they can read mail sent to `email`; null until then. */
   emailVerifiedAt: Date | null;
+  /** The terms-and-privacy version the person last accepted; null before consent was recorded. */
+  termsVersion: string | null;
   createdAt: Date;
 }
 
@@ -31,7 +33,12 @@ export interface NewUser {
   phone: string | null;
   passwordHash: string;
   displayName: string | null;
+  /** What the person accepted at sign-up; null for accounts made by an operator (first admin). */
+  consent: { termsVersion: string; acceptedAt: Date } | null;
 }
+
+/** Why erasing an account was refused. */
+export type EraseRefusal = "NOT_FOUND" | "ALREADY_ERASED" | "HAS_STAFF_ROLE";
 
 /** Role codes seeded by 0003_seed_rbac. */
 export type RoleCode = "STUDENT" | "CONTENT_MANAGER" | "ADMIN";
@@ -71,6 +78,8 @@ export interface AuthStore {
   updatePasswordHash(userId: string, passwordHash: string, at: Date): Promise<void>;
   loadAccess(userId: string): Promise<UserAccess>;
   recordLogin(userId: string, at: Date): Promise<void>;
+  /** Records that the person accepted this terms version now (after the documents changed). */
+  recordConsent(userId: string, termsVersion: string, at: Date): Promise<UserProfile | null>;
 
   createSession(session: NewSession): Promise<string>;
   /** A session that exists, is not revoked and has not expired at `now`. */
@@ -79,6 +88,13 @@ export interface AuthStore {
   revokeSession(sessionId: string, at: Date): Promise<void>;
   /** Revokes every active session of the user except `keepSessionId`. Returns how many. */
   revokeOtherSessions(userId: string, keepSessionId: string, at: Date): Promise<number>;
+
+  /**
+   * Erases a student account in one transaction, audited as `user.erase`
+   * (account-erasure.ts says what goes and what stays). Staff accounts are
+   * refused: their roles are taken away first, so the last-admin rule holds.
+   */
+  eraseAccount(userId: string, actor: ActorContext, at: Date): Promise<EraseRefusal | "ERASED">;
 }
 
 export interface PasswordHasher {

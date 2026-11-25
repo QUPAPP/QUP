@@ -133,6 +133,35 @@ const freeTrialSchema = z.strictObject({
   chatMessages: z.number().int().min(0).max(MAX_FREE_CHAT_MESSAGES),
 });
 
+export const AI_DAILY_BUDGET_KEY = "ai.dailyBudget";
+
+/**
+ * A ceiling on what AI may spend across the whole platform in any 24 hours
+ * (AI_INTEGRATION.md "Cost Control"): per-student limits bound one person,
+ * this bounds everyone together, e.g. a burst of throwaway accounts. Null is
+ * no ceiling. Counted from ai_runs, so every task counts, students and staff.
+ */
+export interface AiDailyBudgetValue {
+  /** AI calls in the last 24 hours. */
+  maxRuns: number | null;
+  /** Input + output tokens in the last 24 hours. */
+  maxTokens: number | null;
+}
+
+const MAX_DAILY_RUNS = 1_000_000;
+const MAX_DAILY_TOKENS = 10_000_000_000;
+
+/** No ceiling until an admin sets one (OPEN_QUESTIONS.md #19f): the number is a business decision. */
+export const DEFAULT_AI_DAILY_BUDGET: AiDailyBudgetValue = Object.freeze({
+  maxRuns: null,
+  maxTokens: null,
+});
+
+const dailyBudgetSchema = z.strictObject({
+  maxRuns: z.number().int().min(1).max(MAX_DAILY_RUNS).nullable(),
+  maxTokens: z.number().int().min(1).max(MAX_DAILY_TOKENS).nullable(),
+});
+
 export const SETTING_DEFINITIONS = {
   [PRELIMINARY_LEVELS_KEY]: {
     valueType: "JSON",
@@ -160,6 +189,13 @@ export const SETTING_DEFINITIONS = {
       "Study chat replies a student gets free, once per account, before subscribing. 0 turns the free trial off.",
     schema: freeTrialSchema,
     defaultValue: DEFAULT_AI_FREE_TRIAL,
+  },
+  [AI_DAILY_BUDGET_KEY]: {
+    valueType: "JSON",
+    description:
+      "Most AI calls and tokens the whole platform may use in any 24 hours. Null is no limit. Past it, AI answers AI_DAILY_BUDGET_REACHED until usage falls.",
+    schema: dailyBudgetSchema,
+    defaultValue: DEFAULT_AI_DAILY_BUDGET as AiDailyBudgetValue,
   },
 } as const;
 

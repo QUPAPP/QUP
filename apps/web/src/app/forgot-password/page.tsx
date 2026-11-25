@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AuthLayout } from "@/components/auth-layout";
+import { HumanCheck, useHumanCheckSiteKey } from "@/components/human-check";
 import { ResendButton } from "@/components/resend-code";
 import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
@@ -46,7 +47,7 @@ export default function ForgotPasswordPage() {
         <ResetStep
           email={email}
           countdown={countdown}
-          resend={() => request.mutate(email)}
+          resend={(captchaToken) => request.mutate({ email, captchaToken })}
           resending={request.isPending}
           resendError={
             request.isError && retryAfterSeconds(request.error) === null ? request.error : null
@@ -62,20 +63,32 @@ function EmailStep({
   request,
   onSent,
 }: {
-  request: UseMutationResult<CodeRequested, Error, string>;
+  request: UseMutationResult<CodeRequested, Error, { email: string; captchaToken?: string | null }>;
   onSent: (email: string) => void;
 }) {
   const form = useForm<ForgotForm>({
     resolver: zodResolver(forgotForm),
     defaultValues: { email: "" },
   });
+  const siteKey = useHumanCheckSiteKey();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   return (
     <form
       className="auth-form"
       method="post"
       noValidate
       onSubmit={form.handleSubmit((values) =>
-        request.mutate(values.email, { onSuccess: () => onSent(values.email) }),
+        request.mutate(
+          { email: values.email, captchaToken },
+          {
+            onSuccess: () => onSent(values.email),
+            onError: () => {
+              setCaptchaToken(null);
+              setAttempt((n) => n + 1);
+            },
+          },
+        ),
       )}
     >
       <div className="auth-form-heading">
@@ -93,7 +106,19 @@ function EmailStep({
         inputMode="email"
         ltr
       />
-      <button type="submit" className="btn btn--block" disabled={request.isPending}>
+      {siteKey ? (
+        <HumanCheck
+          key={attempt}
+          siteKey={siteKey}
+          action="forgot-password"
+          onToken={setCaptchaToken}
+        />
+      ) : null}
+      <button
+        type="submit"
+        className="btn btn--block"
+        disabled={request.isPending || (siteKey !== null && captchaToken === null)}
+      >
         {request.isPending ? "جارٍ الإرسال…" : "أرسل الرمز"}
       </button>
       <p className="auth-form-foot">
@@ -116,7 +141,8 @@ function ResetStep({
 }: {
   email: string;
   countdown: { seconds: number };
-  resend: () => void;
+  /** Mails a new code; carries a fresh human-check token when the deployment has the check. */
+  resend: (captchaToken: string | null) => void;
   resending: boolean;
   resendError: unknown;
   onChangeEmail: () => void;
@@ -125,6 +151,9 @@ function ResetStep({
     resolver: zodResolver(resetForm),
     defaultValues: { code: "", newPassword: "", confirmPassword: "" },
   });
+  const siteKey = useHumanCheckSiteKey();
+  const [resendToken, setResendToken] = useState<string | null>(null);
+  const [resendAttempt, setResendAttempt] = useState(0);
   const reset = useMutation({
     mutationFn: (values: ResetForm) =>
       resetPassword({ email, code: values.code, newPassword: values.newPassword }),
@@ -192,8 +221,25 @@ function ResetStep({
       <button type="submit" className="btn btn--block" disabled={reset.isPending}>
         {reset.isPending ? "جارٍ الحفظ…" : "عيّن كلمة المرور"}
       </button>
+      {siteKey && countdown.seconds === 0 ? (
+        <HumanCheck
+          key={resendAttempt}
+          siteKey={siteKey}
+          action="forgot-password"
+          onToken={setResendToken}
+        />
+      ) : null}
       <div className="row auth-form-actions">
-        <ResendButton seconds={countdown.seconds} pending={resending} onResend={resend} />
+        <ResendButton
+          seconds={countdown.seconds}
+          pending={resending || (siteKey !== null && resendToken === null)}
+          onResend={() => {
+            resend(resendToken);
+            // Each token is good for one check: draw a new one for the next resend.
+            setResendToken(null);
+            setResendAttempt((n) => n + 1);
+          }}
+        />
         <button type="button" className="text-link" onClick={onChangeEmail}>
           بريد آخر
         </button>

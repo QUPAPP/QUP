@@ -12,6 +12,7 @@ import {
   BlueprintNeedsPublishedTaxonomy,
   BlueprintNotEditable,
   BlueprintNotFound,
+  BlueprintNotTimed,
   BlueprintTaxonomyNotPublished,
 } from "../domain/assessment.errors.js";
 import {
@@ -19,6 +20,7 @@ import {
   type Blueprint,
   type DiagnosticBlueprintType,
   effectiveDomainWeights,
+  isTimedBlueprintType,
 } from "../domain/blueprint.js";
 import { BLUEPRINT_STORE, type BlueprintChanges, type BlueprintStore } from "../domain/ports.js";
 
@@ -53,9 +55,18 @@ export class BlueprintsService {
   /** A draft pinned to the exam's published taxonomy version. */
   async create(
     examId: string,
-    input: { type: DiagnosticBlueprintType; code: string; name: string; questionCount: number },
+    input: {
+      type: DiagnosticBlueprintType;
+      code: string;
+      name: string;
+      questionCount: number;
+      timeLimitSeconds: number | null;
+    },
   ): Promise<BlueprintDetail> {
     if ((await this.catalog.examStatus(examId)) === null) throw new BlueprintExamNotFound();
+    if (input.timeLimitSeconds !== null && !isTimedBlueprintType(input.type)) {
+      throw new BlueprintNotTimed();
+    }
     const taxonomy = await this.catalog.publishedTaxonomy(examId);
     if (!taxonomy) throw new BlueprintNeedsPublishedTaxonomy();
     return this.detail(
@@ -66,6 +77,13 @@ export class BlueprintsService {
   async update(blueprintId: string, changes: BlueprintChanges): Promise<BlueprintDetail> {
     const blueprint = await this.found(blueprintId);
     assertEditable(blueprint.status);
+    if (
+      changes.timeLimitSeconds !== undefined &&
+      changes.timeLimitSeconds !== null &&
+      !isTimedBlueprintType(blueprint.type)
+    ) {
+      throw new BlueprintNotTimed();
+    }
     if (changes.domainWeights) {
       const outline = await this.outline(blueprint);
       const known = new Set(outline.domains.map((d) => d.id));

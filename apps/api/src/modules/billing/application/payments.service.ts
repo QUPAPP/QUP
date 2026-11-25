@@ -13,6 +13,8 @@ import {
   PaymentProviderUnavailable,
   PaymentsNotConfigured,
   PlanNotAvailable,
+  ProviderPaymentDoesNotMatch,
+  ProviderPaymentNotPaid,
   WebhookProviderUnknown,
 } from "../domain/billing.errors.js";
 import { accessSummary } from "../domain/entitlement-period.js";
@@ -171,6 +173,65 @@ export class PaymentsService implements PaymentReceipts {
       "Payment webhook handled",
     );
     return outcome;
+  }
+
+  /**
+   * An admin links one of our payments to the provider's payment by hand (RUNBOOK.md §6), for
+   * when the webhook never came: a student paid and has no access. The provider is asked, as for
+   * a webhook, and only its answer counts — the amount and currency must match, and one provider
+   * payment settles at most one of ours (0023). Settling or refunding is audited with the admin.
+   */
+  async reconcile(
+    paymentId: string,
+    providerPaymentId: string,
+    actor: ActorContext,
+  ): Promise<{ outcome: WebhookOutcome; payment: Payment }> {
+    const provider = this.requireProvider();
+    const payment = await this.store.findPayment(paymentId);
+    if (!payment) throw new PaymentNotFound();
+
+    let confirmed: Awaited<ReturnType<PaymentProvider["fetchPayment"]>>;
+    try {
+      confirmed = await provider.fetchPayment(providerPaymentId);
+    } catch (error) {
+      throw this.unavailable(error, payment.id);
+    }
+
+    let outcome: WebhookOutcome;
+    switch (confirmed.status) {
+      case "PAID":
+        if (
+          confirmed.amountMinor !== payment.amountMinor ||
+          confirmed.currency !== payment.currency
+        ) {
+          throw new ProviderPaymentDoesNotMatch({
+            expectedMinor: payment.amountMinor,
+            paidMinor: confirmed.amountMinor,
+            currency: confirmed.currency,
+          });
+        }
+        outcome = await this.store.settlePayment(
+          payment.id,
+          { providerPaymentId: confirmed.id, paidAt: confirmed.paidAt ?? new Date() },
+          actor,
+        );
+        break;
+      case "REFUNDED":
+        outcome = await this.store.refundPayment(
+          payment.id,
+          { providerPaymentId: confirmed.id },
+          actor,
+        );
+        break;
+      case "PARTIALLY_REFUNDED":
+      case "OTHER":
+        throw new ProviderPaymentNotPaid();
+    }
+    this.logger.info(
+      { paymentId: payment.id, outcome, adminId: actor.userId },
+      "Payment reconciled by an admin",
+    );
+    return { outcome, payment: (await this.store.findPayment(payment.id)) ?? payment };
   }
 
   private async applyEvent(

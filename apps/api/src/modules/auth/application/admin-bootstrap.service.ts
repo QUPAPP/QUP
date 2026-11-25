@@ -52,6 +52,8 @@ export class AdminBootstrapService {
         phone: command.phone ?? null,
         passwordHash: await this.hasher.hash(command.password),
         displayName: null,
+        // Made by an operator at the command line, not through the sign-up page.
+        consent: null,
       },
       SYSTEM_ACTOR,
     );

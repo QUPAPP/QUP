@@ -166,6 +166,7 @@ export class AiAssistantService {
       explanation: text(output.explanation),
       difficulty: DIFFICULTY_VALUES[request.difficulty],
       taxonomyVersionId: request.taxonomyVersionId,
+      passageId: null,
       sourceType: AI_DRAFT_SOURCE_TYPE,
       sourceReference: null,
       options: DRAFT_OPTION_KEYS.map((key, index) => {

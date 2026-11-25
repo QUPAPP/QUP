@@ -180,3 +180,13 @@ export class AiChatClosedDuringExam extends DomainError {
     super("The study assistant is closed while your mock exam is running. Finish it first.");
   }
 }
+
+/** The platform-wide AI ceiling for 24 hours is used up (setting ai.dailyBudget). */
+export class AiDailyBudgetReached extends DomainError {
+  readonly code = "AI_DAILY_BUDGET_REACHED";
+  readonly kind = "UNAVAILABLE";
+
+  constructor() {
+    super("AI assistance is paused for now because today's limit was reached. Try again later.");
+  }
+}

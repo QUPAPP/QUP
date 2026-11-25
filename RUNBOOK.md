@@ -96,7 +96,16 @@ refused because of the mismatch.
 ## 5. Outbox worker
 
 - **Role:** the worker drains `outbox_events` into `learning_events`, which the learning metrics
-  read.
+  read, and sends the emails events ask for (receipts, refunds, password changes, subscription
+  reminders). Every hour it also runs its maintenance (`worker/maintenance-scheduler.ts`):
+  - **retention:** deletes sign-in sessions 30 days after they expired or were signed out, one-time
+    codes a day after they were issued, and handled (`PUBLISHED`) outbox events after 30 days
+    (`infrastructure/maintenance/retention-policy.ts`). `FAILED` events, payments, evidence, the
+    audit log and the email log are kept;
+  - **subscription reminders:** queues one "ends soon" email per time-limited subscription ending
+    within 3 days, unless a later one already follows it.
+
+  Both are safe on several workers at once.
 - **Run:** a second process from the qup-backend image, `node dist/worker.js`, with the same
   environment and no port (DEPLOYMENT.md). It is not deployed yet.
 - **Stopped worker:** events wait and nothing is lost. The learning metrics stop updating.
@@ -120,9 +129,12 @@ refused because of the mismatch.
   1. Find the payment row (`payments`, by the student).
   2. If it is `PENDING`, have Stream redeliver the event from its dashboard. Delivery is idempotent:
      a replay never grants twice.
-  3. If Stream says paid but the event never arrives, grant access as an admin from
-     `/admin/billing` → "وصول الطلاب" (audited) — once per exam for a bundle — and tell Stream
-     support.
+  3. If Stream says paid but the event never arrives: in `/admin/billing` → "المدفوعات", find the
+     student's unsettled payment, press "طابِق مع Stream" and paste the payment's id from Stream's
+     dashboard. QUP asks Stream, and settles only if Stream says it is paid with the same amount
+     and currency, and that Stream payment has not settled another one (audited as
+     `payment.settle` by the admin). Do not grant access by hand for a paid student: the payment
+     would stay unsettled and its refund could not revoke it.
 - **Every payment** is listed in `/admin/billing` → "المدفوعات" with the student, the plan, Stream's
   payment id and the refund deadline (paid + 48 h).
 - **A refund:** make it in Stream's dashboard. Its `PAYMENT_REFUNDED` webhook marks the payment
@@ -130,6 +142,17 @@ refused because of the mismatch.
 - **Price change:** edit the plan in `/admin/billing`. It applies to the next checkout; earlier
   payments keep their amount and terms. The change is in the audit log (`plan.update`).
 - **Never** mark a payment as paid in the database by hand.
+
+## 6a. Deleting an account (privacy requests)
+
+- **The student does it:** `/account` → "حذف الحساب" (password + typed phrase).
+- **On a request by email or phone:** confirm it is the owner (reply from the registered address,
+  or a call from the registered number), then `/admin/users` → the account → "حذف الحساب".
+- **What goes:** email, phone, name, password, sessions, codes, study-chat messages and their AI
+  outputs, report notes; the email log keeps the delivery but not the address. **What stays:**
+  payments (financial records), learning evidence without a name, the audit log (`user.erase`).
+- **Staff accounts** cannot be deleted while they hold a staff role: remove the roles first.
+- It cannot be undone. The email or phone is free for a new account straight away.
 
 ## 6b. Email and one-time codes
 

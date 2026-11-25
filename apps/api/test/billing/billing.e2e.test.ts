@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
-
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
   deleteE2eUsers,
@@ -19,6 +17,7 @@ import {
   startFakeStream,
   streamWebhook,
 } from "../support/fake-stream.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /**
@@ -67,7 +66,7 @@ async function register(label: string): Promise<{ token: string; id: string; ema
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD },
+    payload: { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     token: response.cookies.find((c) => c.name === COOKIE)?.value ?? "",
@@ -1139,5 +1138,65 @@ describe("expired checkout", () => {
     expect(fresh.statusCode).toBe(201);
     expect(fresh.json<PaymentBody>().id).not.toBe(payment.id);
     expect(await paymentStatus(studentA, payment.id)).toBe("CANCELLED");
+  });
+});
+
+describe("reconciling a payment by hand", () => {
+  const reconcile = (paymentId: string, providerPaymentId: string, token = admin) =>
+    call(token, "POST", `/admin/payments/${paymentId}/reconcile`, {
+      payload: { providerPaymentId },
+    });
+
+  it("settles a paid checkout whose webhook never came, and audits it", async () => {
+    const open = await openCheckout(studentA);
+    const providerPaymentId = randomUUID();
+    stream.setPayment(providerPaymentId, { amount_in_smallest_unit: PRICE });
+
+    const response = await reconcile(open.payment.id, providerPaymentId);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      outcome: "SETTLED",
+      payment: { id: open.payment.id, status: "SUCCEEDED" },
+    });
+    expect((await access(studentA, open.examId)).hasAccess).toBe(true);
+    expect(await auditActions(open.payment.id)).toContain("payment.settle");
+
+    // Asked again: nothing changes, nothing is granted twice.
+    const again = await reconcile(open.payment.id, providerPaymentId);
+    expect(again.json()).toMatchObject({ outcome: "ALREADY_SETTLED" });
+    expect(await entitlementCount(open.examId)).toBe(1);
+  });
+
+  it("refuses a provider payment that already bought another payment", async () => {
+    const first = await openCheckout(studentA);
+    const { providerPaymentId } = await pay(first);
+    const second = await openCheckout(studentB);
+
+    const response = await reconcile(second.payment.id, providerPaymentId);
+    expect(response.statusCode).toBe(409);
+    expect(errorCode(response)).toBe("PROVIDER_PAYMENT_ALREADY_USED");
+    expect(await paymentStatus(studentB, second.payment.id)).toBe("PENDING");
+  });
+
+  it("refuses a different amount, or a payment the provider does not call paid", async () => {
+    const open = await openCheckout(studentB);
+    const wrongAmount = randomUUID();
+    stream.setPayment(wrongAmount, { amount_in_smallest_unit: PRICE - 100 });
+    const mismatch = await reconcile(open.payment.id, wrongAmount);
+    expect(mismatch.statusCode).toBe(422);
+    expect(errorCode(mismatch)).toBe("PROVIDER_PAYMENT_DOES_NOT_MATCH");
+
+    const unpaid = randomUUID();
+    stream.setPayment(unpaid, { amount_in_smallest_unit: PRICE, current_status: "FAILED" });
+    const notPaid = await reconcile(open.payment.id, unpaid);
+    expect(notPaid.statusCode).toBe(422);
+    expect(errorCode(notPaid)).toBe("PROVIDER_PAYMENT_NOT_PAID");
+    expect(await paymentStatus(studentB, open.payment.id)).toBe("PENDING");
+  });
+
+  it("is for billing admins only, and rejects an id that is not one", async () => {
+    const open = await openCheckout(studentB);
+    expect((await reconcile(open.payment.id, randomUUID(), studentB)).statusCode).toBe(403);
+    expect((await reconcile(open.payment.id, "../payments/x")).statusCode).toBe(400);
   });
 });

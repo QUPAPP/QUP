@@ -4,7 +4,6 @@ import { NestFactory } from "@nestjs/core";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import type { Database } from "@qup/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { DATABASE } from "../../src/infrastructure/database/database.module.js";
 import { OutboxEventType, writeOutbox } from "../../src/infrastructure/outbox/outbox.js";
 import {
@@ -21,6 +20,7 @@ import {
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
 import { liveExam } from "../support/live-exam.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, LogCapture, testConfig } from "../support/test-app.js";
 
 /** ARCHITECTURE.md §10, AGENTS.md §7: business write + outbox in one transaction; a worker drains. */
@@ -95,7 +95,11 @@ describe("transactional outbox", () => {
     const registered = await app.inject({
       method: "POST",
       url: "/api/v1/auth/register",
-      payload: { email: e2eEmail("outbox-student"), password: PASSWORD },
+      payload: {
+        email: e2eEmail("outbox-student"),
+        password: PASSWORD,
+        acceptedTermsVersion: TERMS_VERSION,
+      },
     });
     const token = registered.cookies.find((c) => c.name === COOKIE)?.value ?? "";
     const studentId = registered.json<{ user: { id: string } }>().user.id;

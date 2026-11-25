@@ -147,6 +147,16 @@ export class BlueprintCodeTaken extends DomainError {
 }
 
 /** Sessions reference active and archived blueprints, so only a draft may change. */
+/** Only a mock exam runs on one clock; the diagnostics are untimed. */
+export class BlueprintNotTimed extends DomainError {
+  readonly code = "BLUEPRINT_NOT_TIMED";
+  readonly kind = "INVALID_INPUT";
+
+  constructor() {
+    super("Only a mock exam blueprint has a time limit.");
+  }
+}
+
 export class BlueprintNotEditable extends DomainError {
   readonly code = "BLUEPRINT_NOT_EDITABLE";
   readonly kind = "CONFLICT";

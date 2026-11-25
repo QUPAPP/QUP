@@ -18,6 +18,7 @@ export interface QuestionVersionDetail {
   explanation: RichContent | null;
   difficulty: number;
   taxonomyVersionId: string;
+  passageId: string | null;
   sourceType: string | null;
   sourceReference: string | null;
   publishedAt: Date | null;

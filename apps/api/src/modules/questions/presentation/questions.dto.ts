@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { decimal } from "../../../common/validation/schemas.js";
+import { ASSET_LIMITS } from "../domain/question-assets.js";
 import { DEFAULT_ATTRIBUTION_WEIGHT, type DraftContent } from "../domain/question-content.js";
 
 /**
@@ -17,6 +18,13 @@ const MAX_MAPPINGS = 10;
 const contentBlock = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("text"), text: z.string().min(1).max(MAX_TEXT) }),
   z.strictObject({ type: z.literal("math"), latex: z.string().min(1).max(MAX_LATEX) }),
+  z.strictObject({
+    type: z.literal("image"),
+    assetId: z.uuid(),
+    // Required: an image without alternative text is invisible to a blind student.
+    alt: z.string().trim().min(1).max(ASSET_LIMITS.maxAltChars),
+  }),
+  z.strictObject({ type: z.literal("audio"), assetId: z.uuid() }),
 ]);
 
 const richContent = z.strictObject({ blocks: z.array(contentBlock).min(1).max(MAX_BLOCKS) });
@@ -52,12 +60,28 @@ export const draftContentBody = z.strictObject({
   /** ADAPTIVE_ENGINE.md §4 — normalized 0..1 (EASY 0.25 … ADVANCED 0.90). */
   difficulty: decimal({ scale: 3, min: 0, minInclusive: true, max: 1 }),
   taxonomyVersionId: z.uuid(),
+  /** A shared reading passage (POST /admin/passages); null or absent for none. */
+  passageId: z.uuid().nullable().optional(),
   sourceType: z.string().trim().min(1).max(100).optional(),
   sourceReference: z.string().trim().min(1).max(500).optional(),
   options: z.array(option).max(MAX_OPTIONS),
   mappings: z.array(mapping).max(MAX_MAPPINGS),
 });
 export type DraftContentBody = z.output<typeof draftContentBody>;
+
+/** A reading passage: written once, never edited (a correction is a new passage). */
+export const createPassageBody = z.strictObject({
+  title: z.string().trim().min(1).max(200),
+  content: richContent,
+});
+export type CreatePassageBody = z.output<typeof createPassageBody>;
+
+export const listPassagesQuery = z.strictObject({
+  search: z.string().trim().min(1).max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
+});
+export type ListPassagesQuery = z.output<typeof listPassagesQuery>;
 
 export const createQuestionBody = z.strictObject({
   stableCode: z
@@ -100,6 +124,7 @@ export function toDraftContent(body: DraftContentBody): DraftContent {
     explanation: body.explanation ?? null,
     difficulty: body.difficulty,
     taxonomyVersionId: body.taxonomyVersionId,
+    passageId: body.passageId ?? null,
     sourceType: body.sourceType ?? null,
     sourceReference: body.sourceReference ?? null,
     options: body.options.map((o, index) => ({

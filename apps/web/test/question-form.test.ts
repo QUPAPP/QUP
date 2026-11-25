@@ -30,6 +30,7 @@ const version: QuestionVersion = {
   explanation: text("لأن الجذر موجب."),
   difficulty: 0.75,
   taxonomyVersionId: "tv1",
+  passageId: "p1",
   sourceType: "BOOK",
   sourceReference: null,
   publishedAt: null,
@@ -60,6 +61,7 @@ describe("question form ↔ API body", () => {
       explanation: version.explanation,
       difficulty: 0.75,
       taxonomyVersionId: "tv1",
+      passageId: "p1",
       sourceType: "BOOK",
       options: [
         { key: "A", content: text("2"), isCorrect: true, displayOrder: 0 },

@@ -17,6 +17,7 @@ const blueprint: Blueprint = {
   code: "FULL-1",
   name: "التشخيص الكامل",
   questionCount: 40,
+  timeLimitMinutes: null,
   status: "DRAFT",
   createdAt: "2026-10-21T00:00:00.000Z",
   updatedAt: "2026-10-21T00:00:00.000Z",
@@ -32,6 +33,7 @@ describe("blueprint form", () => {
     expect(formFromBlueprint(blueprint)).toEqual({
       name: "التشخيص الكامل",
       questionCount: "40",
+      timeLimitMinutes: "",
       weights: ["", "3"],
     });
   });
@@ -52,7 +54,7 @@ describe("blueprint form", () => {
     });
     expect(
       blueprintEditSchema.parse({ name: "x", questionCount: "1", weights: ["0", ""] }),
-    ).toEqual({ name: "x", questionCount: 1, weights: [0, null] });
+    ).toEqual({ name: "x", questionCount: 1, timeLimitMinutes: null, weights: [0, null] });
   });
 
   it("keeps the question count within 1–200 and weights within numeric(6, 4)", () => {
@@ -87,5 +89,18 @@ describe("blueprint form", () => {
       "/api/v1/admin/blueprints/b1/activate",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+});
+
+describe("mock exam duration", () => {
+  it("is blank for no fixed duration, minutes otherwise, within the API bounds", () => {
+    const base = { type: "MOCK_EXAM", code: "MOCK-1", name: "محاكي", questionCount: "120" };
+    expect(blueprintCreateSchema.parse({ ...base, timeLimitMinutes: "" }).timeLimitMinutes).toBe(
+      null,
+    );
+    expect(blueprintCreateSchema.parse({ ...base, timeLimitMinutes: "١٥٠" }).timeLimitMinutes).toBe(
+      150,
+    );
+    expect(blueprintCreateSchema.safeParse({ ...base, timeLimitMinutes: "2" }).success).toBe(false);
   });
 });

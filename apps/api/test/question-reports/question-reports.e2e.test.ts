@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
   deleteE2eUsers,
@@ -11,6 +10,7 @@ import {
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
 import { liveExam } from "../support/live-exam.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** Students report problems in questions they were shown; reviewers close the reports. */
@@ -25,7 +25,7 @@ async function register(label: string) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: e2eEmail(label), password: PASSWORD },
+    payload: { email: e2eEmail(label), password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return response.cookies.find((c) => c.name === COOKIE)?.value ?? "";
 }

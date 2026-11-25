@@ -17,6 +17,7 @@ import { TextField } from "@/components/text-field";
 import {
   activateBlueprint,
   archiveBlueprint,
+  BLUEPRINT_TYPE_TITLES,
   type Blueprint,
   getBlueprint,
   updateBlueprint,
@@ -28,7 +29,6 @@ import {
   formFromBlueprint,
   toUpdateBody,
 } from "@/lib/blueprint-form";
-import { DIAGNOSTIC_TITLES } from "@/lib/diagnostics";
 import { ADMIN_PERMISSIONS } from "@/lib/permissions";
 
 export default function AdminBlueprintPage() {
@@ -73,7 +73,7 @@ function BlueprintAdmin({ userId, blueprintId }: { userId: string; blueprintId: 
   }
 
   const current = blueprint.data;
-  const typeTitle = DIAGNOSTIC_TITLES[current.type];
+  const typeTitle = BLUEPRINT_TYPE_TITLES[current.type];
   const lifecycleError = activate.error ?? archive.error;
   return (
     <main id="main-content" className="page stack stack--loose">
@@ -170,6 +170,17 @@ function DraftForm({
           error={errors.questionCount?.message}
           ltr
         />
+        {blueprint.type === "MOCK_EXAM" ? (
+          <TextField
+            idPrefix="blueprint-edit"
+            label="مدة الاختبار (بالدقائق)"
+            hint="ساعة واحدة للاختبار كله. فارغ: 62.5 ثانية لكل سؤال."
+            inputMode="numeric"
+            registration={form.register("timeLimitMinutes")}
+            error={errors.timeLimitMinutes?.message}
+            ltr
+          />
+        ) : null}
         <fieldset className="stack">
           <legend className="field__label">أوزان المجالات</legend>
           <p className="small muted">اتركه فارغًا لوزن التصنيف، و0 لاستبعاد المجال.</p>
@@ -217,6 +228,9 @@ function ReadOnlyBlueprint({ blueprint }: { blueprint: Blueprint }) {
           : "نموذج مؤرشف، محفوظ لأن جلسات سابقة خُطّطت به."}
       </p>
       <p>{`عدد الأسئلة: ${blueprint.questionCount}`}</p>
+      {blueprint.timeLimitMinutes !== null ? (
+        <p>{`المدة: ${blueprint.timeLimitMinutes} دقيقة`}</p>
+      ) : null}
       <ul className="list">
         {blueprint.domains.map((domain) => (
           <li key={domain.id} className="admin-row">

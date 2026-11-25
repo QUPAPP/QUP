@@ -2,8 +2,14 @@ import { Inject, Injectable } from "@nestjs/common";
 import { type AiProvider, type AiRunStatus, type AiTask, runAiTask } from "@qup/ai-gateway";
 
 import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
+import {
+  AI_DAILY_BUDGET_KEY,
+  SETTINGS_READER,
+  type SettingsReader,
+} from "../../settings/settings.contract.js";
 import { AI_PROVIDER } from "../ai.contract.js";
 import {
+  AiDailyBudgetReached,
   AiOutputInvalid,
   AiRequestInProgress,
   AiTimedOut,
@@ -15,6 +21,9 @@ export interface AiSubject {
   type: string;
   id: string;
 }
+
+/** The platform-wide AI budget is counted over this rolling window (setting ai.dailyBudget). */
+const BUDGET_WINDOW_MS = 24 * 60 * 60_000;
 
 function failure(status: Exclude<AiRunStatus, "SUCCEEDED">): Error {
   if (status === "INVALID_OUTPUT") return new AiOutputInvalid();
@@ -36,6 +45,7 @@ export class AiRunner {
     @Inject(AI_PROVIDER) private readonly provider: AiProvider | null,
     @Inject(AI_RUN_STORE) private readonly runs: AiRunStore,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(SETTINGS_READER) private readonly settings: SettingsReader,
   ) {}
 
   get providerName(): string | null {
@@ -70,6 +80,7 @@ export class AiRunner {
     requestedBy: string | null,
   ): Promise<O> {
     if (!this.provider) throw new AiUnavailable();
+    await this.assertWithinDailyBudget();
     const result = await runAiTask(this.provider, task, input, {
       timeoutMs: this.config.ai.timeoutMs,
       maxAttempts: this.config.ai.maxAttempts,
@@ -83,5 +94,20 @@ export class AiRunner {
     });
     if (result.ok) return result.output;
     throw failure(result.run.status as Exclude<AiRunStatus, "SUCCEEDED">);
+  }
+
+  /**
+   * Refuses a new call once the last 24 hours used up the platform budget.
+   * Checked before the call, so concurrent requests can overshoot by the calls
+   * already in flight: a ceiling, not an exact meter.
+   */
+  private async assertWithinDailyBudget(): Promise<void> {
+    const { value: budget } = await this.settings.current(AI_DAILY_BUDGET_KEY);
+    if (budget.maxRuns === null && budget.maxTokens === null) return;
+    const used = await this.runs.usageSince(new Date(Date.now() - BUDGET_WINDOW_MS));
+    if (budget.maxRuns !== null && used.runs >= budget.maxRuns) throw new AiDailyBudgetReached();
+    if (budget.maxTokens !== null && used.tokens >= budget.maxTokens) {
+      throw new AiDailyBudgetReached();
+    }
   }
 }

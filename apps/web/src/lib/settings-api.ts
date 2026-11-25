@@ -12,6 +12,8 @@ export const GATE_KEY = "assessment.fullReassessment.gate";
 export const CHAT_RULES_KEY = "ai.studyChat.rules";
 /** Free study chat replies before subscribing. */
 export const FREE_TRIAL_KEY = "ai.freeTrial";
+/** The platform-wide AI ceiling over 24 hours. */
+export const AI_BUDGET_KEY = "ai.dailyBudget";
 
 export interface SettingView {
   key: string;

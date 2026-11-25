@@ -94,3 +94,42 @@ export class AuthoringTaxonomyNotFound extends DomainError {
     super("The taxonomy version was not found.");
   }
 }
+
+/** Only PNG, JPEG and WebP images, and MP3 or M4A audio, read from the bytes themselves. */
+export class AssetTypeNotAccepted extends DomainError {
+  readonly code = "ASSET_TYPE_NOT_ACCEPTED";
+  readonly kind = "INVALID_INPUT";
+
+  constructor() {
+    super("Upload a PNG, JPEG or WebP image, or an MP3 or M4A audio file.");
+  }
+}
+
+export class AssetTooLarge extends DomainError {
+  readonly code = "ASSET_TOO_LARGE";
+  readonly kind = "INVALID_INPUT";
+  override readonly details: { kind: string; maxBytes: number };
+
+  constructor(kind: string, maxBytes: number) {
+    super("The file is larger than allowed for its kind.");
+    this.details = { kind, maxBytes };
+  }
+}
+
+export class PassageNotFound extends DomainError {
+  readonly code = "PASSAGE_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("No such reading passage.");
+  }
+}
+
+export class AssetNotFound extends DomainError {
+  readonly code = "ASSET_NOT_FOUND";
+  readonly kind = "NOT_FOUND";
+
+  constructor() {
+    super("No such image or audio file.");
+  }
+}

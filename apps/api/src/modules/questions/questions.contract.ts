@@ -29,6 +29,8 @@ export interface DeliverableQuestion {
   questionVersionId: string;
   questionId: string;
   questionType: QuestionType;
+  /** The reading passage the question is about, shown above the stem; null for most questions. */
+  passage: { id: string; content: RichContent } | null;
   stem: RichContent;
   /** Shown only after the student's attempt is stored, and only where the session allows it. */
   explanation: RichContent | null;
@@ -100,4 +102,4 @@ export type {
   QuestionVersionStatus,
   RichContent,
 } from "./domain/question-content.js";
-export { DEFAULT_ATTRIBUTION_WEIGHT } from "./domain/question-content.js";
+export { blockAsText, DEFAULT_ATTRIBUTION_WEIGHT } from "./domain/question-content.js";

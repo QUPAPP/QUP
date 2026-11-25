@@ -22,6 +22,7 @@ export function SiteFooter() {
           <a href="/#how-it-works">كيف يعمل</a>
           <a href="/#questions">أسئلة شائعة</a>
           <Link href="/tools/weighted-score">حاسبة النسبة الموزونة</Link>
+          <Link href="/contact">تواصل معنا</Link>
         </nav>
       </div>
       <div className="footer-bottom">

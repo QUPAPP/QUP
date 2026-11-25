@@ -7,6 +7,7 @@
 import type { SettingKey, SettingValue } from "./domain/setting-definitions.js";
 
 export type {
+  AiDailyBudgetValue,
   AiFreeTrialValue,
   FullReassessmentGateValue,
   PreliminaryLevelsValue,
@@ -14,6 +15,7 @@ export type {
   StudyChatRulesValue,
 } from "./domain/setting-definitions.js";
 export {
+  AI_DAILY_BUDGET_KEY,
   AI_FREE_TRIAL_KEY,
   DEFAULT_FULL_REASSESSMENT_GATE,
   DEFAULT_PRELIMINARY_LEVELS,

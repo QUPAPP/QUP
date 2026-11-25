@@ -18,7 +18,13 @@ export function buildContentSecurityPolicy(options: {
   /** React's development build uses eval for its debugging; production never does. */
   development: boolean;
 }): string {
-  const scriptSources = ["'self'", `'nonce-${options.nonce}'`, "'strict-dynamic'"];
+  // The Turnstile host is for browsers without 'strict-dynamic'; newer ones trust it as loaded by our own script.
+  const scriptSources = [
+    "'self'",
+    `'nonce-${options.nonce}'`,
+    "'strict-dynamic'",
+    "https://challenges.cloudflare.com",
+  ];
   if (options.development) scriptSources.push("'unsafe-eval'");
   const directives = [
     "default-src 'self'",
@@ -27,6 +33,8 @@ export function buildContentSecurityPolicy(options: {
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "connect-src 'self'",
+    // Cloudflare Turnstile, the human check on sign-up (components/human-check.tsx).
+    "frame-src https://challenges.cloudflare.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

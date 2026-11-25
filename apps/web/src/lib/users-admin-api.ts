@@ -12,6 +12,8 @@ export interface AdminUser {
   roles: RoleCode[];
   createdAt: string;
   lastLoginAt: string | null;
+  /** Set once the account was deleted at its owner's request; nothing about it changes again. */
+  erasedAt: string | null;
 }
 
 export interface AdminRole {
@@ -47,7 +49,7 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
   PENDING_VERIFICATION: "بانتظار التحقق",
   ACTIVE: "نشط",
   SUSPENDED: "موقوف",
-  DEACTIVATED: "مُغلق",
+  DEACTIVATED: "محذوف",
 };
 
 export function listUsers(filter: UserListFilter) {
@@ -67,3 +69,7 @@ export const suspendUser = (userId: string) =>
 
 export const reactivateUser = (userId: string) =>
   api<AdminUser>(`/admin/users/${userId}/reactivate`, { method: "POST" });
+
+/** Deletes a student's account at their request (privacy policy, "الإتلاف"). Cannot be undone. */
+export const eraseUser = (userId: string) =>
+  api<AdminUser>(`/admin/users/${userId}/erase`, { method: "POST" });

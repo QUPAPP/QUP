@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
   deleteE2eUsers,
@@ -12,6 +11,7 @@ import {
   grantRole,
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -56,7 +56,7 @@ async function register(label: string, role?: string): Promise<string> {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD },
+    payload: { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   if (role) await grantRole(response.json<{ user: { id: string } }>().user.id, role);
   return signIn(email);
@@ -267,5 +267,36 @@ describe("blueprint management", () => {
     const response = await call(admin, "GET", `/admin/blueprints/${randomUUID()}`);
     expect(response.statusCode).toBe(404);
     expect(code(response)).toBe("BLUEPRINT_NOT_FOUND");
+  });
+});
+
+describe("mock exam blueprints", () => {
+  it("carry a duration in minutes; the diagnostics cannot", async () => {
+    const mock = await create(exam.id, {
+      type: "MOCK_EXAM",
+      code: `MOCK-${randomUUID().slice(0, 6).toUpperCase()}`,
+      name: "اختبار محاكي",
+      questionCount: 120,
+      timeLimitMinutes: 150,
+    });
+    expect(mock.statusCode).toBe(201);
+    const body = mock.json<BlueprintBody & { timeLimitMinutes: number | null }>();
+    expect(body).toMatchObject({ type: "MOCK_EXAM", questionCount: 120, timeLimitMinutes: 150 });
+
+    const changed = await call(admin, "PATCH", `/admin/blueprints/${body.id}`, {
+      timeLimitMinutes: 120,
+    });
+    expect(changed.json<{ timeLimitMinutes: number }>().timeLimitMinutes).toBe(120);
+
+    const timedDiagnostic = await create(exam.id, { timeLimitMinutes: 60 });
+    expect(timedDiagnostic.statusCode).toBe(400);
+    expect(code(timedDiagnostic)).toBe("BLUEPRINT_NOT_TIMED");
+
+    const tooShort = await create(exam.id, {
+      type: "MOCK_EXAM",
+      code: `MOCK-${randomUUID().slice(0, 6).toUpperCase()}`,
+      timeLimitMinutes: 1,
+    });
+    expect(tooShort.statusCode).toBe(400);
   });
 });

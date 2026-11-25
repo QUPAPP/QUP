@@ -92,10 +92,11 @@ describe("configuration", () => {
 
   it("names every feature a deployment leaves off, and the variables that turn it on", () => {
     const bare = disabledFeatures(loadConfig({ DATABASE_URL: VALID_URL, ...PRODUCTION }));
-    expect(bare).toHaveLength(3);
+    expect(bare).toHaveLength(4);
     expect(bare.join()).toContain("STREAM_API_KEY");
     expect(bare.join()).toContain("SNDR_API_KEY");
     expect(bare.join()).toContain("AI_PROVIDER=deepseek");
+    expect(bare.join()).toContain("STORAGE_DRIVER=s3");
     const withAi = loadConfig({
       DATABASE_URL: VALID_URL,
       ...PRODUCTION,
@@ -103,6 +104,26 @@ describe("configuration", () => {
       AI_API_KEY: "sk-test",
     });
     expect(disabledFeatures(withAi).join()).not.toContain("AI is off");
+  });
+
+  it("stores files in an S3 bucket when told to, and needs its credentials", () => {
+    const s3 = loadConfig({
+      DATABASE_URL: VALID_URL,
+      STORAGE_DRIVER: "s3",
+      S3_BUCKET: "qup-assets",
+      S3_ACCESS_KEY_ID: "key",
+      S3_SECRET_ACCESS_KEY: "secret",
+      S3_ENDPOINT: "https://example.r2.cloudflarestorage.com",
+    });
+    expect(s3.storage).toMatchObject({ driver: "s3", bucket: "qup-assets", region: "auto" });
+    expect(() =>
+      loadConfig({ DATABASE_URL: VALID_URL, STORAGE_DRIVER: "s3", S3_BUCKET: "b" }),
+    ).toThrow(/S3_ACCESS_KEY_ID/);
+    // The variable that once held only import files still names the local directory.
+    expect(loadConfig({ DATABASE_URL: VALID_URL, IMPORT_STORAGE_DIR: "var/old" }).storage).toEqual({
+      driver: "local",
+      directory: "var/old",
+    });
   });
 
   it("parses the CORS allowlist and drops blank entries", () => {

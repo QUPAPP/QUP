@@ -8,6 +8,7 @@ import { ConfigModule } from "./config/config.module.js";
 import { DatabaseModule } from "./infrastructure/database/database.module.js";
 import { LoggingModule } from "./infrastructure/logging/logging.module.js";
 import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module.js";
+import { StorageModule } from "./infrastructure/storage/storage.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
 import { AnalyticsModule } from "./modules/analytics/analytics.module.js";
 import { AssessmentsModule } from "./modules/assessments/assessments.module.js";
@@ -38,6 +39,7 @@ export class AppModule {
         ConfigModule.forRoot(config),
         LoggingModule.forRoot(config, options.logDestination),
         DatabaseModule,
+        StorageModule,
         RateLimitModule,
         AuthModule,
         CatalogModule,

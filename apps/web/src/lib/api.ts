@@ -70,6 +70,8 @@ export interface User {
   email: string | null;
   /** True once the person proved they can read mail sent to `email` (one-time code). */
   emailVerified: boolean;
+  /** The terms-and-privacy version last accepted (LEGAL_UPDATED_AT); null before consent was recorded. */
+  acceptedTermsVersion: string | null;
   phone: string | null;
   displayName: string | null;
 }
@@ -133,7 +135,17 @@ export interface SessionHistoryFilters {
   status?: SessionStatus;
 }
 
-export type ContentBlock = { type: "text"; text: string } | { type: "math"; latex: string };
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "math"; latex: string }
+  /** A figure or chart; `alt` is read aloud in its place. */
+  | { type: "image"; assetId: string; alt: string }
+  /** A listening passage, in a question's stem. */
+  | { type: "audio"; assetId: string };
+
+/** Where the browser loads an image or audio file of question content (same origin, signed in). */
+export const assetUrl = (assetId: string) =>
+  `/api/v1/question-assets/${encodeURIComponent(assetId)}`;
 export interface RichContent {
   blocks: ContentBlock[];
 }
@@ -147,6 +159,8 @@ export interface CurrentItem {
     question: {
       questionVersionId: string;
       questionType: "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "TRUE_FALSE";
+      /** A reading passage several questions share; the same id on each of them. */
+      passage?: { id: string; content: RichContent } | null;
       stem: RichContent;
       options: { key: string; content: RichContent }[];
     };
@@ -283,7 +297,19 @@ export const register = (body: {
   phone?: string;
   password: string;
   displayName?: string;
+  /** The terms-and-privacy version (LEGAL_UPDATED_AT) the person ticked. */
+  acceptedTermsVersion: string;
+  /** The human check's token, when the deployment has one (TURNSTILE_*). */
+  captchaToken?: string;
 }) => api<{ user: User }>("/auth/register", { method: "POST", body });
+
+/** Deletes the signed-in account for good; the API ends every session. */
+export const eraseAccount = (body: { password: string; confirmation: "DELETE" }) =>
+  api<void>("/auth/me/erase", { method: "POST", body });
+
+/** Accepts the terms and privacy policy as they read now, after they were updated. */
+export const acceptTerms = (acceptedTermsVersion: string) =>
+  api<{ user: User }>("/auth/terms", { method: "POST", body: { acceptedTermsVersion } });
 
 export const logout = () => api<void>("/auth/logout", { method: "POST" });
 
@@ -301,8 +327,18 @@ export const confirmEmail = (code: string) =>
   api<void>("/auth/email/verify", { method: "POST", body: { code } });
 
 /** Answers the same whether or not the address has an account. */
-export const forgotPassword = (email: string) =>
-  api<CodeRequested>("/auth/password/forgot", { method: "POST", body: { email } });
+export const forgotPassword = (input: { email: string; captchaToken?: string | null }) =>
+  api<CodeRequested>("/auth/password/forgot", {
+    method: "POST",
+    body: {
+      email: input.email,
+      ...(input.captchaToken ? { captchaToken: input.captchaToken } : {}),
+    },
+  });
+
+/** What the public forms need first: the human-check site key, when the deployment has one. */
+export const getSignUpOptions = () =>
+  api<{ captchaSiteKey: string | null }>("/auth/sign-up-options");
 
 export const resetPassword = (body: { email: string; code: string; newPassword: string }) =>
   api<void>("/auth/password/reset", { method: "POST", body });

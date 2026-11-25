@@ -51,6 +51,8 @@ export interface QuestionVersion {
   explanation: RichContent | null;
   difficulty: number;
   taxonomyVersionId: string;
+  /** A shared reading passage shown above the stem; null for most questions. */
+  passageId: string | null;
   sourceType: string | null;
   sourceReference: string | null;
   publishedAt: string | null;
@@ -105,6 +107,7 @@ export interface DraftContentInput {
   explanation?: RichContent;
   difficulty: number;
   taxonomyVersionId: string;
+  passageId?: string | null;
   sourceType?: string;
   sourceReference?: string;
   options: { key: string; content: RichContent; isCorrect: boolean; displayOrder?: number }[];
@@ -195,3 +198,50 @@ export const listAuthoringTaxonomies = () =>
 
 export const getTaxonomyOutline = (taxonomyVersionId: string) =>
   api<TaxonomyOutline>(`/admin/question-authoring/taxonomy-versions/${taxonomyVersionId}/outline`);
+
+/** An uploaded image or audio file of question content (API_CONTRACTS.md "Question assets"). */
+export interface QuestionAsset {
+  id: string;
+  kind: "IMAGE" | "AUDIO";
+  contentType: string;
+  byteSize: number;
+}
+
+/** Uploads a file the browser picked; the API reads its type from the bytes. */
+export const uploadQuestionAsset = (contentBase64: string) =>
+  api<QuestionAsset>("/admin/question-assets", { method: "POST", body: { contentBase64 } });
+
+/** The file's bytes as base64 (no data: prefix), for the JSON upload. */
+export function readAsBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read the file."));
+    reader.onload = () => {
+      const url = String(reader.result);
+      resolve(url.slice(url.indexOf(",") + 1));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/** A reading passage several questions share (API_CONTRACTS.md "Reading passages"). Never edited. */
+export interface Passage {
+  id: string;
+  title: string;
+  content: RichContent;
+  createdAt: string;
+}
+
+export const createPassage = (body: { title: string; content: RichContent }) =>
+  api<Passage>("/admin/passages", { method: "POST", body });
+
+export const getPassage = (passageId: string) =>
+  api<Passage>(`/admin/passages/${encodeURIComponent(passageId)}`);
+
+export function listPassages(search: string) {
+  const query = new URLSearchParams({ limit: "10" });
+  if (search) query.set("search", search);
+  return api<{ items: (Passage & { questionCount: number })[]; page: { hasMore: boolean } }>(
+    `/admin/passages?${query}`,
+  );
+}

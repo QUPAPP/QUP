@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Database, tables } from "@qup/db";
-import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 
 import type { ActorContext } from "../../../common/actor.js";
 import { AuditAction, writeAudit } from "../../../infrastructure/audit/audit-log.js";
@@ -8,12 +8,17 @@ import { DATABASE } from "../../../infrastructure/database/database.module.js";
 import type { DbExecutor, DbTransaction } from "../../../infrastructure/database/executor.js";
 import { PgErrorCode, pgErrorInfo } from "../../../infrastructure/database/postgres-errors.js";
 import { OutboxEventType, writeOutbox } from "../../../infrastructure/outbox/outbox.js";
-import { PaymentNotFound, PlanCodeTaken } from "../domain/billing.errors.js";
+import {
+  PaymentNotFound,
+  PlanCodeTaken,
+  ProviderPaymentAlreadyUsed,
+} from "../domain/billing.errors.js";
 import { nextEntitlementPeriod } from "../domain/entitlement-period.js";
 import type { PlanStatus } from "../domain/plan-lifecycle.js";
 import { contentChanges, type PlanContent, type PurchasedTerms } from "../domain/plan-rules.js";
 import type {
   BillingStore,
+  EndingNotice,
   Entitlement,
   NewPaymentResult,
   Payment,
@@ -254,6 +259,78 @@ export class DrizzleBillingStore implements BillingStore {
     );
   }
 
+  async queueEndingReminders(input: {
+    endingBefore: Date;
+    limit: number;
+  }): Promise<{ claimed: number; queued: number }> {
+    return this.db.transaction(async (tx) => {
+      // Database time, like every other access check here (entitlementSnapshot).
+      const due = await tx.execute<{ id: string; student_id: string; renewed: boolean }>(sql`
+        SELECT e.id, e.student_id, EXISTS (
+          SELECT 1 FROM ${entitlements} later
+          WHERE later.student_id = e.student_id AND later.exam_id = e.exam_id
+            AND later.id <> e.id AND later.status = 'ACTIVE'
+            AND (later.ends_at IS NULL OR later.ends_at > e.ends_at)
+        ) AS renewed
+        FROM ${entitlements} e
+        WHERE e.status = 'ACTIVE' AND e.ends_at IS NOT NULL
+          AND e.ending_reminder_queued_at IS NULL
+          AND e.ends_at > now() AND e.ends_at <= ${input.endingBefore.toISOString()}::timestamptz
+        ORDER BY e.ends_at
+        LIMIT ${input.limit}
+        FOR UPDATE OF e SKIP LOCKED`);
+      const rows = [...due];
+      if (rows.length === 0) return { claimed: 0, queued: 0 };
+
+      await tx
+        .update(entitlements)
+        .set({ endingReminderQueuedAt: sql`now()` })
+        .where(
+          inArray(
+            entitlements.id,
+            rows.map((row) => row.id),
+          ),
+        );
+      let queued = 0;
+      for (const row of rows) {
+        if (row.renewed) continue;
+        await writeOutbox(tx, {
+          type: OutboxEventType.EmailRequested,
+          aggregateType: "entitlement",
+          aggregateId: row.id,
+          payload: { kind: "SUBSCRIPTION_ENDING", userId: row.student_id, entitlementId: row.id },
+        });
+        queued += 1;
+      }
+      return { claimed: rows.length, queued };
+    });
+  }
+
+  async endingNotice(entitlementId: string): Promise<EndingNotice | null> {
+    const result = await this.db.execute<{
+      student_id: string;
+      exam_id: string;
+      ends_at: Date | string | null;
+      still_ending: boolean;
+    }>(sql`
+      SELECT e.student_id, e.exam_id, e.ends_at,
+        (e.status = 'ACTIVE' AND e.ends_at IS NOT NULL AND e.ends_at > now() AND NOT EXISTS (
+          SELECT 1 FROM ${entitlements} later
+          WHERE later.student_id = e.student_id AND later.exam_id = e.exam_id
+            AND later.id <> e.id AND later.status = 'ACTIVE'
+            AND (later.ends_at IS NULL OR later.ends_at > e.ends_at)
+        )) AS still_ending
+      FROM ${entitlements} e WHERE e.id = ${entitlementId}`);
+    const [row] = result;
+    if (!row) return null;
+    return {
+      studentId: row.student_id,
+      examId: row.exam_id,
+      endsAt: row.ends_at === null ? null : new Date(row.ends_at),
+      stillEnding: row.still_ending,
+    };
+  }
+
   revokeEntitlement(entitlementId: string, actor: ActorContext): Promise<Entitlement | null> {
     return this.db.transaction(async (tx) => {
       const [current] = await tx
@@ -389,6 +466,21 @@ export class DrizzleBillingStore implements BillingStore {
       .limit(filter.limit);
   }
 
+  async payingStudentsAmong(studentIds: readonly string[], since: Date): Promise<number> {
+    if (studentIds.length === 0) return 0;
+    const [row] = await this.db
+      .select({ n: sql<number>`count(DISTINCT ${payments.studentId})::int` })
+      .from(payments)
+      .where(
+        and(
+          inArray(payments.studentId, [...studentIds]),
+          inArray(payments.status, ["SUCCEEDED", "REFUNDED"]),
+          gte(payments.paidAt, since),
+        ),
+      );
+    return row?.n ?? 0;
+  }
+
   async revenueSummary(since: Date): Promise<RevenueSummary> {
     const recent = and(gte(payments.createdAt, since), eq(payments.currency, SUMMARY_CURRENCY));
     const [row] = await this.db
@@ -433,7 +525,27 @@ export class DrizzleBillingStore implements BillingStore {
       .where(and(eq(payments.id, paymentId), eq(payments.status, "PENDING")));
   }
 
-  settlePayment(
+  async settlePayment(
+    paymentId: string,
+    confirmation: { providerPaymentId: string; paidAt: Date },
+    actor: ActorContext,
+  ): Promise<SettleResult> {
+    try {
+      return await this.settleOnce(paymentId, confirmation, actor);
+    } catch (error) {
+      // payments_provider_payment_unique (0023): that money already bought another payment.
+      const info = pgErrorInfo(error);
+      if (
+        info?.code === PgErrorCode.uniqueViolation &&
+        info.constraint === "payments_provider_payment_unique"
+      ) {
+        throw new ProviderPaymentAlreadyUsed();
+      }
+      throw error;
+    }
+  }
+
+  private settleOnce(
     paymentId: string,
     confirmation: { providerPaymentId: string; paidAt: Date },
     actor: ActorContext,

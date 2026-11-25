@@ -1,7 +1,6 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { FakeAiProvider } from "@qup/ai-gateway";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AI_PROVIDER } from "../../src/modules/ai/ai.contract.js";
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
 import {
@@ -13,6 +12,7 @@ import {
   grantRole,
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /** C3: AI_INTEGRATION.md — advisory AI for question authors through the gateway. */
@@ -59,7 +59,7 @@ async function register(label: string) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD },
+    payload: { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     email,
@@ -421,5 +421,53 @@ describe("when AI is turned off", () => {
     expect(response.statusCode).toBe(503);
     expect(errorCode(response)).toBe("AI_UNAVAILABLE");
     expect(await runsOf(versionId)).toEqual([]);
+  });
+});
+
+describe("the platform-wide daily budget", () => {
+  const KEY = "ai.dailyBudget";
+
+  async function putBudget(value: { maxRuns: number | null; maxTokens: number | null }) {
+    const settings = await call(app, admin, "GET", "/admin/settings");
+    const current = settings
+      .json<{ items: { key: string; version: number }[] }>()
+      .items.find((item) => item.key === KEY);
+    return app.inject({
+      method: "PUT",
+      url: `/api/v1/admin/settings/${KEY}`,
+      cookies: { [COOKIE]: admin },
+      payload: { expectedVersion: current?.version ?? 0, value },
+    });
+  }
+
+  async function setBudget(value: { maxRuns: number | null; maxTokens: number | null }) {
+    expect((await putBudget(value)).statusCode).toBe(200);
+  }
+
+  afterAll(async () => {
+    await e2eSql`DELETE FROM system_settings WHERE key = ${KEY}`;
+  });
+
+  it("pauses AI for everyone once the last 24 hours used it up, and resumes when raised", async () => {
+    const versionId = await createDraft("سؤال لاختبار سقف الاستخدام");
+    const url = `/admin/question-versions/${versionId}/ai/metadata-suggestion`;
+    const [used] = await e2eSql<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM ai_runs WHERE created_at > now() - interval '24 hours'`;
+
+    await setBudget({ maxRuns: used?.n ?? 1, maxTokens: null });
+    const paused = await call(app, manager.token, "POST", url);
+    expect(paused.statusCode).toBe(503);
+    expect(errorCode(paused)).toBe("AI_DAILY_BUDGET_REACHED");
+    // Refused before the provider: no run was recorded for it.
+    expect(await runsOf(versionId)).toHaveLength(0);
+
+    await setBudget({ maxRuns: null, maxTokens: null });
+    expect((await call(app, manager.token, "POST", url)).statusCode).toBe(200);
+  });
+
+  it("refuses a budget that is not a positive whole number", async () => {
+    const response = await putBudget({ maxRuns: 0, maxTokens: null });
+    expect(response.statusCode).toBe(422);
+    expect(errorCode(response)).toBe("SETTING_VALUE_INVALID");
   });
 });

@@ -115,3 +115,15 @@ export const listAuditLogs = (filter: AuditFilter) => {
 
 export const getSessionDecisions = (sessionId: string) =>
   api<SessionDecisions>(`/admin/adaptive-decisions?sessionId=${encodeURIComponent(sessionId)}`);
+
+/** PRD §17: sign-ups, finished free diagnostics, and how many of those paid, in the window. */
+export interface FunnelMetrics {
+  days: number;
+  registered: number;
+  finishedMiniDiagnostic: number;
+  paidAfterMiniDiagnostic: number;
+  conversionRate: number | null;
+}
+
+export const getFunnelMetrics = (days: AnalyticsWindow) =>
+  api<FunnelMetrics>(`/admin/analytics/funnel?days=${days}`);

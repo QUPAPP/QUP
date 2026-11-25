@@ -69,6 +69,8 @@ export const registerForm = z
       .string()
       .min(PASSWORD_MIN_LENGTH, `كلمة المرور ${PASSWORD_MIN_LENGTH} حرفًا على الأقل`)
       .max(PASSWORD_MAX_LENGTH, "كلمة المرور طويلة جدًا"),
+    // An explicit tick, not "by signing up you agree": consent is recorded per account (PDPL).
+    acceptTerms: z.boolean().refine((value) => value, "وافق على الشروط وسياسة الخصوصية للمتابعة"),
   })
   .refine((form) => form.email !== undefined || form.phone !== undefined, {
     message: "اكتب بريدك الإلكتروني أو رقم جوالك (أو كليهما)",
@@ -148,3 +150,18 @@ export const resetForm = z
   });
 export type ResetFormInput = z.input<typeof resetForm>;
 export type ResetForm = z.output<typeof resetForm>;
+
+/* ---------------------------- account erasure ---------------------------- */
+
+/** What the person types to show they mean it; the API receives its own literal. */
+export const ERASE_PHRASE = "حذف حسابي";
+
+export const eraseAccountForm = z.object({
+  password: z.string().min(1, "اكتب كلمة المرور"),
+  phrase: z
+    .string()
+    .trim()
+    .refine((value) => value === ERASE_PHRASE, `اكتب «${ERASE_PHRASE}» كما هي للتأكيد`),
+});
+export type EraseAccountFormInput = z.input<typeof eraseAccountForm>;
+export type EraseAccountForm = z.output<typeof eraseAccountForm>;

@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import "reflect-metadata";
 
 import { Writable } from "node:stream";
@@ -25,6 +27,9 @@ export const TEST_ALLOWED_ORIGIN = "https://app.qup.test";
 export const TEST_PROXY_SECRET = "test-proxy-secret-0123456789abcdef";
 export const TEST_BODY_LIMIT_BYTES = 1024;
 
+/** Shared by every app a test process builds; the OS cleans its temp directory. */
+const TEST_STORAGE_DIR = join(tmpdir(), `qup-test-storage-${process.pid}`);
+
 export function testConfig(overrides: Record<string, string> = {}): AppConfig {
   return loadConfig({
     NODE_ENV: "test",
@@ -33,6 +38,8 @@ export function testConfig(overrides: Record<string, string> = {}): AppConfig {
     CORS_ALLOWED_ORIGINS: TEST_ALLOWED_ORIGIN,
     BODY_LIMIT_BYTES: String(TEST_BODY_LIMIT_BYTES),
     PROXY_SHARED_SECRET: TEST_PROXY_SECRET,
+    // Uploads go to a throwaway directory per test run, never into the repository.
+    STORAGE_LOCAL_DIR: TEST_STORAGE_DIR,
     ...overrides,
   });
 }

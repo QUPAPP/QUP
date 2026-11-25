@@ -1,7 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import { AdminBootstrapService } from "../../src/modules/auth/application/admin-bootstrap.service.js";
+import {
+  QUESTION_READER,
+  type QuestionReader,
+} from "../../src/modules/questions/questions.contract.js";
 import {
   deleteE2eUsers,
   E2E_DATABASE_URL,
@@ -11,6 +15,7 @@ import {
   grantRole,
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -53,7 +58,7 @@ async function registerUser(label: string): Promise<{ email: string; id: string 
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email, password: PASSWORD },
+    payload: { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return { email, id: response.json<{ user: { id: string } }>().user.id };
 }
@@ -388,5 +393,170 @@ describe("listing", () => {
     expect(body.items).toHaveLength(1);
     expect(body.items[0]?.latestVersion.status).toBe("PUBLISHED");
     expect(body.page.total).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("images and audio in questions", () => {
+  /** A 1×1 PNG: the smallest real image. */
+  const PNG_BYTES = Buffer.concat([
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+    // Unique per run: an asset is one per file, and earlier runs' files stay in a local database.
+    Buffer.from(randomUUID()),
+  ]);
+  /** An MP3 frame header with an ID3 tag in front. */
+  const MP3_BYTES = Buffer.concat([Buffer.from("ID3"), Buffer.from(randomUUID())]);
+
+  const upload = (token: string, bytes: Buffer) =>
+    call(token, "POST", "/admin/question-assets", { contentBase64: bytes.toString("base64") });
+
+  it("uploads an image once, by its bytes, and serves it with ranges", async () => {
+    const first = await upload(manager, PNG_BYTES);
+    expect(first.statusCode).toBe(201);
+    const asset = first.json<{ id: string; kind: string; contentType: string }>();
+    expect(asset).toMatchObject({ kind: "IMAGE", contentType: "image/png" });
+
+    // The same file again is the same asset.
+    const again = await upload(manager, PNG_BYTES);
+    expect(again.statusCode).toBe(200);
+    expect(again.json<{ id: string }>().id).toBe(asset.id);
+
+    const served = await call(student, "GET", `/question-assets/${asset.id}`);
+    expect(served.statusCode).toBe(200);
+    expect(served.headers["content-type"]).toBe("image/png");
+    expect(served.headers["content-security-policy"]).toContain("sandbox");
+    expect(served.headers["cache-control"]).toContain("private");
+    expect(served.rawPayload.equals(PNG_BYTES)).toBe(true);
+
+    const partial = await app.inject({
+      method: "GET",
+      url: `/api/v1/question-assets/${asset.id}`,
+      cookies: { [COOKIE]: student },
+      headers: { range: "bytes=0-7" },
+    });
+    expect(partial.statusCode).toBe(206);
+    expect(partial.headers["content-range"]).toBe(`bytes 0-7/${PNG_BYTES.length}`);
+    expect(partial.rawPayload.length).toBe(8);
+  });
+
+  it("refuses what is not an accepted image or audio, whatever it claims", async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>x()</script></svg>');
+    const refused = await upload(manager, svg);
+    expect(refused.statusCode).toBe(400);
+    expect(errorCode(refused)).toBe("ASSET_TYPE_NOT_ACCEPTED");
+    expect((await upload(student, PNG_BYTES)).statusCode).toBe(403);
+    expect((await call(student, "GET", `/question-assets/${randomUUID()}`)).statusCode).toBe(404);
+  });
+
+  it("lets content point at uploaded files only, and keeps audio in the stem", async () => {
+    const image = (await upload(manager, PNG_BYTES)).json<{ id: string }>();
+    const audio = (await upload(manager, MP3_BYTES)).json<{ id: string; kind: string }>();
+    expect(audio.kind).toBe("AUDIO");
+
+    const withMedia = await createQuestion(
+      completeContent({
+        stem: {
+          blocks: [
+            { type: "audio", assetId: audio.id },
+            { type: "text", text: "ما الفكرة الرئيسية؟" },
+            { type: "image", assetId: image.id, alt: "مخطط بياني للدرجات" },
+          ],
+        },
+      }),
+    );
+    expect(withMedia.status).toBe("DRAFT");
+
+    const missing = await call(manager, "POST", "/admin/questions", {
+      content: completeContent({
+        stem: { blocks: [{ type: "image", assetId: randomUUID(), alt: "شكل" }] },
+      }),
+    });
+    expect(missing.statusCode).toBe(422);
+    const details = missing.json<{ error: { details: { rule: string; path: string }[] } }>().error
+      .details;
+    expect(details).toContainEqual(
+      expect.objectContaining({ rule: "ASSET_MISSING", path: "stem.blocks.0" }),
+    );
+
+    const audioInOption = await call(manager, "POST", "/admin/questions", {
+      content: completeContent({
+        options: [
+          {
+            key: "A",
+            content: { blocks: [{ type: "audio", assetId: audio.id }] },
+            isCorrect: false,
+          },
+          { key: "B", content: text("4"), isCorrect: true },
+        ],
+      }),
+    });
+    expect(audioInOption.statusCode).toBe(422);
+
+    const noAlt = await call(manager, "POST", "/admin/questions", {
+      content: completeContent({
+        stem: { blocks: [{ type: "image", assetId: image.id, alt: " " }] },
+      }),
+    });
+    expect(noAlt.statusCode).toBe(400);
+  });
+});
+
+describe("reading passages shared by several questions", () => {
+  const passageText = {
+    blocks: [{ type: "text", text: "كان الخليل بن أحمد أول من وضع علم العروض…" }],
+  };
+
+  it("is written once, then questions point at it, and students receive it with each one", async () => {
+    const created = await call(manager, "POST", "/admin/passages", {
+      title: "قطعة العروض",
+      content: passageText,
+    });
+    expect(created.statusCode).toBe(201);
+    const passage = created.json<{ id: string; title: string }>();
+
+    const first = await createQuestion(completeContent({ passageId: passage.id }));
+    const second = await createQuestion(completeContent({ passageId: passage.id }));
+    const version = (await call(manager, "GET", `/admin/question-versions/${first.id}`)).json<{
+      passageId: string | null;
+    }>();
+    expect(version.passageId).toBe(passage.id);
+
+    const list = await call(manager, "GET", "/admin/passages?search=العروض");
+    const listed = list
+      .json<{ items: { id: string; questionCount: number }[] }>()
+      .items.find((item) => item.id === passage.id);
+    expect(listed?.questionCount).toBe(2);
+
+    const delivered = await app
+      .get<QuestionReader>(QUESTION_READER)
+      .forDelivery([first.id, second.id]);
+    expect(delivered.get(first.id)?.passage).toEqual({ id: passage.id, content: passageText });
+    expect(delivered.get(second.id)?.passage?.id).toBe(passage.id);
+  });
+
+  it("refuses a question pointing at no passage, and a passage pointing at no file", async () => {
+    const unknown = await call(manager, "POST", "/admin/questions", {
+      content: completeContent({ passageId: randomUUID() }),
+    });
+    expect(unknown.statusCode).toBe(422);
+    expect(
+      unknown.json<{ error: { details: { rule: string }[] } }>().error.details.map((d) => d.rule),
+    ).toContain("PASSAGE_MISSING");
+
+    const missingFile = await call(manager, "POST", "/admin/passages", {
+      title: "قطعة بصورة غير موجودة",
+      content: { blocks: [{ type: "image", assetId: randomUUID(), alt: "خريطة" }] },
+    });
+    expect(missingFile.statusCode).toBe(422);
+  });
+
+  it("is for authors only", async () => {
+    expect((await call(student, "GET", "/admin/passages")).statusCode).toBe(403);
+    expect(
+      (await call(student, "POST", "/admin/passages", { title: "x", content: passageText }))
+        .statusCode,
+    ).toBe(403);
   });
 });

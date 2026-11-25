@@ -143,6 +143,13 @@ export const payments = pgTable(
     uniqueIndex("payments_provider_reference_unique")
       .on(table.provider, table.providerReference)
       .where(sql`provider_reference IS NOT NULL`),
+    /**
+     * One provider payment settles at most one of ours: neither a replayed webhook
+     * nor an admin reconciling by hand can spend the same money twice.
+     */
+    uniqueIndex("payments_provider_payment_unique")
+      .on(table.provider, sql`(provider_payload_redacted ->> 'providerPaymentId')`)
+      .where(sql`provider_payload_redacted ? 'providerPaymentId'`),
     index("payments_student_status_idx").on(table.studentId, table.status),
     // The admin ledger and a student's history: newest first, keyset on (created_at, id).
     index("payments_created_at_idx").on(table.createdAt, table.id),
@@ -175,10 +182,23 @@ export const entitlements = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }),
     status: entitlementStatusEnum("status").notNull().default("ACTIVE"),
+    /**
+     * When the "your subscription ends soon" email was queued (worker,
+     * subscription-reminders). Set in the same transaction as its outbox event,
+     * so each period is reminded about once.
+     */
+    endingReminderQueuedAt: timestamp("ending_reminder_queued_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
+    // The reminder sweep: active, time-limited, not yet reminded, by when they end.
+    index("entitlements_ending_reminder_idx")
+      .on(table.endsAt)
+      .where(sql`status = 'ACTIVE' AND ends_at IS NOT NULL AND ending_reminder_queued_at IS NULL`),
     /**
      * Replay guard: one entitlement per (source, reference, exam). A webhook
      * delivered twice cannot grant access twice; a bundle payment grants

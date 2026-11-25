@@ -50,6 +50,14 @@ export async function deleteE2eUsers(): Promise<void> {
   const ids = (await e2eSql<{ id: string }[]>`SELECT id FROM users WHERE ${matches}`).map(
     (r) => r.id,
   );
+  await deleteE2eUsersById(ids);
+}
+
+/**
+ * deleteE2eUsers for accounts found by id — an erased account has no email or
+ * phone left to match. TEST CLEANUP ONLY.
+ */
+export async function deleteE2eUsersById(ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
 
   // Their import batches (items cascade) and events — before the users, whose deletion would orphan them.
@@ -59,11 +67,19 @@ export async function deleteE2eUsers(): Promise<void> {
   await e2eSql`DELETE FROM import_batches WHERE uploaded_by IN ${e2eSql(ids)}`;
   await e2eSql`DELETE FROM learning_events WHERE student_id IN ${e2eSql(ids)}`;
   // Mail owed to, and logged for, test accounts (the user FK only nulls the log's link).
-  await e2eSql`DELETE FROM email_deliveries WHERE to_address LIKE ${`%@${E2E_EMAIL_DOMAIN}`}`;
+  await e2eSql`
+    DELETE FROM email_deliveries
+    WHERE to_address LIKE ${`%@${E2E_EMAIL_DOMAIN}`} OR user_id IN ${e2eSql(ids)}`;
   await e2eSql`
     DELETE FROM outbox_events
     WHERE event_type = 'notification.email.requested' AND payload->>'userId' IN ${e2eSql(ids)}`;
   await e2eSql`DELETE FROM ai_runs WHERE requested_by IN ${e2eSql(ids)}`;
+  // Rows only: the files are in the test run's temporary storage directory.
+  await e2eSql`DELETE FROM question_assets WHERE uploaded_by IN ${e2eSql(ids)}`;
+  // Passages their questions no longer point at (the catalog purge removes the questions first).
+  await e2eSql`
+    DELETE FROM question_passages p WHERE p.created_by IN ${e2eSql(ids)}
+      AND NOT EXISTS (SELECT 1 FROM question_versions v WHERE v.passage_id = p.id)`;
   await e2eSql`DELETE FROM question_reports WHERE reported_by IN ${e2eSql(ids)}`;
   await e2eSql.begin(async (tx) => {
     await tx`SET LOCAL session_replication_role = replica`;

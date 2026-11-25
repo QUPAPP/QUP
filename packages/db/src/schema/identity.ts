@@ -40,6 +40,17 @@ export const users = pgTable(
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true, mode: "date" }),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true, mode: "date" }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: "date" }),
+    /**
+     * The terms-and-privacy version (the web app's LEGAL_UPDATED_AT) the person accepted
+     * when they signed up, and when. Null for accounts created before consent was recorded.
+     */
+    termsVersion: text("terms_version"),
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true, mode: "date" }),
+    /**
+     * When the account was erased (status DEACTIVATED). Its email, phone, name and password
+     * are gone; what stays — payments, learning evidence — no longer names anyone.
+     */
+    erasedAt: timestamp("erased_at", { withTimezone: true, mode: "date" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -48,7 +59,19 @@ export const users = pgTable(
     uniqueIndex("users_email_unique").on(table.email).where(whereNotNull("email")),
     uniqueIndex("users_phone_unique").on(table.phone).where(whereNotNull("phone")),
     index("users_status_idx").on(table.status),
-    check("users_has_identifier", sql`${table.email} IS NOT NULL OR ${table.phone} IS NOT NULL`),
+    // An erased account keeps its row (payments and evidence point at it) but reaches no one.
+    check(
+      "users_has_identifier",
+      sql`${table.email} IS NOT NULL OR ${table.phone} IS NOT NULL OR ${table.erasedAt} IS NOT NULL`,
+    ),
+    check(
+      "users_erased_has_no_identifier",
+      sql`${table.erasedAt} IS NULL OR (${table.email} IS NULL AND ${table.phone} IS NULL AND ${table.status} = 'DEACTIVATED')`,
+    ),
+    check(
+      "users_terms_recorded_together",
+      sql`(${table.termsVersion} IS NULL) = (${table.termsAcceptedAt} IS NULL)`,
+    ),
     // Without this, "A@x.com" and "a@x.com" would pass the unique index as two accounts.
     check("users_email_normalized", sql`${table.email} = lower(btrim(${table.email}))`),
     check("users_phone_e164", sql`${table.phone} ~ ${sql.raw(`'${E164_PATTERN}'`)}`),

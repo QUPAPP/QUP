@@ -4,18 +4,28 @@
  */
 
 import { api } from "./api";
-import type { DiagnosticType } from "./diagnostics";
+import { DIAGNOSTIC_TITLES } from "./diagnostics";
 
 export type BlueprintStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+
+/** The sessions a blueprint plans: the two diagnostics and the timed mock exam. */
+export type BlueprintType = "MINI_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "MOCK_EXAM";
+
+export const BLUEPRINT_TYPE_TITLES: Record<BlueprintType, string> = {
+  ...DIAGNOSTIC_TITLES,
+  MOCK_EXAM: "الاختبار المحاكي",
+};
 
 export interface BlueprintSummary {
   id: string;
   examId: string;
   taxonomyVersionId: string;
-  type: DiagnosticType;
+  type: BlueprintType;
   code: string;
   name: string;
   questionCount: number;
+  /** Mock exam only: one clock for the whole exam; null keeps the per-question default. */
+  timeLimitMinutes: number | null;
   status: BlueprintStatus;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +47,7 @@ export interface Blueprint extends Omit<BlueprintSummary, "taxonomyVersionId"> {
 export interface BlueprintUpdate {
   name?: string;
   questionCount?: number;
+  timeLimitMinutes?: number | null;
   domainWeights?: { domainId: string; weight: number | null }[];
 }
 
@@ -45,7 +56,13 @@ export const listBlueprints = (examId: string) =>
 
 export const createBlueprint = (
   examId: string,
-  body: { type: DiagnosticType; code: string; name: string; questionCount: number },
+  body: {
+    type: BlueprintType;
+    code: string;
+    name: string;
+    questionCount: number;
+    timeLimitMinutes?: number | null;
+  },
 ) => api<Blueprint>(`/admin/exams/${examId}/blueprints`, { method: "POST", body });
 
 export const getBlueprint = (blueprintId: string) =>

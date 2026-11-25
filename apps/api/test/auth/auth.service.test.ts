@@ -8,6 +8,7 @@ import {
   CurrentPasswordIncorrect,
   InvalidCredentials,
   NotAuthenticated,
+  StaffAccountCannotBeErased,
 } from "../../src/modules/auth/domain/auth.errors.js";
 import type {
   ActiveSession,
@@ -41,6 +42,7 @@ function fakeStore(overrides: Partial<AuthStore> = {}): AuthStore {
       displayName: null,
       status: "ACTIVE",
       emailVerifiedAt: null,
+      termsVersion: null,
       createdAt: NOW,
     }),
     findCredentialsById: async () => null,
@@ -53,6 +55,8 @@ function fakeStore(overrides: Partial<AuthStore> = {}): AuthStore {
     touchSession: async () => {},
     revokeSession: async () => {},
     revokeOtherSessions: async () => 0,
+    eraseAccount: unexpected,
+    recordConsent: unexpected,
     ...overrides,
   };
 }
@@ -240,5 +244,73 @@ describe("changePassword", () => {
     });
     expect(update).toHaveBeenCalledWith("user-1", "hash(new passphrase)", NOW);
     expect(revoke).toHaveBeenCalledWith("user-1", "session-1", NOW);
+  });
+});
+
+describe("register", () => {
+  it("records the terms version the person accepted, at the moment they signed up", async () => {
+    const create = vi.fn(async () => ({
+      id: "user-1",
+      email: "s@qup.test",
+      phone: null,
+      displayName: null,
+      status: "ACTIVE" as const,
+      emailVerifiedAt: null,
+      termsVersion: null,
+      createdAt: NOW,
+    }));
+    const auth = service(fakeStore({ createStudent: create }), fakeHasher("x"));
+    await auth.register(
+      { email: "s@qup.test", password: "a long passphrase", acceptedTermsVersion: "2026-11-16" },
+      client,
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ consent: { termsVersion: "2026-11-16", acceptedAt: NOW } }),
+    );
+  });
+});
+
+describe("eraseOwnAccount", () => {
+  const principal = {
+    userId: "user-1",
+    sessionId: "session-1",
+    roles: ["STUDENT"],
+    permissions: new Set<never>(),
+  };
+  const actor = { userId: "user-1", requestId: "req-1" };
+
+  it("refuses a wrong password and erases nothing", async () => {
+    const erase = vi.fn(async () => "ERASED" as const);
+    const auth = service(
+      fakeStore({ findCredentialsById: async () => credentials("ACTIVE"), eraseAccount: erase }),
+      fakeHasher("correct horse battery"),
+    );
+    await expect(auth.eraseOwnAccount(principal, "guess", actor)).rejects.toBeInstanceOf(
+      CurrentPasswordIncorrect,
+    );
+    expect(erase).not.toHaveBeenCalled();
+  });
+
+  it("erases the account with the right password", async () => {
+    const erase = vi.fn(async () => "ERASED" as const);
+    const auth = service(
+      fakeStore({ findCredentialsById: async () => credentials("ACTIVE"), eraseAccount: erase }),
+      fakeHasher("correct horse battery"),
+    );
+    await auth.eraseOwnAccount(principal, "correct horse battery", actor);
+    expect(erase).toHaveBeenCalledWith("user-1", actor, NOW);
+  });
+
+  it("tells a staff member their roles must go first", async () => {
+    const auth = service(
+      fakeStore({
+        findCredentialsById: async () => credentials("ACTIVE"),
+        eraseAccount: async () => "HAS_STAFF_ROLE",
+      }),
+      fakeHasher("correct horse battery"),
+    );
+    await expect(
+      auth.eraseOwnAccount(principal, "correct horse battery", actor),
+    ).rejects.toBeInstanceOf(StaffAccountCannotBeErased);
   });
 });

@@ -1,6 +1,5 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import {
   deleteE2eUsers,
   E2E_DATABASE_URL,
@@ -17,6 +16,7 @@ import {
   sndrWebhook,
   startFakeSndr,
 } from "../support/fake-sndr.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 /**
@@ -58,8 +58,8 @@ async function register(
   const response = await call("POST", "/auth/register", {
     payload:
       identity === "email"
-        ? { email, password: PASSWORD }
-        : { phone: e2ePhone(), password: PASSWORD },
+        ? { email, password: PASSWORD, acceptedTermsVersion: TERMS_VERSION }
+        : { phone: e2ePhone(), password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   expect(response.statusCode).toBe(201);
   return {

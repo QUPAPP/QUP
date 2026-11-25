@@ -94,4 +94,16 @@ export class AdminUsersController {
   reactivate(@Param("id", uuid) id: string, @Req() request: FastifyRequest) {
     return this.users.reactivate(id, actorFrom(request));
   }
+
+  @Post("users/:id/erase")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      "Delete a student's account at their request: contact details and password erased. Audited.",
+    description:
+      "Not your own; staff accounts lose their roles first (422 STAFF_ACCOUNT_CANNOT_BE_ERASED). Payments and anonymous learning evidence stay. 409 ACCOUNT_ERASED when already done.",
+  })
+  erase(@Param("id", uuid) id: string, @Req() request: FastifyRequest) {
+    return this.users.erase(id, actorFrom(request));
+  }
 }

@@ -23,7 +23,14 @@ describe("buildContentSecurityPolicy", () => {
   );
 
   it("runs only scripts carrying this request's nonce", () => {
-    expect(production.get("script-src")).toEqual(["'self'", "'nonce-abc123'", "'strict-dynamic'"]);
+    expect(production.get("script-src")).toEqual([
+      "'self'",
+      "'nonce-abc123'",
+      "'strict-dynamic'",
+      "https://challenges.cloudflare.com",
+    ]);
+    // The human check's iframe, and nothing else framed.
+    expect(production.get("frame-src")).toEqual(["https://challenges.cloudflare.com"]);
     expect(production.get("script-src")).not.toContain("'unsafe-inline'");
     expect(production.get("script-src")).not.toContain("'unsafe-eval'");
   });

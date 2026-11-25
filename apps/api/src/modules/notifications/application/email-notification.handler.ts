@@ -6,7 +6,12 @@ import { APP_CONFIG, type AppConfig } from "../../../config/app-config.js";
 import { OutboxEventType } from "../../../infrastructure/outbox/outbox.js";
 import type { OutboxHandler, OutboxRecord } from "../../../infrastructure/outbox/outbox-relay.js";
 import { USER_DIRECTORY, type UserDirectory } from "../../auth/auth.contract.js";
-import { PAYMENT_RECEIPTS, type PaymentReceipts } from "../../billing/billing.contract.js";
+import {
+  PAYMENT_RECEIPTS,
+  type PaymentReceipts,
+  SUBSCRIPTION_NOTICES,
+  type SubscriptionNotices,
+} from "../../billing/billing.contract.js";
 import {
   type EmailTemplate,
   TRANSACTIONAL_EMAIL,
@@ -22,6 +27,11 @@ const payload = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("PAYMENT_RECEIPT"), userId: z.uuid(), paymentId: z.uuid() }),
   z.object({ kind: z.literal("PAYMENT_REFUNDED"), userId: z.uuid(), paymentId: z.uuid() }),
   z.object({ kind: z.literal("PASSWORD_CHANGED"), userId: z.uuid() }),
+  z.object({
+    kind: z.literal("SUBSCRIPTION_ENDING"),
+    userId: z.uuid(),
+    entitlementId: z.uuid(),
+  }),
 ]);
 type EmailRequest = z.infer<typeof payload>;
 
@@ -40,6 +50,7 @@ export class EmailNotificationHandler implements OutboxHandler {
     @Inject(TRANSACTIONAL_EMAIL) private readonly email: TransactionalEmail,
     @Inject(USER_DIRECTORY) private readonly directory: UserDirectory,
     @Inject(PAYMENT_RECEIPTS) private readonly receipts: PaymentReceipts,
+    @Inject(SUBSCRIPTION_NOTICES) private readonly subscriptions: SubscriptionNotices,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
     @InjectPinoLogger(EmailNotificationHandler.name) private readonly logger: PinoLogger,
   ) {}
@@ -118,6 +129,22 @@ export class EmailNotificationHandler implements OutboxHandler {
           idempotencyKey: `password-changed:${event.id}`,
           template: { kind: "PASSWORD_CHANGED", changedAt: event.createdAt, appUrl },
         };
+      case "SUBSCRIPTION_ENDING": {
+        const notice = await this.subscriptions.endingNoticeFor(request.entitlementId);
+        // Renewed, revoked or already over by the time the worker got here: nothing to say.
+        if (notice?.studentId !== request.userId || !notice.stillEnding || !notice.endsAt) {
+          return null;
+        }
+        return {
+          idempotencyKey: `subscription-ending:${request.entitlementId}`,
+          template: {
+            kind: "SUBSCRIPTION_ENDING",
+            examName: notice.examName,
+            endsAt: notice.endsAt,
+            appUrl,
+          },
+        };
+      }
     }
   }
 }

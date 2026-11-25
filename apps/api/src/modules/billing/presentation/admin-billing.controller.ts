@@ -24,6 +24,7 @@ import { Permission } from "../../rbac/permissions.js";
 import { RequirePermissions } from "../../rbac/require-permissions.js";
 import { BillingLedgerService } from "../application/billing-ledger.service.js";
 import { EntitlementsService } from "../application/entitlements.service.js";
+import { PaymentsService } from "../application/payments.service.js";
 import { PlansService } from "../application/plans.service.js";
 import {
   type CreatePlanBody,
@@ -35,6 +36,8 @@ import {
   type ListPlansQuery,
   listPaymentsQuery,
   listPlansQuery,
+  type ReconcilePaymentBody,
+  reconcilePaymentBody,
   type StudentLookupQuery,
   studentLookupQuery,
   type UpdatePlanBody,
@@ -58,6 +61,7 @@ export class AdminBillingController {
     private readonly plans: PlansService,
     private readonly entitlements: EntitlementsService,
     private readonly ledger: BillingLedgerService,
+    private readonly payments: PaymentsService,
   ) {}
 
   @Get("plans")
@@ -117,6 +121,26 @@ export class AdminBillingController {
       items: page.items.map(toAdminPaymentView),
       next: page.next ? encodeLedgerCursor(page.next) : null,
     };
+  }
+
+  @Post("payments/:id/reconcile")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Settle (or refund) a payment by asking the provider about its payment. Audited.",
+    description:
+      "For a student who paid but whose webhook never arrived. Only the provider's answer counts: 422 PROVIDER_PAYMENT_DOES_NOT_MATCH (amount or currency), 422 PROVIDER_PAYMENT_NOT_PAID, 409 PROVIDER_PAYMENT_ALREADY_USED (it settled another payment), 503 when the provider cannot be reached.",
+  })
+  async reconcilePayment(
+    @Param("id", uuid) id: string,
+    @Body(new ZodValidationPipe(reconcilePaymentBody)) body: ReconcilePaymentBody,
+    @Req() request: FastifyRequest,
+  ) {
+    const { outcome, payment } = await this.payments.reconcile(
+      id,
+      body.providerPaymentId,
+      actorFrom(request),
+    );
+    return { outcome, payment: { id: payment.id, status: payment.status } };
   }
 
   @Get("billing/summary")

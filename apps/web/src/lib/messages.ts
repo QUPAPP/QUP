@@ -14,6 +14,17 @@ const BY_CODE: Record<string, string> = {
   CANNOT_CHANGE_OWN_ACCESS: "لا يمكنك تغيير صلاحيات حسابك. اطلب ذلك من مدير آخر.",
   LAST_ADMIN_REQUIRED: "يجب أن يبقى في المنصة مدير نشط واحد على الأقل.",
   ROLES_REQUIRED: "اختر دورًا واحدًا على الأقل.",
+  ACCOUNT_ERASED: "حُذف هذا الحساب بطلب صاحبه، ولا يمكن تعديله أو إعادة تفعيله.",
+  STAFF_ACCOUNT_CANNOT_BE_ERASED:
+    "هذا الحساب لديه صلاحيات إدارية. يجب أن يزيلها مدير آخر قبل حذف الحساب.",
+  PROVIDER_PAYMENT_ALREADY_USED: "عملية Stream هذه مرتبطة بدفعة أخرى، فلا يمكن استخدامها مرتين.",
+  PROVIDER_PAYMENT_DOES_NOT_MATCH: "مبلغ عملية Stream أو عملتها لا يطابق هذه الدفعة.",
+  PROVIDER_PAYMENT_NOT_PAID: "لا تظهر هذه العملية مدفوعة في Stream بعد.",
+  ASSET_TYPE_NOT_ACCEPTED: "ارفع صورة PNG أو JPEG أو WebP، أو ملفًا صوتيًا MP3 أو M4A.",
+  ASSET_TOO_LARGE: "الملف أكبر من المسموح (الصورة حتى 2 ميجابايت، والصوت حتى 8 ميجابايت).",
+  ASSET_NOT_FOUND: "لم نجد هذا الملف.",
+  AI_DAILY_BUDGET_REACHED:
+    "خدمة الذكاء الاصطناعي متوقفة مؤقتًا لبلوغ حد الاستخدام اليومي. جرّب لاحقًا.",
   VALIDATION_FAILED: "تحقق من البيانات المدخلة ثم حاول مرة أخرى.",
   RATE_LIMITED: "محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.",
   UNAUTHENTICATED: "انتهت الجلسة. سجّل الدخول من جديد.",

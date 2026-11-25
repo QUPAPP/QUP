@@ -4,13 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AuthLayout } from "@/components/auth-layout";
+import { HumanCheck, useHumanCheckSiteKey } from "@/components/human-check";
 import { Icon } from "@/components/icon";
 import { ErrorNotice } from "@/components/status";
 import { TextField } from "@/components/text-field";
 import { register as registerAccount } from "@/lib/api";
 import { type RegisterForm, type RegisterFormInput, registerForm } from "@/lib/auth-forms";
+import { LEGAL_UPDATED_AT } from "@/lib/legal";
 import { startSession } from "@/lib/session";
 
 export default function RegisterPage() {
@@ -18,14 +21,20 @@ export default function RegisterPage() {
   const queryClient = useQueryClient();
   const form = useForm<RegisterFormInput, unknown, RegisterForm>({
     resolver: zodResolver(registerForm),
-    defaultValues: { displayName: "", email: "", phone: "", password: "" },
+    defaultValues: { displayName: "", email: "", phone: "", password: "", acceptTerms: false },
   });
   const { errors } = form.formState;
+  const siteKey = useHumanCheckSiteKey();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // A token is good for one check: after a refused sign-up the widget is drawn again.
+  const [attempt, setAttempt] = useState(0);
 
   const signUp = useMutation({
     mutationFn: (values: RegisterForm) =>
       registerAccount({
         password: values.password,
+        acceptedTermsVersion: LEGAL_UPDATED_AT,
+        ...(captchaToken ? { captchaToken } : {}),
         ...(values.email ? { email: values.email } : {}),
         ...(values.phone ? { phone: values.phone } : {}),
         ...(values.displayName ? { displayName: values.displayName } : {}),
@@ -34,7 +43,12 @@ export default function RegisterPage() {
       await startSession(queryClient);
       router.replace("/exams");
     },
+    onError: () => {
+      setCaptchaToken(null);
+      setAttempt((n) => n + 1);
+    },
   });
+  const waitingForCheck = siteKey !== null && captchaToken === null;
 
   return (
     <AuthLayout register>
@@ -83,18 +97,40 @@ export default function RegisterPage() {
           autoComplete="new-password"
           ltr
         />
-        <p className="auth-consent">
-          بإنشائك الحساب فإنك توافق على{" "}
-          <Link href="/terms" target="_blank">
-            الشروط والأحكام
-          </Link>{" "}
-          و
-          <Link href="/privacy" target="_blank">
-            سياسة الخصوصية
-          </Link>
-          .
-        </p>
-        <button type="submit" className="btn btn--block" disabled={signUp.isPending}>
+        <div className="auth-consent-field">
+          <label className="checkbox auth-consent">
+            <input
+              type="checkbox"
+              aria-invalid={errors.acceptTerms ? true : undefined}
+              aria-describedby={errors.acceptTerms ? "accept-terms-error" : undefined}
+              {...form.register("acceptTerms")}
+            />
+            <span>
+              قرأت{" "}
+              <Link href="/terms" target="_blank">
+                الشروط والأحكام
+              </Link>{" "}
+              و
+              <Link href="/privacy" target="_blank">
+                سياسة الخصوصية
+              </Link>{" "}
+              وأوافق عليهما.
+            </span>
+          </label>
+          {errors.acceptTerms ? (
+            <p className="field__error" id="accept-terms-error" role="alert">
+              {errors.acceptTerms.message}
+            </p>
+          ) : null}
+        </div>
+        {siteKey ? (
+          <HumanCheck key={attempt} siteKey={siteKey} action="register" onToken={setCaptchaToken} />
+        ) : null}
+        <button
+          type="submit"
+          className="btn btn--block"
+          disabled={signUp.isPending || waitingForCheck}
+        >
           {signUp.isPending ? "جارٍ إنشاء الحساب…" : "إنشاء الحساب"}
         </button>
         <p className="auth-form-foot">

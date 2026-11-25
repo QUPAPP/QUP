@@ -11,6 +11,8 @@ export interface AdminUserView {
   roles: RoleCode[];
   createdAt: Date;
   lastLoginAt: Date | null;
+  /** When the account was erased at its owner's request; null for a live account. */
+  erasedAt: Date | null;
 }
 
 export interface UserListFilter {

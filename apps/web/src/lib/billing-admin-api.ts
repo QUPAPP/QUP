@@ -126,3 +126,16 @@ export const ENTITLEMENT_STATUS_LABELS: Record<EntitlementStatus, string> = {
   EXPIRED: "منتهٍ",
   REVOKED: "ملغى",
 };
+
+/** What a manual reconciliation led to (the API's webhook outcomes). */
+export interface ReconcileResult {
+  outcome: string;
+  payment: { id: string; status: PaymentStatus };
+}
+
+/** Asks Stream about one of its payments and settles (or refunds) ours by it. Audited. */
+export const reconcilePayment = (paymentId: string, providerPaymentId: string) =>
+  api<ReconcileResult>(`/admin/payments/${paymentId}/reconcile`, {
+    method: "POST",
+    body: { providerPaymentId },
+  });

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icon";
 import { MistakeTutor } from "@/components/mistake-tutor";
 import { PageHeading } from "@/components/page-heading";
+import { QuestionPassage } from "@/components/question-passage";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getTrainingMistakes, isApiError, type TrainingMistake } from "@/lib/api";
@@ -159,6 +160,7 @@ function MistakeCard({ examId, item }: { examId: string; item: TrainingMistake }
           </span>
         ) : null}
       </div>
+      <QuestionPassage passage={item.question.passage} />
       <div className="mistake-card__stem">
         <RichContent content={item.question.stem} />
       </div>

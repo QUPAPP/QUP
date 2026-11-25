@@ -48,6 +48,7 @@ const sessionColumns = {
   resultConfigVersion: assessmentSessions.resultConfigVersion,
   plannedItemCount: assessmentSessions.plannedItemCount,
   targetSkillId: assessmentSessions.targetSkillId,
+  blueprintId: assessmentSessions.blueprintId,
 };
 
 const attemptColumns = {

@@ -13,6 +13,7 @@ import {
   e2eSql,
   purgeE2eCatalog,
 } from "../support/e2e-database.js";
+import { TERMS_VERSION } from "../support/terms.js";
 import { buildTestApp, testConfig } from "../support/test-app.js";
 
 const COOKIE = "qup_session";
@@ -35,7 +36,7 @@ async function register(label: string) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/auth/register",
-    payload: { email: e2eEmail(label), password: PASSWORD },
+    payload: { email: e2eEmail(label), password: PASSWORD, acceptedTermsVersion: TERMS_VERSION },
   });
   return {
     token: response.cookies.find((c) => c.name === COOKIE)?.value ?? "",

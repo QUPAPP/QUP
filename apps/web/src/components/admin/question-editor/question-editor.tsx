@@ -30,6 +30,7 @@ import { BlocksField } from "./blocks-field";
 import { ContentErrorNotice } from "./content-error";
 import { MappingsField } from "./mappings-field";
 import { OptionsField } from "./options-field";
+import { PassageField } from "./passage-field";
 import { TaxonomyPicker } from "./taxonomy-picker";
 
 type EditorProps = {
@@ -66,6 +67,7 @@ export function QuestionEditor(props: EditorProps) {
     enabled: taxonomyVersionId !== "",
   });
   const difficulty = useWatch({ control, name: "difficulty" });
+  const passageId = useWatch({ control, name: "passageId" });
   const [mappingsCleared, setMappingsCleared] = useState(false);
 
   // Mappings point at one version's nodes; they cannot follow a change of version.
@@ -135,6 +137,14 @@ export function QuestionEditor(props: EditorProps) {
           </p>
         ) : null}
         {outline.isError ? <ErrorNotice error={outline.error} /> : null}
+      </section>
+
+      <section className="stack" aria-labelledby="qe-passage">
+        <h3 id="qe-passage">قطعة القراءة (اختياري)</h3>
+        <PassageField
+          value={passageId}
+          onChange={(next) => form.setValue("passageId", next, { shouldDirty: true })}
+        />
       </section>
 
       <section className="stack" aria-labelledby="qe-stem">

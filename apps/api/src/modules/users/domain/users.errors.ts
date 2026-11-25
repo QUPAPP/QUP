@@ -36,3 +36,22 @@ export class RolesRequired extends DomainError {
     super("An account needs at least one role.");
   }
 }
+
+/** An erased account has nothing left to change, and can never sign in again. */
+export class AccountErased extends DomainError {
+  readonly code = "ACCOUNT_ERASED";
+  readonly kind = "CONFLICT";
+
+  constructor() {
+    super("This account was deleted. It cannot be changed or reactivated.");
+  }
+}
+
+export class StaffAccountMustLoseRolesFirst extends DomainError {
+  readonly code = "STAFF_ACCOUNT_CANNOT_BE_ERASED";
+  readonly kind = "RULE_VIOLATION";
+
+  constructor() {
+    super("Take this account's staff roles away before deleting it.");
+  }
+}

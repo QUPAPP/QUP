@@ -274,7 +274,7 @@ export class AssessmentsController {
   @Get("assessments/:sessionId")
   async get(@CurrentPrincipal() principal: Principal, @Param("sessionId", uuid) sessionId: string) {
     const { session, progress } = await this.assessments.get(principal.userId, sessionId);
-    return toSessionView(session, progress, this.assessments.deadlineOf(session, progress));
+    return toSessionView(session, progress, await this.assessments.deadlineOf(session, progress));
   }
 
   @Post("assessments/:sessionId/start")

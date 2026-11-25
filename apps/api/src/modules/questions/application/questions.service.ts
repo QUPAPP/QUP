@@ -15,7 +15,7 @@ import {
   type QuestionVersionDetail,
   type ReviewDecision,
 } from "../domain/ports.js";
-import type { DraftContent } from "../domain/question-content.js";
+import { assetReferences, type DraftContent } from "../domain/question-content.js";
 import {
   InvalidQuestionTransition,
   QuestionArchived,
@@ -24,6 +24,8 @@ import {
   QuestionVersionNotFound,
   TaxonomyNotPublished,
 } from "../domain/questions.errors.js";
+import { PassagesService } from "./passages.service.js";
+import { QuestionAssetsService } from "./question-assets.service.js";
 
 const STABLE_CODE_RANDOM_BYTES = 6;
 
@@ -42,6 +44,8 @@ export class QuestionsService {
   constructor(
     @Inject(QUESTION_STORE) private readonly store: QuestionStore,
     @Inject(CATALOG_LOOKUP) private readonly taxonomy: CatalogLookup,
+    private readonly assets: QuestionAssetsService,
+    private readonly passages: PassagesService,
   ) {}
 
   async create(
@@ -171,6 +175,25 @@ export class QuestionsService {
             message: "Must be an active skill or subskill of the question's taxonomy version.",
           });
         }
+      });
+    }
+    // An image or audio block must point at an uploaded file of that kind.
+    const references = assetReferences(content);
+    const kinds = await this.assets.kindsOf(references.map((r) => r.assetId));
+    for (const reference of references) {
+      if (kinds.get(reference.assetId) !== reference.kind) {
+        problems.push({
+          path: reference.path,
+          rule: "ASSET_MISSING",
+          message: `No uploaded ${reference.kind.toLowerCase()} with this id.`,
+        });
+      }
+    }
+    if (content.passageId !== null && !(await this.passages.exists(content.passageId))) {
+      problems.push({
+        path: "passageId",
+        rule: "PASSAGE_MISSING",
+        message: "No reading passage with this id.",
       });
     }
     if (problems.length > 0) throw new QuestionContentInvalid(problems);

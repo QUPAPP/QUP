@@ -8,7 +8,7 @@ import {
   type StudentMistakes,
 } from "../../assessments/assessments.contract.js";
 import { EXAM_ACCESS, type ExamAccess } from "../../billing/billing.contract.js";
-import type { RichContent } from "../../questions/questions.contract.js";
+import { blockAsText, type RichContent } from "../../questions/questions.contract.js";
 import {
   AiDailyLimitReached,
   AiMistakeNotFound,
@@ -33,9 +33,7 @@ export interface MistakeExplanationView {
 
 function plainText(content: RichContent | null): string | null {
   if (!content) return null;
-  return content.blocks
-    .map((block) => (block.type === "text" ? block.text : block.latex))
-    .join(" ");
+  return content.blocks.map(blockAsText).join(" ");
 }
 
 /**

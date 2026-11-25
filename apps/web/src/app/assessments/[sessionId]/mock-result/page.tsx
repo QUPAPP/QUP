@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { MistakeTutor } from "@/components/mistake-tutor";
 import { PageHeading } from "@/components/page-heading";
+import { QuestionPassage } from "@/components/question-passage";
 import { RichContent } from "@/components/rich-content";
 import { ErrorNotice, Loading } from "@/components/status";
 import { getMockResult, getSession, type MockExamResult, type MockReviewItem } from "@/lib/api";
@@ -162,6 +163,7 @@ function ReviewCard({ examId, item }: { examId: string; item: MockReviewItem }) 
           {OUTCOME_LABELS[item.outcome]}
         </span>
       </div>
+      <QuestionPassage passage={item.question.passage} />
       <div className="mistake-card__stem">
         <RichContent content={item.question.stem} />
       </div>
