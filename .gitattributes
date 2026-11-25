@@ -1,0 +1,15 @@
+# Every text file is stored and checked out with LF line endings, on every OS.
+# Biome formats with LF; a Windows checkout with core.autocrlf=true would
+# otherwise turn each file to CRLF and fail `biome ci` locally (CI runs on Linux).
+* text=auto eol=lf
+
+# Binary assets: never touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.xlsx binary
