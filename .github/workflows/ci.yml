@@ -85,3 +85,57 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # The student journey in a real browser (TESTING.md "Browser tests"). Its own job and its own
+  # throwaway database, so a slow browser never holds up the checks above.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qup
+          POSTGRES_PASSWORD: qup
+          POSTGRES_DB: qup_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qup -d qup_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      QUP_E2E_DATABASE_URL: postgresql://qup:qup@localhost:5432/qup_db
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Browser
+        run: pnpm --filter @qup/web exec playwright install --with-deps chromium
+
+      - name: Student journey
+        run: pnpm --filter @qup/web e2e
+
+      - name: Traces of failed runs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7
