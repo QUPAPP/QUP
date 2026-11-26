@@ -102,8 +102,17 @@ Assumptions: OPEN_QUESTIONS.md #19a.
 ## V1.2 (2026-11-17): DeepSeek, knowledge library (RAG), study chat, subscribers only
 
 - **Provider:** DeepSeek is the production provider (OPEN_QUESTIONS.md #17). `AI_PROVIDER=deepseek`
-  needs only `AI_API_KEY`; `AI_MODEL` defaults to `deepseek-chat`. The DeepSeek and OpenAI presets
-  send `response_format: json_object`, so a reply is always one JSON object.
+  needs only `AI_API_KEY`; `AI_MODEL` defaults to `deepseek-flash` (since 2026-11-26; DeepSeek
+  retired `deepseek-chat` on 2026-07-24). The DeepSeek and OpenAI presets send
+  `response_format: json_object`, so a reply is always one JSON object. DeepSeek's models think
+  before answering by default; the preset sends `thinking: {"type": "disabled"}`, because these tasks
+  are short structured answers and thinking adds latency and output tokens that can cut the JSON off.
+  `AI_MODEL=deepseek-v4-pro` is the stronger, about four times dearer option.
+- **DeepSeek through OpenRouter (2026-11-26):** `AI_PROVIDER=openrouter`,
+  `AI_MODEL=deepseek/deepseek-v4.1-flash-1017` (the same model as `deepseek-flash`) and the OpenRouter
+  key in `AI_API_KEY`. The preset sends `response_format: json_object` and
+  `reasoning: {"effort": "none"}`. OpenRouter refuses `effort: "none"` for a model that must reason
+  (its `reasoning.mandatory` is true), so choose one where it is false.
 - **Knowledge Library** (`ai_knowledge_items`, `ai_knowledge_chunks`, migration 0020): admins
   (`ai.manage`) add entries per exam, optionally per skill, at `/admin/ai/knowledge`.
   - `EXAMPLE`: model questions or a whole model exam. Generation imitates their style.

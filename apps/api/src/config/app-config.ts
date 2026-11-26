@@ -55,15 +55,37 @@ const AI_PROVIDERS = [
 
 /**
  * A preset's model when AI_MODEL is not set. DeepSeek is the provider the
- * product owner chose (OPEN_QUESTIONS.md #17); `deepseek-chat` is its
- * general model, which answers JSON fast and cheaply.
+ * product owner chose (OPEN_QUESTIONS.md #17); `deepseek-flash` is its
+ * current general model, which answers JSON fast and cheaply. DeepSeek
+ * retired the older name `deepseek-chat` on 2026-07-24.
  */
 const DEFAULT_PRESET_MODELS: Partial<Record<OpenAiCompatibleKind, string>> = {
-  deepseek: "deepseek-chat",
+  deepseek: "deepseek-flash",
 };
 
-/** Presets that honour `response_format: json_object`, so a reply is always one JSON object. */
-const JSON_MODE_PRESETS: ReadonlySet<OpenAiCompatibleKind> = new Set(["deepseek", "openai"]);
+/**
+ * Presets that honour `response_format: json_object`, so a reply is always one
+ * JSON object. OpenRouter passes it to models that support it (DeepSeek's do).
+ */
+const JSON_MODE_PRESETS: ReadonlySet<OpenAiCompatibleKind> = new Set([
+  "deepseek",
+  "openai",
+  "openrouter",
+]);
+
+/**
+ * The request fields that stop a preset's models thinking before they answer,
+ * in that vendor's own form. Every AI task here is a short structured answer:
+ * thinking adds latency and spends output tokens that can cut the JSON off.
+ * OpenRouter refuses `effort: "none"` only for models that must reason, so
+ * choose one whose reasoning is optional there.
+ */
+const THINKING_OFF_FIELDS: Partial<Record<OpenAiCompatibleKind, ThinkingOffFields>> = {
+  deepseek: { thinking: { type: "disabled" } },
+  openrouter: { reasoning: { effort: "none" } },
+};
+
+type ThinkingOffFields = Readonly<Record<string, unknown>>;
 
 function isOpenAiCompatible(provider: string): provider is OpenAiCompatibleKind {
   return Object.hasOwn(OPENAI_COMPATIBLE_URLS, provider);
@@ -221,7 +243,7 @@ const envSchema = z.object({
   AI_BASE_URL: z.url().optional(),
   /**
    * The model every task runs on. Claude defaults to DEFAULT_CLAUDE_MODEL and
-   * DeepSeek to `deepseek-chat` (DEFAULT_PRESET_MODELS); others must name one.
+   * DeepSeek to `deepseek-flash` (DEFAULT_PRESET_MODELS); others must name one.
    */
   AI_MODEL: z.string().trim().min(1).optional(),
   /** Claude's effort level: these tasks are short, structured answers. */
@@ -337,6 +359,7 @@ export type AiProviderConfig =
       apiKey: string;
       model: string;
       jsonMode: boolean;
+      thinkingOff: ThinkingOffFields | null;
     };
 
 /** null: AI is off and its routes answer AI_UNAVAILABLE. */
@@ -359,6 +382,7 @@ function aiProvider(env: z.infer<typeof envSchema>): AiProviderConfig | null {
     apiKey: env.AI_API_KEY ?? "",
     model,
     jsonMode: JSON_MODE_PRESETS.has(kind),
+    thinkingOff: THINKING_OFF_FIELDS[kind] ?? null,
   };
 }
 

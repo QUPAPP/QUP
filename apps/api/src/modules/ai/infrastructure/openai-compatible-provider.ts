@@ -9,6 +9,12 @@ export interface OpenAiCompatibleOptions {
   model: string;
   /** Ask for `response_format: json_object` (DeepSeek, OpenAI): the reply is always one JSON object. */
   jsonMode?: boolean;
+  /**
+   * Request fields that stop the model thinking first, in the vendor's form:
+   * DeepSeek `thinking: { type: "disabled" }`, OpenRouter `reasoning: { effort: "none" }`.
+   * null or absent: send nothing, since other vendors may refuse unknown fields.
+   */
+  thinkingOff?: Readonly<Record<string, unknown>> | null;
 }
 
 /** A non-2xx answer, a cut-off answer or an empty one: never output. */
@@ -37,6 +43,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
   readonly #apiKey: string;
   readonly #model: string;
   readonly #jsonMode: boolean;
+  readonly #thinkingOff: Readonly<Record<string, unknown>>;
 
   constructor(options: OpenAiCompatibleOptions) {
     this.name = options.name;
@@ -44,6 +51,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
     this.#apiKey = options.apiKey;
     this.#model = options.model;
     this.#jsonMode = options.jsonMode ?? false;
+    this.#thinkingOff = options.thinkingOff ?? {};
   }
 
   async complete(request: AiCompletionRequest, signal: AbortSignal): Promise<AiCompletion> {
@@ -54,6 +62,8 @@ export class OpenAiCompatibleProvider implements AiProvider {
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        // First, so a vendor field can never replace the fields below.
+        ...this.#thinkingOff,
         model: this.#model,
         max_tokens: request.maxOutputTokens,
         messages: [

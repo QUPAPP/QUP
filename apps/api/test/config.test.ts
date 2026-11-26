@@ -216,6 +216,7 @@ describe("configuration", () => {
       apiKey: "xai-test-key",
       model: "grok-test-model",
       jsonMode: false,
+      thinkingOff: null,
     });
     expect(
       loadConfig({
@@ -229,8 +230,26 @@ describe("configuration", () => {
       name: "deepseek",
       baseUrl: "https://api.deepseek.com/v1",
       apiKey: "sk-deepseek-test",
-      model: "deepseek-chat",
+      model: "deepseek-flash",
       jsonMode: true,
+      thinkingOff: { thinking: { type: "disabled" } },
+    });
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_URL,
+        ...PRODUCTION,
+        AI_PROVIDER: "openrouter",
+        AI_API_KEY: "sk-or-test",
+        AI_MODEL: "deepseek/deepseek-v4.1-flash-1017",
+      }).ai.provider,
+    ).toEqual({
+      kind: "openai-compatible",
+      name: "openrouter",
+      baseUrl: "https://openrouter.ai/api/v1",
+      apiKey: "sk-or-test",
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      jsonMode: true,
+      thinkingOff: { reasoning: { effort: "none" } },
     });
     expect(
       loadConfig({
@@ -243,6 +262,7 @@ describe("configuration", () => {
       name: "openai-compatible",
       baseUrl: "http://localhost:11434/v1",
       apiKey: "",
+      thinkingOff: null,
     });
   });
 
