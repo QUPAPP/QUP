@@ -58,11 +58,13 @@ storage there or replace the storage adapter with object storage (OPEN_QUESTIONS
 **AI assistance** is off in production by default (`AI_PROVIDER` unset means `disabled`), and the
 editor works without it. Do not set `AI_PROVIDER=fake` there: the API refuses to start with it.
 Production runs on **DeepSeek** (OPEN_QUESTIONS.md #17): set `AI_PROVIDER=deepseek` and `AI_API_KEY`
-(from platform.deepseek.com). `AI_MODEL` defaults to `deepseek-chat`, and replies use DeepSeek's
+(from platform.deepseek.com). `AI_MODEL` defaults to `deepseek-flash` (thinking off), and replies use DeepSeek's
 JSON mode. To run on Claude instead, set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`AI_MODEL`
 defaults to `claude-opus-5-5`, `AI_EFFORT` to `medium`). Other vendors: `grok`, `openai`, `groq`,
 `openrouter`, `gemini` or `openai-compatible` (the last one also needs `AI_BASE_URL`), plus
-`AI_API_KEY` and `AI_MODEL`. Student AI (mistake explanations and the study chat) turns on with the
+`AI_API_KEY` and `AI_MODEL`. DeepSeek through OpenRouter: `AI_PROVIDER=openrouter`,
+`AI_MODEL=deepseek/deepseek-v4.1-flash-1017` and the OpenRouter key; JSON mode and no thinking are
+sent for it too. Student AI (mistake explanations and the study chat) turns on with the
 provider **for subscribers of the exam only**; `AI_STUDENT_EXPLANATIONS=false` and
 `AI_STUDY_CHAT=false` hide them (OPEN_QUESTIONS.md #18, #19e). Migration 0020 adds the knowledge
 library and chat tables; it needs PostgreSQL's built-in `arabic` text search configuration.

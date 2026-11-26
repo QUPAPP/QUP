@@ -350,6 +350,9 @@
 17. AI providers المسموح بها في Production.
     **حُسم (2026-11-17، معاذ):** DeepSeek هو المزوّد المعتمد (`AI_PROVIDER=deepseek`، والنموذج الافتراضي
     `deepseek-chat`). يبقى Claude وبقية المزوّدات متاحة بالإعداد.
+    **تحديث (2026-11-26):** أوقفت DeepSeek اسم `deepseek-chat` في 2026-07-24، فصار النموذج الافتراضي
+    `deepseek-flash` بدون وضع التفكير. ويمكن الوصول لنفس النموذج عبر OpenRouter
+    (`AI_PROVIDER=openrouter`، `AI_MODEL=deepseek/deepseek-v4.1-flash-1017`).
 
 18. هل AI explanation يظهر مباشرة للطالب أم يبدأ المنتج بالapproved explanations فقط؟
     **حُسم (2026-11-17، معاذ):** يظهر مباشرة للطالب، لكن **للمشتركين فقط**: كل مزايا الذكاء الاصطناعي

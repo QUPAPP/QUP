@@ -92,9 +92,11 @@ describe("OpenAI-compatible provider", () => {
       messages: [{ role: "system" }, { role: "user" }],
     });
     expect(request?.body).not.toHaveProperty("response_format");
+    // Other vendors may refuse a field they do not know.
+    expect(request?.body).not.toHaveProperty("thinking");
   });
 
-  it("asks DeepSeek for JSON mode", async () => {
+  it("asks DeepSeek for JSON mode without thinking", async () => {
     next = {
       status: 200,
       body: completion('{"correctOptionKeys":["B"],"explanation":"عاجل تعني سريع."}'),
@@ -103,8 +105,9 @@ describe("OpenAI-compatible provider", () => {
       name: "deepseek",
       baseUrl: `${baseUrl}/v1`,
       apiKey: "sk-test",
-      model: "deepseek-chat",
+      model: "deepseek-flash",
       jsonMode: true,
+      thinkingOff: { thinking: { type: "disabled" } },
     });
     const result = await runAiTask(
       deepseek,
@@ -117,7 +120,30 @@ describe("OpenAI-compatible provider", () => {
     );
     expect(result.ok).toBe(true);
     expect(seen.at(-1)?.body).toMatchObject({
-      model: "deepseek-chat",
+      model: "deepseek-flash",
+      response_format: { type: "json_object" },
+      thinking: { type: "disabled" },
+    });
+  });
+
+  it("never lets a vendor field replace the model, messages or token limit", async () => {
+    next = {
+      status: 200,
+      body: completion('{"correctOptionKeys":["B"],"explanation":"عاجل تعني سريع."}'),
+    };
+    const provider = new OpenAiCompatibleProvider({
+      name: "openrouter",
+      baseUrl: `${baseUrl}/v1`,
+      apiKey: "sk-or-test",
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      jsonMode: true,
+      thinkingOff: { reasoning: { effort: "none" }, model: "other", messages: [] },
+    });
+    await runAiTask(provider, draftExplanation, { question }, { timeoutMs: 5000, maxAttempts: 1 });
+    expect(seen.at(-1)?.body).toMatchObject({
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      messages: [{ role: "system" }, { role: "user" }],
+      reasoning: { effort: "none" },
       response_format: { type: "json_object" },
     });
   });
